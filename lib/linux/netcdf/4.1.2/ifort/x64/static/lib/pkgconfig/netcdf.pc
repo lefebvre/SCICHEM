@@ -1,0 +1,16 @@
+prefix=/sidlib/netcdf/4.1.2/ifort/x64/static
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+ccompiler=gcc
+cppcompiler=g++
+fcompiler=ifort
+fflags=-g -O3 -fPIC -I${includedir}
+flibs=-lnetcdff -lnetcdf -L/sidlib/hdf/hdf5-1.8.7-linux-x86_64-static/lib -lhdf5_hl -lhdf5  -L/sidlib/hdf/hdf5-1.8.7-linux-x86_64-static/lib -lz -lm -lhdf5_hl -lhdf5 -lz -lm -lsz -L/sidlib/hdf/hdf5-1.8.7-linux-x86_64-static/lib -lsz -lhdf5_hl -lhdf5 -lz -lm -lsz
+
+Name: netcdf
+Description: NetCDF Client Library
+Version: 4.1.2
+Libs: -L${libdir} -lnetcdf -L/sidlib/hdf/hdf5-1.8.7-linux-x86_64-static/lib -lhdf5_hl -lhdf5  -L/sidlib/hdf/hdf5-1.8.7-linux-x86_64-static/lib -lz -lm -lhdf5_hl -lhdf5 -lz -lm -lsz -L/sidlib/hdf/hdf5-1.8.7-linux-x86_64-static/lib -lsz -lhdf5_hl -lhdf5 -lz -lm -lsz
+Cflags: -I${includedir}
+

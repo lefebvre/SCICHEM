@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectType="typeStaticLibrary" ProjectCreator="Intel Fortran" Keyword="Static Library - Converted from CVF" Version="11.0" ProjectIdGuid="{CACBE2E5-F095-451A-965C-EBD4B7ADA403}">
+	<Platforms>
+		<Platform Name="Win32"/>
+		<Platform Name="x64"/></Platforms>
+	<Configurations>
+		<Configuration Name="Debug|Win32" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\lib\ARAPlib" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)" EnableRecursion="true" WarnDeclarations="true" WarnUnusedVariables="true" WarnTruncateSource="true" FloatingPointModel="strict" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" RuntimeChecks="rtChecksNone" BoundsCheck="true" UninitializedVariablesCheck="true"/>
+				<Tool Name="VFLibrarianTool" LinkLibraryDependencies="true"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" ShowProgress="true" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|Win32" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\lib\ARAPlib" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" OmitFramePointers="false" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)" EnableRecursion="true" Diagnostics="diagnosticsDisableAll" ByteRECL="true" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" RuntimeChecks="rtChecksNone"/>
+				<Tool Name="VFLibrarianTool" LinkLibraryDependencies="true"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Debug|x64" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\lib\ARAPlib" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)" EnableRecursion="true" DebugParameter="debugParameterAll" WarnDeclarations="true" WarnUnusedVariables="true" WarnTruncateSource="true" ByteRECL="true" FloatingPointModel="source" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)" ObjectFile="$(INTDIR)/" PdbFile="$(IntDir)\$(InputName).pdb" AssemblerListingLocation="$(INTDIR)/" EmitSourceListing="true" Traceback="true" BoundsCheck="true" UninitializedVariablesCheck="true"/>
+				<Tool Name="VFLibrarianTool" LinkLibraryDependencies="true"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" ShowProgress="true" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|x64" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\lib\ARAPlib" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DNEW_MCWIF /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)" EnableRecursion="true" ByteRECL="true" FloatingPointModel="source" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/"/>
+				<Tool Name="VFLibrarianTool" LinkLibraryDependencies="true"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration></Configurations>
+	<Files>
+		<Filter Name="Header Files" Filter="h;hpp;hxx;hm;inl;fi;fd;inc"/>
+		<Filter Name="Source Files" Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;for;f;f90;fpp">
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\cfft.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\cformat.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\clnpar.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\clower.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\cupper.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\deblank.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\erfc.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\erfci.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\erfcinv.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\fzero.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\get_next_data.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\getfile.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\getvalue.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\heavi.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\imtql2.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\interp.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\interp_2d.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\julian.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\locate.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\lognorm.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\MapProjections.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\matchstr.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\matinv.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\MatRot.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\nblank.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\pythag.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\radb2.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\radb3.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\radb4.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\radb5.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\radbg.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\radf2.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\radf3.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\radf4.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\radf5.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\radfg.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\random.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\reallocate.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\rfftb.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\rfftb1.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\rfftf.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\rfftf1.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\rffti.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\rffti1.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\sspev.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\tom624.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\tqlrat.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\trbak3.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\tred3.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\trig_degrees.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\untabify.f90"/>
+		<File RelativePath="..\..\..\src\lib\util\ARAPlib\vsort.f90"/></Filter></Files>
+	<Globals/></VisualStudioProject>

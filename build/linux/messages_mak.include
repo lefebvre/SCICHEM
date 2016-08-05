@@ -1,0 +1,3 @@
+# Include file for makefile using dynamic libraries
+LIBS=-L ./ -lsystool -larap
+LIBDEPENDS=libarap.a

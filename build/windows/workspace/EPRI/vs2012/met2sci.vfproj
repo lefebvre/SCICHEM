@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectCreator="Intel Fortran" Keyword="Console Application" Version="11.0" ProjectIdGuid="{C5945C62-99EB-49DF-AF4E-49730195393A}">
+	<Platforms>
+		<Platform Name="Win32"/>
+		<Platform Name="x64"/></Platforms>
+	<Configurations>
+		<Configuration Name="Debug|Win32" OutputDirectory="bin\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\bin\$(ProjectName)">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" WarnInterfaces="true" ModulePath="tmp\intel\$(PlatformName)\$(ConfigurationName)\bin\$(ProjectName)" PdbFile="$(IntDir)\$(ProjectName).pdb" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebug"/>
+				<Tool Name="VFLinkerTool" OutputFile="$(OutDir)\metsci.exe" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" GenerateDebugInformation="true" SubSystem="subSystemConsole"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|Win32" OutputDirectory="bin\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\bin\$(ProjectName)">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" ModulePath="tmp\intel\$(PlatformName)\$(ConfigurationName)\bin\$(ProjectName)" PdbFile="$(IntDir)\$(ProjectName).pdb"/>
+				<Tool Name="VFLinkerTool" OutputFile="$(OutDir)\METSCI.exe" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" SubSystem="subSystemConsole"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Debug|x64">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" WarnInterfaces="true" ModulePath="tmp\intel\$(PlatformName)\$(ConfigurationName)\bin\$(ProjectName)" PdbFile="$(IntDir)\$(ProjectName).pdb" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebug"/>
+				<Tool Name="VFLinkerTool" OutputFile="$(OutDir)\metsci.exe" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" GenerateDebugInformation="true" SubSystem="subSystemConsole"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|x64" OutputDirectory="bin\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\bin\met2sci">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DNEW_MCWIF /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" ByteRECL="true" ModulePath="tmp\intel\$(PlatformName)\$(ConfigurationName)\bin\$(ProjectName)" PdbFile="$(IntDir)\$(ProjectName).pdb"/>
+				<Tool Name="VFLinkerTool" OutputFile="$(OutDir)\METSCI.exe" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" SubSystem="subSystemConsole"/>
+				<Tool Name="VFResourceCompilerTool"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration></Configurations>
+	<Files>
+		<Filter Name="Header Files" Filter="fi;fd"/>
+		<Filter Name="Resource Files" Filter="rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
+		<Filter Name="Source Files" Filter="f90;for;f;fpp;ftn;def;odl;idl">
+		<Filter Name="AERMET">
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\AERSURF.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\AERSURF2.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\ASOSREC.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\AUDIT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\AUTCHK.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\AVGCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\BANNER.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\BULKRI.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\CALMS.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\CBLHT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\CHRCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\CHRCRD2.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\CHROND.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\CLHT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\CLMCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\CLOUDS.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\COMPDT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\CUBIC.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\CVG.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\D028LV.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\D144HD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\D144LV.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\D3280H.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\D3280L.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\D6201H.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\D6201L.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\DATCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\DATER.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\DEF256.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\DEFINE.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\DOCLDS.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\DTCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\EQ_CCVR.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\ERRHDL.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\FDKEY.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\FDPATH.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\FETCH.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\FileList_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\FLIWK1.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\FLIWK2.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\FLOPEN.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\FLOS.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\FLSDG.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\FLSFC.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\FLWRK1.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\FLWRK2.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\FMTCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\FNDCOMDT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\GEO.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\GET620.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\GETASOS.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\GETFIL.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\GETFLD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\GETFSL.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\GETSFC.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\GETWRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\GMTLST.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\GREG.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\HDPROC.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\HEADER.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\HEAT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\HGTCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\HR0024.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\HTCALC.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\HTKEY.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\HUMID.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\HUSWX.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\ICHRND.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\INCRAD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\INTEQA.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\INTHF.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\ISHWX.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\JBCARD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\LATLON.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\LOCCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\LWRUPR.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MANDEL.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MDCARD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MERGE.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MIDNITE.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MODEL.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MPCARD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MPFIN.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MPHEAD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MPMET.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MPOUT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MPPBL.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MPPROC.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MPTEST.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MRCARD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MRHDR.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\MRPATH.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\NETRAD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\NR_ANG.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\NWSHGT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OAUDIT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSCARD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSCHK.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSDTCD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSDUMP.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSFILL.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSFILL2.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSHRAV.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSNEXT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSPATH.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSPRNT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSQACK.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSQAST.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSRANGE.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSREAD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSSMRY.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSSUMS.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSSWAP.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSTEST.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSTRA.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OSWRTE.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\OTHHDR.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\P2MSUB.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\PRESET.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\PTAREA.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\PTGRAD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\RDHUSW.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\RDISHD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\RDLREC.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\RDSAMS.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\READRL.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\REALQA.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\RHOCAL.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\RNGCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SAMWX.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SAUDIT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SBLHT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SCNGEN.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SECCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SECCRD2.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SETHUS.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SETSAM.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SETUP.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFCARD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFCCH.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFCCH2.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFCCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFCCRD2.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFCHK.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFCWXX.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFEXST.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFEXT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFPATH.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFQASM.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFQAST.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFQATM.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SFTRA.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SMTHZI.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\STONUM.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SUBST.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SUMHF.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SUMRY1.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SUMRY2.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\SUNDAT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\TDPEST.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\TEST.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\THRESH1MIN.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\UACARD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\UACHK.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\UAEXST.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\UAEXT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\UAMOVE.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\UAPATH.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\UAQASM.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\UAQAST.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\UATRA.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\UAUDIT.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\UAWNDW.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\UCALCO.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\UCALST.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\VALCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\VARCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\VRCARD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\WRTCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\XDTCRD.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\XTNDUA.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\YR2TOYR4.FOR"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\AERMET\YR4TOYR2.FOR"/></Filter>
+		<Filter Name="SCIPRE">
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\error_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\ExtractSFCdata.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\ExtractUAdata.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\GetUAloc.for"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\MaxChar_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\met2sci.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\met2sci_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\MetSCIparam_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\MetSCIutil.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\mod_AsosCommDates.for"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\ParsePathwayInput.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\ReportError.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\SetAERMETdata.for"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\SetSFC.for"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\SetUA.for"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\SetUAQA.for"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\WriteSFCdata.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\WriteSFCheader.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\WriteUAdata.f90"/>
+		<File RelativePath="..\..\..\src\bin\met2sci\SCIPRE\WriteUAheader.f90"/></Filter></Filter></Files>
+	<Globals/></VisualStudioProject>
