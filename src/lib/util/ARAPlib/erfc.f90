@@ -46,7 +46,7 @@ REAL(8) t
 
 t = 1.D0/(1.D0+p*ABS(arg))
 
-derfc = t*(a1+t*(a2+t*(a3+t*(a4+t*a5))))*EXP(-arg**2)
+derfc = t*(a1+t*(a2+t*(a3+t*(a4+t*a5))))*DEXP(-arg**2)
 
 IF( arg < 0.0D0 )derfc = 2.D0 - derfc
 

@@ -240,7 +240,7 @@ DO is = 1,nsmp
   ELSE
 
     ss%FieldName(1) = 'Mean'
-    IF( nv > 1 )ss%FieldName(2) = 'Variance'
+    ss%FieldName(2) = 'Variance'
     IF( lScale )ss%FieldName(3) = 'TimeScale'
 
   END IF
@@ -493,6 +493,8 @@ TYPE( sensor ),INTENT( IN ) :: ss
 INTEGER ios, iv, i, j
 
 CHARACTER(256) string
+
+IF( lBinOut )GOTO 9999
 
 !------ Check for no output
 

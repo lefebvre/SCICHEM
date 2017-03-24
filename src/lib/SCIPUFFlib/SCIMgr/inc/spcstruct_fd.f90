@@ -7,6 +7,12 @@ MODULE spcstruct_fd
   USE prjstruct_fd    !Basic project structures
   USE domain_fd       !Reference structure
 
+! Bits for GetProjectPufff flag
+
+  INTEGER, PARAMETER :: PPB_TRANS = 0  !Translate puff centroid to LLA
+  INTEGER, PARAMETER :: PPB_MSL   = 1  !Zbar, Zc, Zinc above MSL (AGL otherwise)
+  INTEGER, PARAMETER :: PPB_SLOPE = 1  !Save terrain slopes in puff axx & ayy
+
 !==== terrainHeadT ============================================================
 
   TYPE  terrainHeadT
@@ -69,7 +75,8 @@ MODULE spcstruct_fd
 
   TYPE  puffT !Basic puff structure - currenty identical to puff_str w/o aux pointer
     SEQUENCE
-    REAL    xbar,ybar,zbar
+    REAL(8) xbar,ybar
+    REAL    zbar
     REAL    sxx,sxy,sxz,syy,syz,szz
     REAL    axx,axy,axz,ayy,ayz,azz,det
     REAL    c,cc,xuc,xvc,yvc,yvsc,yvbc,zwc,wc,ccb

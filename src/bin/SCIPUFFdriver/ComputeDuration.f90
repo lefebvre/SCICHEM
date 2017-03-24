@@ -27,7 +27,8 @@ IF( start%hour == NOT_SET_R .OR. end%hour == NOT_SET_R )GOTO 9999
 IF( check_YMD(start) )THEN
 
   IF( check_YMD(end) )THEN
-    IF( start%year > end%year )THEN
+    IF( start%year > end%year .OR. julian_day(start%month,start%day,start%year) == -999 .OR. &
+                                   julian_day(end%month,end%day,end%year) == -999 )THEN
       GOTO 9999
     ELSE IF( start%year == end%year )THEN
       tim = FLOAT(julian_day(  end%month,  end%day,  end%year) - &

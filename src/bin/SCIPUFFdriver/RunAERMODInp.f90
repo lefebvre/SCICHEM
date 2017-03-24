@@ -3,7 +3,7 @@
 !$Revision$
 !$Date$
 !*******************************************************************************
-SUBROUTINE RunAERMODInp( ToolUserID,restart )
+SUBROUTINE RunAERMODInp( ToolUserID,restart,error )
 
 USE SCIPUFFdriver_fi
 USE SCIPtool
@@ -92,6 +92,7 @@ IF( LEN_TRIM(emiFile) > 1 .OR. LEN_TRIM(primeFile) > 1 )THEN
   irv = SetEmissions()
   IF( irv /= SUCCESS )GOTO 9999
 ELSE
+  lEmissionFile = .FALSE.
   lReadEmission = .FALSE.
 END IF
 
@@ -109,7 +110,7 @@ IF( .NOT.restart )THEN
 
   CALL ReportDefaults() !Report default values used to defined project
 
-  irv = SCIPNewProject( ToolUserID,new,mtlList,relList )
+  irv = SCIPNewProjectMC( ToolUserID,new,mtlList,relList,nMCrel,relMCList )
   IF( irv == SCIPfailure )THEN
     irv = SCIPGetLastError( error )
     IF( irv == SCIPfailure )THEN

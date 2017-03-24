@@ -85,6 +85,7 @@ END DO
 !------ check for keywords by searching for "="
 
 i = INDEX(string,'=')
+IF( maxn < 1 )i = 0
 
 IF( i == 0 )THEN
 
@@ -115,7 +116,7 @@ END IF
 
 !------ parse data string
 
-CALL parse_string( data_string,n_arg,c_arg,maxn,lerr )
+CALL parse_string( data_string,n_arg,c_arg,ABS(maxn),lerr )
 IF( lerr )RETURN
 
 IF( kwrd /= 'NONE' )THEN
@@ -534,6 +535,7 @@ END DO
 !------ check for keywords by searching for "="
 
 i = INDEX(string,'=')
+IF( maxn < 1 )i = 0
 
 IF( i == 0 )THEN
 
@@ -564,7 +566,7 @@ END IF
 
 !------ parse data string
 
-CALL parse_string( data_string,n_arg,c_arg,maxn,lerr )
+CALL parse_string( data_string,n_arg,c_arg,ABS(maxn),lerr )
 IF( lerr )RETURN
 
 IF( kwrd /= 'NONE' )THEN

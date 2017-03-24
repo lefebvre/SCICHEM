@@ -1327,7 +1327,7 @@ DO ii = 1,mat_mc%nMCtype
       chem%lunAmb = 0
     END IF
 
-    chem%lAddAmb = .TRUE. ! Default set to True for SCICHEM 3.0(Beta 3).
+    chem%lAddAmb = .TRUE. ! Default set to False for SCICHEM 3.x
     chem%lSfcFlx = chem%sFlxFile /= ' '
     IF( chem%lSfcFlx )THEN
       chem%lunSfcFlx = 301 + n
@@ -1361,11 +1361,26 @@ DO ii = 1,mat_mc%nMCtype
     END IF
 
     DO i = 1,chem%nSpecies
+      IF( iversion > 3100 )THEN
+        READ(lun_prj,IOSTAT=ios) chem%species(i)%class,chem%species(i)%classAux,chem%species(i)%name, &
+                               chem%species(i)%ambient,chem%species(i)%tol,&
+                               chem%species(i)%ldos,chem%species(i)%ldep, &
+                               chem%species(i)%scav,chem%species(i)%vdep,&
+                               chem%species(i)%Henry0,chem%species(i)%TpFac,&
+                               chem%species(i)%RxFac,chem%species(i)%SrfRFac,chem%species(i)%ldrydep,&
+                               chem%species(i)%mw,chem%species(i)%nit,chem%species(i)%lim
+      ELSE
       READ(lun_prj,IOSTAT=ios) chem%species(i)%class,chem%species(i)%classAux,chem%species(i)%name, &
                                chem%species(i)%ambient,chem%species(i)%tol,&
                                chem%species(i)%ldos,chem%species(i)%ldep, &
                                chem%species(i)%scav,chem%species(i)%vdep,&
                                chem%species(i)%mw,chem%species(i)%nit,chem%species(i)%lim
+          chem%species(i)%Henry0  = NOT_SET_R
+          chem%species(i)%TpFac   = NOT_SET_R
+          chem%species(i)%RxFac   = NOT_SET_R
+          chem%species(i)%SrfRFac = NOT_SET_R
+          chem%species(i)%ldrydep = .FALSE.
+      ENDIF
       IF( ios /= 0 )GOTO 9998
     END DO
 
@@ -1761,7 +1776,7 @@ ELSE
 
     IF( grd%lter )THEN
 
-      nxy  = grd%nX * grd%nY
+      nxy = grd%nX * grd%nY
 
       IF( iversion >= 411 )THEN
         READ(lun_prj,IOSTAT=ios) (grd%H(i),i=1,nxy),(grd%Hx(i),i=1,nxy), &
@@ -1782,6 +1797,10 @@ ELSE
     END IF
 
     hmin = grd%Hmin
+
+  ELSE
+
+    NULLIFY( grd%zi,grd%H,grd%Hx,grd%Hy )
 
   END IF
 

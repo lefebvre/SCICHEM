@@ -241,7 +241,7 @@ INTEGER, EXTERNAL :: GetProjectPuffs
 
 puffHead%project = Project
 
-irv = GetProjectPuffs( callerID,puffHead,it,.FALSE.,.FALSE. )
+irv = GetProjectPuffs( callerID,puffHead,it,.FALSE.,.FALSE.,0 )
 IF( irv /= SCIPsuccess )GOTO 9999
 
 IF( it == 1 )THEN
@@ -846,7 +846,7 @@ ProjectLoop: DO !Loop over projects
 
   PuffTimes: DO it = 1,nTimePuff
 
-    irv = GetProjectPuffs( callerID,puffHead,it,.TRUE.,.FALSE. )
+    irv = GetProjectPuffs( callerID,puffHead,it,.TRUE.,.FALSE.,0 )
     IF( irv /= SCIPsuccess )GOTO 9999
 
     csum_grp = 0.

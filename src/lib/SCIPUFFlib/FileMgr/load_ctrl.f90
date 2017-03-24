@@ -25,7 +25,7 @@ REAL, EXTERNAL :: ScaleReal
 
 file_rst = ctrl%name
 path_rst = ctrl%path
-time_rst = ScaleReal(ctrl%runTime,HCF_HOUR2SEC)
+time_rst = ScaleReal( ctrl%runTime,HCF_HOUR2SEC )
 
 RETURN
 END
@@ -51,7 +51,7 @@ REAL, EXTERNAL :: ScaleReal
 
 ctrl%name    = file_rst
 ctrl%path    = path_rst
-ctrl%runTime = ScaleReal(time_rst,HCF_SEC2HOUR)
+ctrl%runTime = ScaleReal( time_rst,HCF_SEC2HOUR )
 
 RETURN
 END

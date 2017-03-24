@@ -82,6 +82,7 @@ END
 SUBROUTINE SelectCustomContours()
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -89,6 +90,7 @@ INTEGER irv, ios, itry, i
 REAL, DIMENSION(:), ALLOCATABLE :: x
 CHARACTER(128) string
 
+INTEGER, EXTERNAL :: parseString
 INTEGER, EXTERNAL :: getInput
 
 CALL SelectContourGenerationNumber()
@@ -115,36 +117,62 @@ IF( irv /= 0 )THEN
   GOTO 9999
 END IF
 
-ios  = 1
-itry = 0
-string = 'contour values'
-DO WHILE( ios > 0 )
-  itry = itry + 1
-  ios = getInput( string,contourHead%number,x )
-  IF( ios > 0 )THEN
-    IF( itry < maxTry )THEN
-      WRITE(6,'(A)')'Error reading input, try again'
-    ELSE
-      nError   = UK_ERROR
-      eRoutine = 'SelectCustomContours'
-      eMessage = 'Error reading '//TRIM(string)
-      GOTO 9999
-    END IF
-  ELSE IF( ios < 0 )THEN
-    IF( itry < maxTry )THEN
-      WRITE(6,'(A)')'Must specify values, try again'
-    ELSE
-      nError   = UK_ERROR
-      eRoutine = 'SelectCustomContours'
-      eMessage = 'No contour values specified'
-      GOTO 9999
-    END IF
-  ELSE
-    DO i = 1,contourHead%number
-      contourList(i)%contour = x(i)
-    END DO
+IF( iFld > 0 )THEN
+
+  IF( iCnt <= 0 )THEN
+    nError   = UK_ERROR
+    eRoutine = 'SelectCustomContours'
+    eMessage = 'No contour values specified on command line'
+    GOTO 9999
   END IF
-END DO
+  ios = parseString( cmds(iCnt)%cargs,contourHead%number,x )
+  IF( ios /= 0 )THEN
+    nError   = UK_ERROR
+    eRoutine = 'SelectCustomContours'
+    eMessage = 'Error reading contour values'
+    eInform  = 'from argument '//TRIM(cmds(iCnt)%cargs)
+    GOTO 9999
+  END IF
+  DO i = 1,contourHead%number
+    contourList(i)%contour = x(i)
+    IF( iFld > 0 )&
+      contourList(i)%contour = contourList(i)%contour/fScl
+  END DO
+
+ELSE
+
+  ios  = 1
+  itry = 0
+  string = 'contour values'
+  DO WHILE( ios > 0 )
+    itry = itry + 1
+    ios = getInput( string,contourHead%number,x )
+    IF( ios > 0 )THEN
+      IF( itry < maxTry )THEN
+        WRITE(6,'(A)')'Error reading input, try again'
+      ELSE
+        nError   = UK_ERROR
+        eRoutine = 'SelectCustomContours'
+        eMessage = 'Error reading '//TRIM(string)
+        GOTO 9999
+      END IF
+    ELSE IF( ios < 0 )THEN
+      IF( itry < maxTry )THEN
+        WRITE(6,'(A)')'Must specify values, try again'
+      ELSE
+        nError   = UK_ERROR
+        eRoutine = 'SelectCustomContours'
+        eMessage = 'No contour values specified'
+        GOTO 9999
+      END IF
+    ELSE
+      DO i = 1,contourHead%number
+        contourList(i)%contour = x(i)
+      END DO
+    END IF
+  END DO
+
+END IF
 
 9999 CONTINUE
 
@@ -186,6 +214,7 @@ END
 SUBROUTINE SelectContourGenerationMode()
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -210,14 +239,18 @@ loop: DO
     WRITE(6,'(/,"Contour generation mode Number? : ",$)')
   END IF
 
-  READ(lun_in,'(A)',IOSTAT=ios)string
-  IF( ios /= 0 )THEN
-    nError   = UK_ERROR
-    eRoutine = 'SelectContourGenerationMode'
-    eMessage = 'Error reading Contour generation mode'
-    WRITE(eInform,'(A,I0)')'error =',ios
+  IF( iFld > 0 )THEN
+    string = 'AU'
+  ELSE
+    READ(lun_in,'(A)',IOSTAT=ios)string
+    IF( ios /= 0 )THEN
+      nError   = UK_ERROR
+      eRoutine = 'SelectContourGenerationMode'
+      eMessage = 'Error reading Contour generation mode'
+      WRITE(eInform,'(A,I0)')'error =',ios
+    END IF
+    CALL cupper( string )
   END IF
-  CALL cupper( string )
 
   IF( UseKey )THEN
     string = ADJUSTL(string)
@@ -290,6 +323,7 @@ END
 SUBROUTINE SelectContourGenerationNumber()
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -301,12 +335,26 @@ itry = 0
 
 loop: DO
   WRITE(6,'(/,A,$)')'Desired number of contours? '
-  READ(lun_in,'(A)',IOSTAT=ios)string
-  IF( ios /= 0 )THEN
-    nError   = UK_ERROR
-    eRoutine = 'SelectContourGenerationNumber'
-    eMessage = 'Error reading Contour generation mode'
-    WRITE(eInform,'(A,I0)')'error =',ios
+  IF( iFld > 0 )THEN
+    IF( iCnt > 0 )THEN
+      WRITE(string,'(I3)')cmds(iCnt)%narg
+    ELSE IF ( TRIM(fld%fclass) == 'Terrain' )THEN
+      string = '10'
+    ELSE
+      nError   = UK_ERROR
+      eRoutine = 'SelectContourGenerationNumber'
+      eMessage = 'Error reading desired number of contours'
+      eInform  = 'Must provide contours levels as command line argument'
+      EXIT loop
+    END IF
+  ELSE
+    READ(lun_in,'(A)',IOSTAT=ios)string
+    IF( ios /= 0 )THEN
+      nError   = UK_ERROR
+      eRoutine = 'SelectContourGenerationNumber'
+      eMessage = 'Error reading Contour generation mode'
+      WRITE(eInform,'(A,I0)')'error =',ios
+    END IF
   END IF
 
   itry = itry + 1
@@ -333,7 +381,8 @@ loop: DO
   END IF
 END DO loop
 
-WRITE(6,'(/,A,I0)')'Using Contour generation number ',input
+IF( nError == NO_ERROR )&
+  WRITE(6,'(/,A,I0)')'Using Contour generation number ',input
 
 contourInput%number = input
 
@@ -435,6 +484,7 @@ END
 SUBROUTINE SelectContourGenerationScale()
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -446,27 +496,51 @@ INTEGER, EXTERNAL :: getInput
 
 ios  = 1
 itry = 0
-string = 'contour scale factor'
-DO WHILE( ios > 0 )
-  itry = itry + 1
-  ios = getInput( string,1,c )
-  IF( ios > 0 )THEN
-    IF( itry < maxTry )THEN
-      WRITE(6,'(A)')'Error reading input, try again'
+IF( iFld > 0 )THEN
+  IF( iScl > 0 )THEN
+    narg = 0
+    CALL SplitString( cmds(iScl)%cargs,',',narg,cargs,lerr )
+    IF( narg > 1 )THEN
+      READ(cargs(1),*,IOSTAT=ios)fScl
+      IF( ios /= 0 )THEN
+        nError   = UK_ERROR
+        eRoutine = 'SelectContourGenerationScale'
+        eMessage = 'Error reading scale factor from command line arguments '//TRIM(cargs(1))
+        GOTO 9999
+      END IF
+      IF( narg == 2 )contourHead%unit = TRIM(cargs(2))
     ELSE
       nError   = UK_ERROR
       eRoutine = 'SelectContourGenerationScale'
-      eMessage = 'Error reading '//TRIM(string)
+      eInform  = 'Scale factor must be provided on command line'
+      eMessage = 'Error reading scale factor from command line arguments'//TRIM(cmds(iScl)%cargs)
       GOTO 9999
     END IF
-  ELSE IF( ios < 0 )THEN
-    contourHead%scale = 1.0
-  ELSE
-    contourHead%scale = c(1)
   END IF
-END DO
+  contourHead%scale = fScl
+ELSE
+  string = 'contour scale factor'
+  DO WHILE( ios > 0 )
+    itry = itry + 1
+    ios = getInput( string,1,c )
+    IF( ios > 0 )THEN
+      IF( itry < maxTry )THEN
+        WRITE(6,'(A)')'Error reading input, try again'
+      ELSE
+        nError   = UK_ERROR
+        eRoutine = 'SelectContourGenerationScale'
+        eMessage = 'Error reading '//TRIM(string)
+        GOTO 9999
+      END IF
+    ELSE IF( ios < 0 )THEN
+      contourHead%scale = 1.0
+    ELSE
+      contourHead%scale = c(1)
+    END IF
+  END DO
 
-WRITE(6,'(/,A,2F0.5)')'Using contour Scale ',contourHead%scale
+  WRITE(6,'(/,A,2F0.5)')'Using contour Scale ',contourHead%scale
+END IF
 
 9999 CONTINUE
 
@@ -480,6 +554,7 @@ SUBROUTINE SelectContourExportMode()
 USE tooluser_fd
 USE write_fd
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -504,6 +579,9 @@ loop: DO
     WRITE(6,'(/,"Contour export mode Number? : ",$)')
   END IF
 
+IF( iFld > 0 )THEN
+  string = 'OVL'
+ELSE
   READ(lun_in,'(A)',IOSTAT=ios)string
   IF( ios /= 0 )THEN
     nError   = UK_ERROR
@@ -512,6 +590,7 @@ loop: DO
     WRITE(eInform,'(A,I0)')'error =',ios
   END IF
   CALL cupper( string )
+END IF
 
   IF( UseKey )THEN
     string = ADJUSTL(string)

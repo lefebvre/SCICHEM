@@ -26,17 +26,6 @@ MODULE McWIFintrf
       INTEGER,         INTENT( IN ) :: iMG
     END FUNCTION RelaxMcWIF
 
-!******************************************************************************
-    INTEGER FUNCTION Relax2McWIF( grid,u,v,w,p,alpha,csq,DivScale,iMG )
-      USE SWIM_fi
-      TYPE( MetGrid ), INTENT( IN ) :: grid
-      REAL, DIMENSION(:),   POINTER :: u, v, w, p, alpha, csq
-      REAL,            INTENT( IN ) :: DivScale
-      INTEGER,         INTENT( IN ) :: iMG
-    END FUNCTION Relax2McWIF
-!******************************************************************************
-
-
     INTEGER FUNCTION FFTMcWIF( grid,u,v,w,p,alpha,csq )
       USE SWIM_fi
       TYPE( MetGrid ), INTENT( IN ) :: grid
@@ -142,5 +131,6 @@ MODULE MGfield_fd
     REAL, DIMENSION(:), POINTER :: WW
     REAL, DIMENSION(:), POINTER :: div, dP
   END TYPE MGfield_str
+
 END MODULE MGfield_fd
 

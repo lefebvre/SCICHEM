@@ -8,11 +8,12 @@ MODULE cont_rel_functions
 IMPLICIT NONE
 
   INTERFACE
-    SUBROUTINE process_scn_cont( crmode,defIN )
+    SUBROUTINE process_scn_cont( relSpec,crmode,defIN )
       USE cont_rel_fd
       IMPLICIT NONE
-      INTEGER,           INTENT( IN ) :: crmode      !CRMODE_START, CRMODE_RESTART or CRMODE_UPDATE
-      INTEGER, OPTIONAL, INTENT( IN ) :: defIN       !Release ID (for update only)
+      TYPE( releaseSpecT ), INTENT( INOUT ) :: relSpec
+      INTEGER,              INTENT( IN    ) :: crmode      !CRMODE_START, CRMODE_RESTART or CRMODE_UPDATE
+      INTEGER, OPTIONAL,    INTENT( IN    ) :: defIN       !Release ID (for update only)
     END SUBROUTINE process_scn_cont
   END INTERFACE
 
@@ -534,8 +535,8 @@ next = numDefinition
 IF( cDefinition(next)%ID /= next )THEN
   nError   = UK_ERROR
   eRoutine = 'nextDefinition'
-  eMessage = 'Inconsistency in release defintion ID'
-  WRITE(eInform,'(A,I0,A,I0)')'Defintion ID =',cDefinition(next)%ID,' : Expected ID =',next
+  eMessage = 'Inconsistency in release definition ID'
+  WRITE(eInform,'(A,I0,A,I0)')'Definition ID =',cDefinition(next)%ID,' : Expected ID =',next
   GOTO 9999
 END IF
 
@@ -677,7 +678,9 @@ NULLIFY( def%nextDef )
 NULLIFY( def%prevDef )
 
 def%update  = .FALSE.
-NULLIFY( def%release )
+def%extraUpdate = .FALSE.
+
+CALL InitReleaseSpec( def%relSpec )
 
 RETURN
 END SUBROUTINE
@@ -722,24 +725,22 @@ END SUBROUTINE
 !*******************************************************************************
 INTEGER FUNCTION deallocate_Definition( def ) RESULT( ios )
 
+USE default_fd
 USE cont_rel_fd
 
 IMPLICIT NONE
 
 TYPE( cont_release_def ), INTENT( INOUT ) :: def
 
-INTEGER jos
-
 ios = deallocate_Definition_rel( def )
 
 NULLIFY( def%nextDef )
 NULLIFY( def%prevDef )
 
-IF( ASSOCIATED(def%release) )THEN
-  DEALLOCATE( def%release,STAT=jos )
-  ios = ios + jos
+IF( ASSOCIATED( def%relSpec%MClist%firstMCRel ) )THEN
+  CALL ClearMCrelList(def%relSpec%MClist)
 END IF
-NULLIFY( def%release )
+def%relSpec%release%trel = NOT_SET_R
 
 RETURN
 END FUNCTION
@@ -1442,9 +1443,9 @@ END IF
 
 IF( .NOT.cCollection(icol)%isActive )GOTO 9999
 
-!A Collection is a set of Defintions
+!A Collection is a set of Definitions
 !One collection contains all Pool releases and does not compute release interactions nor release statics
-!Other collections contain defintions that are colocated since they may interact and need to have statics run together
+!Other collections contain definitions that are colocated since they may interact and need to have statics run together
 !For consistency with v24, Regular continuous releases and Stack continuous releases are placed in separate sets
 !which prevents statics when a Regular release and a Stack release arre colocated.
 
@@ -1573,7 +1574,7 @@ IF( numDefinition > 0 )THEN
     IF( cDefinition(idef)%isPool .AND. cDefinition(idef)%time == DEF_VAL_R )CYCLE     !Skip completed pool
     ilev = 0
     DO irel = 1,cDefinition(idef)%rSet%nrel
-      ilev = MAX(ilev,cDefinition(idef)%rSet%rels(irel)%basePuff%idtl)
+      ilev = MAX(ilev,cDefinition(idef)%rSet%rels(irel)%basePuff%idtl,cDefinition(idef)%rSet%tlev)
     END DO
     mxtlev = MAX(mxtlev,ilev)
   END DO

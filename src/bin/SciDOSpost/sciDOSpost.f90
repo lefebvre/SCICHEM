@@ -21,7 +21,7 @@ USE met_fi, ONLY:PrjCoord
 
 IMPLICIT NONE
 
-TYPE( SAGgrid_str ), POINTER               :: grdC, grdA, grdD
+TYPE( SAGgrid_str ), POINTER     :: grdC, grdA, grdD
 
 CHARACTER (len=8)                :: maxPath
 CHARACTER (len=20)               :: units
@@ -48,13 +48,16 @@ INTEGER             :: iRun_Hours       ! Length of this run, in hours
 INTEGER             :: iy1,im1,id1,ih1, iy2,im2,id2,ih2 ! used to calc iRun_Hours 
 INTEGER             :: iClass, iChoice, iKind, iDOS, iDEP
 INTEGER             :: i, j, iTime, ios, iArg, ir
-INTEGER             :: cGrdI, aGrdI, dGrdI
 INTEGER             :: lun_dos, lun_ados, lun_dep,lun
 INTEGER             :: numCommand
 INTEGER(2)          :: ios2
 
+INTEGER, DIMENSION(:), ALLOCATABLE :: cGrdI, aGrdI, dGrdI
+
 LOGICAL             :: lexist, lopen, lAmb    ! does a file exist, open ?
 LOGICAL             :: isMULT = .false. ! multi-component or tracer run?
+LOGICAL             :: first  = .true.  ! first of the projName files, do init
+LOGICAL             :: skip             ! either read or skip next timestamp
 
 REAL                :: con_units_conv, dep_units_conv ! units conversion factors
 REAL                :: answer           ! what we seek
@@ -80,11 +83,19 @@ CHARACTER(128), EXTERNAL :: AddExtension
 useMPI = .FALSE.
 myid   = 0
 create = .FALSE.
+lAmb   = .FALSE.
 call date_and_time(datestr,timestr) ! current time, for the POSTFILE header
 
 !--- Start up : Initialize common
 
 CALL InitSciDosPost()
+
+INQUIRE(UNIT=24,OPENED=lopen,IOSTAT=ios)
+IF( .NOT. lopen )THEN
+  OPEN(24,FILE='sciDOSpost.log',position='append')
+ELSE
+  OPEN(24,FILE='sciDOSpost.log')
+END IF
 
 !--- Get the input file from the command line
 
@@ -104,7 +115,7 @@ do while (iArg < numCommand)
    else if (trim(Command) == '--sample') then
       call sample_control_file
    else if (trim(Command) == '--version') then
-      write(*,*) "SciDOSpost version 1.0, 2015-05-15"
+      write(*,*) "SciDOSpost version 1.1, 2017-02-22"
       stop
    else if (trim(Command) == '--debug') then
       debug = .true.
@@ -165,7 +176,14 @@ output(1:nOUts)%lun     = 0         ! default logical unit number
 allocate( Rset(nRsets),STAT=astat )
 IF( astat > 0 )THEN
   nError = UK_ERROR
-  WRITE(eMessage,*) 'Error allocating RsetName/RsetCoordType/RsetFilename'
+  WRITE(eMessage,*) 'Error allocating Rset(nRsets)'
+  GO TO 9999
+END IF
+
+allocate( ProjName(nProj),STAT=astat )
+IF( astat > 0 )THEN
+  nError = UK_ERROR
+  WRITE(eMessage,*) 'Error allocating ProjName(nProj)'
   GO TO 9999
 END IF
 
@@ -248,7 +266,7 @@ do iOut = 1, nOuts
 11       format(a,75x,6a)
 12       format(a,i6,a)
 
-         write(lun, 10) "* sciDOSpost (2015-05-06): ", ProjName(1:73),  &
+         write(lun, 10) "* sciDOSpost (2015-05-06): ", ProjName(1)(1:73), &
              datestr(3:4),"/",datestr(5:6),"/",datestr(7:8)
          write(lun, 11) "* MODELING OPTIONS USED: ",                &
              timestr(1:2),":",timestr(3:4),":",timestr(5:6)
@@ -279,650 +297,723 @@ do iOut = 1, nOuts
    end if
 
 end do
-write(*,*) ! make screen output look nicer
+write(*,*)      ! make screen output look nicer
+
+ALLOCATE(cGrdI(nProj),aGrdI(nProj),dGrdI(nProj),STAT=irv )
+IF( irv /= 0 )THEN
+  nError = UK_ERROR
+  eRoutine = 'SciDosPost'
+  eMessage = 'Error allocating cGrdI'
+  WRITE(eInform,'(A,I0,A,I0)')'Request =',nProj,' : Error=',irv
+  GO TO 9999
+END IF
+
+!******** MAIN LOOP OVER PROJECT (Basename) FILES ********
+
+do iProj = 1, nProj
 
 ! -- Get Plot Times
 
-WRITE(*,*)'Reading project files for ',TRIM(ProjName)
-CALL SplitName( ProjName,Project%name,Project%path ) !project name & path
-Project%ID      = 0
-Project%version = 0
+   WRITE(24,*)'Reading project files for ',TRIM(ProjName(iProj))
+   CALL SplitName( ProjName(iProj),Project%name,Project%path ) !project name, path
+   Project%ID      = 0
+   Project%version = 0
 
 !==== Action : Retrieve output times
 
-irv = SCIPNumPlotTimes( CallerID,Project,nTimePuff,nTimeSrf,nTimeMet,nNotUsed )
-IF( irv /= SCIPsuccess )THEN
-   CALL toolError( 'Failed retrieving number of project plot times' )
-   GOTO 9999
-END IF
+   irv = SCIPNumPlotTimes( CallerID,Project,nTimePuff,nTimeSrf,nTimeMet,nNotUsed )
+   IF( irv /= SCIPsuccess )THEN
+      CALL toolError( 'Failed retrieving number of project plot times' )
+      GOTO 9999
+   END IF
+   
+   CALL allocatePlotTimes( )
 
-CALL allocatePlotTimes( )
+   irv = SCIPGetPlotTimes( callerID,Project,TimePuff,TimeSrf,TimeMet )
+   IF( irv /= SCIPsuccess )THEN
+      CALL toolError( 'Failed retrieving project plot times' )
+      GOTO 9999
+   END IF
 
-irv = SCIPGetPlotTimes( callerID,Project,TimePuff,TimeSrf,TimeMet )
-IF( irv /= SCIPsuccess )THEN
-   CALL toolError( 'Failed retrieving project plot times' )
-   GOTO 9999
-END IF
+   TimeOut  => TimeSrf
+   nTimeOut = nTimeSrf
 
-TimeOut  => TimeSrf
-nTimeOut = nTimeSrf
+!==== Action : Set Plot Field
 
-irv = SCIPNumPlotClasses( callerID,Project,nClass,nChoice,nKind )
-IF( irv /= SCIPsuccess )THEN
-   CALL toolError( 'Failed retrieving number of project plot classes' )
-   GOTO 9999
-END IF
+   Field%maxCells = limit%surfaceGrid
+   Field%project  = TRIM(Project%name)
+   Field%path     = TRIM(Project%path)
+   
+   Field%class    = -1
+   Field%choice   = -1
+   Field%category = HP_SURF
+   PlotType%type  = HP_MEAN
 
-CALL allocatePlotLists( )
+   if (first) then ! first of the ProjName files, do some initialization stuff
 
-irv = SCIPGetPlotClasses( callerID,Project,ClassStr,ChoiceStr,KindStr, &
-     CatClassArray,ClassChoiceArray,ProjectCoordinate )
-IF( irv /= SCIPsuccess )THEN
-   CALL toolError( 'Failed retrieving project plot classes' )
-   GOTO 9999
-END IF
+      irv = SCIPNumPlotClasses( callerID,Project,nClass,nChoice,nKind )
+      IF( irv /= SCIPsuccess )THEN
+         CALL toolError( 'Failed retrieving number of project plot classes' )
+         GOTO 9999
+      END IF
+
+      CALL allocatePlotLists( )
+
+      irv = SCIPGetPlotClasses( callerID,Project,ClassStr,ChoiceStr,KindStr, &
+           CatClassArray,ClassChoiceArray,ProjectCoordinate )
+      IF( irv /= SCIPsuccess )THEN
+         CALL toolError( 'Failed retrieving project plot classes' )
+         GOTO 9999
+      END IF
 
 ! Convert between LATLON and UTM. xRec,yRec need to be in ProjectCoordinate%mode
 ! format
 
-
-if (debug) then
-   if (ProjectCoordinate%mode == HD_LATLON)    print*,"Project coords = LATLON"
-   if (ProjectCoordinate%mode == HD_CARTESIAN) print*,"Project coords = CARTESIAN"
-   if (ProjectCoordinate%mode == HD_UTM)       print*,"Project coords = UTM"
-   if (ProjectCoordinate%mode == HD_METERS)    print*,"Project coords = METERS"
-end if
+      if (debug) then
+         write(*,'(a,$)') "Project coords = "
+         if (ProjectCoordinate%mode == HD_LATLON)    print*,"LATLON"
+         if (ProjectCoordinate%mode == HD_CARTESIAN) print*,"CARTESIAN"
+         if (ProjectCoordinate%mode == HD_UTM)       print*,"UTM"
+         if (ProjectCoordinate%mode == HD_METERS)    print*,"METERS"
+      end if
    
 
-if (ProjectCoordinate%mode == HD_LATLON) then
-   DO iRset = 1,nRsets
-      if (Rset(iRset)%CoordType == "LATLON") then
-         xRec(iRset,1:nRec(iRset)) = lon(iRset,1:nRec(iRset)) ! read into lat,lon
-         yRec(iRset,1:nRec(iRset)) = lat(iRset,1:nRec(iRset)) ! in read_rec_set()
+      if (ProjectCoordinate%mode == HD_LATLON) then
+         DO iRset = 1,nRsets
+            if (Rset(iRset)%CoordType == "LATLON") then
+               xRec(iRset,1:nRec(iRset)) = lon(iRset,1:nRec(iRset)) ! read into lat,lon
+               yRec(iRset,1:nRec(iRset)) = lat(iRset,1:nRec(iRset)) ! in read_rec_set()
 !      else if (Rset(iRset)%CoordType == "UTM") then 
          ! FIXME: USE datums, call UTM2LL to support user giving UTM 
-      else
-         write(*,*) "ERROR: Receptor Set ",iRset," is not LATLON, yet the project"
-         write(*,*) "       is in LATLON. Stopping."
-         stop
+            else
+               write(*,*) "ERROR: Receptor Set ",iRset," is not LATLON, yet the project"
+               write(*,*) "       is in LATLON. Stopping."
+               stop
+            end if
+         END DO
+      else ! not LATLON, one of CARTESIAN, UTM, etc.
+         DO iRset = 1,nRsets
+            if (Rset(iRset)%CoordType == "LATLON") then ! convert LON,LAT to xRec,yRec
+               irv = SCIPGetPrjCoord( callerID, nRec(iRset),                 &
+                    lon(iRset,1:nRec(iRset)),   lat(iRset,1:nRec(iRset)),    &
+                    xRec(iRset,1:nRec(iRset)),  yRec(iRset,1:nRec(iRset)) )
+               IF( irv /= SCIPsuccess )THEN
+                  CALL toolError( 'Failed converting to project coordinates' )
+                  GOTO 9999
+               END IF
+            else
+               xRec(iRset,1:nRec(iRset)) = lon(iRset,1:nRec(iRset)) ! read into lat,lon
+               yRec(iRset,1:nRec(iRset)) = lat(iRset,1:nRec(iRset)) ! in read_rec_set()
+            end if
+         END DO
       end if
-   END DO
-else ! not LATLON, one of CARTESIAN, UTM, etc.
-   DO iRset = 1,nRsets
-      if (Rset(iRset)%CoordType == "LATLON") then ! convert LON,LAT to xRec,yRec
-         irv = SCIPGetPrjCoord( callerID, nRec(iRset),                 &
-              lon(iRset,1:nRec(iRset)),   lat(iRset,1:nRec(iRset)),    &
-              xRec(iRset,1:nRec(iRset)),  yRec(iRset,1:nRec(iRset)) )
-         IF( irv /= SCIPsuccess )THEN
-            CALL toolError( 'Failed converting to project coordinates' )
-            GOTO 9999
-         END IF
-      else
-         xRec(iRset,1:nRec(iRset)) = lon(iRset,1:nRec(iRset)) ! read into lat,lon
-         yRec(iRset,1:nRec(iRset)) = lat(iRset,1:nRec(iRset)) ! in read_rec_set()
-      end if
-   END DO
-end if
-
-!==== Action : Set Plot Field
-
-Field%maxCells = limit%surfaceGrid
-Field%project  = TRIM(Project%name)
-Field%path     = TRIM(Project%path)
-
-Field%class    = -1
-Field%choice   = -1
-Field%category = HP_SURF
-PlotType%type  = HP_MEAN
 
 !--- Find the iClass for the DOSAGE (con) file, call it iDOS
 
-iDOS = -1
-DO i = 1,nClass
-   string1 = ClassStr(i)%string
-   CALL CUPPER( string1 )
-   IF( INDEX(string1,'SURFACE DOSAGE') > 0 )THEN
-      iDOS = i
-      EXIT
-   END IF
-END DO
-IF( iDOS == -1 )THEN
-  WRITE(*,*)'SURFACE DOSAGE not available'
-  GOTO 9999
-END IF
-Field%class = iDOS
+      iDOS = -1
+      DO i = 1,nClass
+         string1 = ClassStr(i)%string
+         CALL CUPPER( string1 )
+         IF( INDEX(string1,'SURFACE DOSAGE') > 0 )THEN
+            iDOS = i
+            EXIT
+         END IF
+      END DO
+      IF( iDOS == -1 )THEN
+         WRITE(*,*)'SURFACE DOSAGE not available'
+         GOTO 9999
+      END IF
+      Field%class = iDOS
 
 !--- Find the Choice, which determines multi-component vs. tracer runs
 
-iChoice = -1
-DO i = 1,nChoice
-   string1 = ChoiceStr(i)%string
-   CALL CUPPER( string1 )
-   IF( INDEX(string1,':COMPONENTS') > 0 )THEN
-      iChoice = i
-      EXIT
-   END IF
-END DO
+      iChoice = -1
+      DO i = 1,nChoice
+         string1 = ChoiceStr(i)%string
+         CALL CUPPER( string1 )
+         IF( INDEX(string1,':COMPONENTS') > 0 )THEN
+            iChoice = i
+            EXIT
+         END IF
+      END DO
 
-isMult = .FALSE.
-IF( iChoice == -1 )THEN
-   WRITE(*,*)'This is a Single-Component run.'
-   iChoice = 1 ! no ambient ados or asmp files for single-component runs
-   nKind   = 1
-ELSE
-   WRITE(*,*)'This is a Multi-Component run.'
-   isMult = .TRUE.
-   if (debug) print*,"iDos,iChoice = ",iDOS,iChoice
-   nKind  = ClassChoiceArray(iDOS,iChoice)%nkind
-END IF
-if (debug) print*,"nKind (number of chemical species) =",nKind
-write(*,*) ! blank line after multi-single component message
+      isMult = .FALSE.
+      IF( iChoice == -1 )THEN
+         WRITE(*,*)'This is a Single-Component run.'
+         iChoice = 1 ! no ambient ados or asmp files for single-component runs
+         nKind   = 1
+      ELSE
+         WRITE(*,*)'This is a Multi-Component run.'
+         isMult = .TRUE.
+         if (debug) print*,"iDos,iChoice = ",iDOS,iChoice
+         nKind  = ClassChoiceArray(iDOS,iChoice)%nkind
+      END IF
+      if (debug) print*,"nKind (number of chemical species) =",nKind
+      write(*,*) ! blank line after multi-single component message
 
-Field%choice = iChoice
-CALL setPlotClassData(.FALSE.,.FALSE.)
+      Field%choice = iChoice
+      CALL setPlotClassData(.FALSE.,.FALSE.)
 
 !--- Find the index of each chemical species we need to use later
 
-allocate(iCon(nOuts)) ! This triggers whether or not to process in calc_con
-iCon = 0              ! Fill with zeroes, non-zero means 'process this one'
+      allocate(iCon(nOuts)) ! This triggers whether or not to process in calc_con
+      iCon = 0              ! Fill with zeroes, non-zero means 'process this one'
 
 !--- Initialize to -1 so we can detect if they are not found
 
-iPSO4  = -1 ; iASO4K = -1 ; iPNO3  = -1 ; iANO3K = -1 ; iPSOA  = -1
-iPOC   = -1 ; iPEC   = -1 ; iASOIL = -1 ; iACORS = -1 ; iNO2   = -1
-iNO    = -1 ; iNO3   = -1 ; iN2O5  = -1 ; iHNO3  = -1 ; iHONO  = -1
-iPNA   = -1 ; iPAN   = -1 ; iPANX  = -1 ; iNTR   = -1 ; iNH3   = -1
-iPNH4  = -1 ; iANH4K = -1 ; iSO2   = -1 ; iSULF  = -1 
-iO3    = -1 ; iPM25  = -1 ; iPM10  = -1
+      iPSO4  = -1 ; iASO4K = -1 ; iPNO3  = -1 ; iANO3K = -1 ; iPSOA  = -1
+      iPOC   = -1 ; iPEC   = -1 ; iASOIL = -1 ; iACORS = -1 ; iNO2   = -1
+      iNO    = -1 ; iNO3   = -1 ; iN2O5  = -1 ; iHNO3  = -1 ; iHONO  = -1
+      iPNA   = -1 ; iPAN   = -1 ; iPANX  = -1 ; iNTR   = -1 ; iNH3   = -1
+      iPNH4  = -1 ; iANH4K = -1 ; iSO2   = -1 ; iSULF  = -1 
+      iO3    = -1 ; iPM25  = -1 ; iPM10  = -1
 
-do iKind = 1, nKind
+      do iKind = 1, nKind
 
-   if (isMULT) then                        ! multi-species output
-      Field%kind = iKind + ClassChoiceArray(iDos,iChoice)%ikind - 1
-   else                                    ! Only Tracer output
-      Field%kind = 0
-   endif
+         if (isMULT) then                        ! multi-species output
+            Field%kind = iKind + ClassChoiceArray(iDos,iChoice)%ikind - 1
+         else                                    ! Only Tracer output
+            Field%kind = 0
+         endif
 
-   if (isMult) then                        ! multi-species output
-      string1 = KindStr(Field%kind)%string
-   else                                    ! Only Tracer output
-      string1 = ChoiceStr(iChoice)%string
-   endif
-   CALL CUPPER( string1 )
+         if (isMult) then                        ! multi-species output
+            string1 = KindStr(Field%kind)%string
+         else                                    ! Only Tracer output
+            string1 = ChoiceStr(iChoice)%string
+         endif
+         CALL CUPPER( string1 )
 
-   print*,"Found chemical/particulate species: ",trim(string1)
+         print*,"Found chemical/particulate species: ",trim(string1)
 
 ! These concentrations are to be averaged/ranked and output
 
-   do iOut = 1, nOuts
-      if (TRIM(string1) == output(iOut)%chemSpecies) iCon(iOut) = iKind
-   end do
+         do iOut = 1, nOuts
+            if (TRIM(string1) == output(iOut)%chemSpecies) iCon(iOut) = iKind
+         end do
 
 ! Treat these specially
-
-   if (TRIM(string1) == 'O3'   ) iO3    = iKind ! ozone
-   if (TRIM(string1) == 'PM25' ) iPM25  = iKind ! PM 2.5 microns or less
-   if (TRIM(string1) == 'PM10' ) iPM10  = iKind ! PM  10 microns or less
+         
+         if (TRIM(string1) == 'O3'   ) iO3    = iKind ! ozone
+         if (TRIM(string1) == 'PM25' ) iPM25  = iKind ! PM 2.5 microns or less
+         if (TRIM(string1) == 'PM10' ) iPM10  = iKind ! PM  10 microns or less
 
 ! These species are needed for visilbity
 
-   if (TRIM(string1) == 'PSO4' ) iPSO4  = iKind ! small sulfate
-   if (TRIM(string1) == 'ASO4K') iASO4K = iKind ! large sulfate
-   if (TRIM(string1) == 'PNO3' ) iPNO3  = iKind ! small nitrate
-   if (TRIM(string1) == 'ANO3K') iANO3K = iKind ! large nitrate
-   if (TRIM(string1) == 'PSOA' ) iPSOA  = iKind ! small organic mass component
-   if (TRIM(string1) == 'POC'  ) iPOC   = iKind ! small organic mass component
-   if (TRIM(string1) == 'PEC'  ) iPEC   = iKind ! elemental carbon
-   if (TRIM(string1) == 'ASOIL') iASOIL = iKind ! soil
-   if (TRIM(string1) == 'ACORS') iACORS = iKind ! coarse mass
-   if (TRIM(string1) == 'NO2'  ) iNO2   = iKind ! nitrogen dioxide
+         if (TRIM(string1) == 'PSO4' ) iPSO4  = iKind ! small sulfate
+         if (TRIM(string1) == 'ASO4K') iASO4K = iKind ! large sulfate
+         if (TRIM(string1) == 'PNO3' ) iPNO3  = iKind ! small nitrate
+         if (TRIM(string1) == 'ANO3K') iANO3K = iKind ! large nitrate
+         if (TRIM(string1) == 'PSOA' ) iPSOA  = iKind ! small organic mass comp
+         if (TRIM(string1) == 'POC'  ) iPOC   = iKind ! small organic mass comp
+         if (TRIM(string1) == 'PEC'  ) iPEC   = iKind ! elemental carbon
+         if (TRIM(string1) == 'ASOIL') iASOIL = iKind ! soil
+         if (TRIM(string1) == 'ACORS') iACORS = iKind ! coarse mass
+         if (TRIM(string1) == 'NO2'  ) iNO2   = iKind ! nitrogen dioxide
 
 ! These additional species are needed for deposition
 ! Note: NO2, PNO3, ANO3K, PSO4, ASO4K, already found above
 
-   if (TRIM(string1) == 'NO'   ) iNO    = iKind
-   if (TRIM(string1) == 'NO3'  ) iNO3   = iKind
-   if (TRIM(string1) == 'N2O5' ) iN2O5  = iKind
-   if (TRIM(string1) == 'HNO3' ) iHNO3  = iKind
-   if (TRIM(string1) == 'HONO' ) iHONO  = iKind
-   if (TRIM(string1) == 'PNA'  ) iPNA   = iKind
-   if (TRIM(string1) == 'PAN'  ) iPAN   = iKind
-   if (TRIM(string1) == 'PANX' ) iPANX  = iKind
-   if (TRIM(string1) == 'NTR'  ) iNTR   = iKind
-   if (TRIM(string1) == 'NH3'  ) iNH3   = iKind
-   if (TRIM(string1) == 'PNH4' ) iPNH4  = iKind
-   if (TRIM(string1) == 'ANH4K') iANH4K = iKind
-   if (TRIM(string1) == 'SO2'  ) iSO2   = iKind
-   if (TRIM(string1) == 'SULF' ) iSULF  = iKind
+         if (TRIM(string1) == 'NO'   ) iNO    = iKind
+         if (TRIM(string1) == 'NO3'  ) iNO3   = iKind
+         if (TRIM(string1) == 'N2O5' ) iN2O5  = iKind
+         if (TRIM(string1) == 'HNO3' ) iHNO3  = iKind
+         if (TRIM(string1) == 'HONO' ) iHONO  = iKind
+         if (TRIM(string1) == 'PNA'  ) iPNA   = iKind
+         if (TRIM(string1) == 'PAN'  ) iPAN   = iKind
+         if (TRIM(string1) == 'PANX' ) iPANX  = iKind
+         if (TRIM(string1) == 'NTR'  ) iNTR   = iKind
+         if (TRIM(string1) == 'NH3'  ) iNH3   = iKind
+         if (TRIM(string1) == 'PNH4' ) iPNH4  = iKind
+         if (TRIM(string1) == 'ANH4K') iANH4K = iKind
+         if (TRIM(string1) == 'SO2'  ) iSO2   = iKind
+         if (TRIM(string1) == 'SULF' ) iSULF  = iKind
 
-end do  ! do i = 1, nKind
+      end do  ! do i = 1, nKind
 
 !--- Warn the user about missing chemical species.  We'll just skip their
 !    contributions.
 
-if (isMult) then ! Don't warn if we don't expect them
-if ( iO3     == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: O3   "
-if ( iPM25   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PM25 "
-if ( iPM10   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PM10 "
-if ( iPSO4   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PSO4 "
-if ( iASO4K  == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: ASO4K"
-if ( iPNO3   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PNO3 "
-if ( iANO3K  == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: ANO3K"
-if ( iPSOA   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PSOA "
-if ( iPOC    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: POC  "
-if ( iPEC    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PEC  "
-if ( iASOIL  == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: ASOIL"
-if ( iACORS  == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: ACORS"
-if ( iNO2    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: NO2  "
-if ( iNO     == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: NO   "
-if ( iNO3    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: NO3  "
-if ( iN2O5   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: N2O5 "
-if ( iHNO3   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: HNO3 "
-if ( iHONO   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: HONO "
-if ( iPNA    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PNA  "
-if ( iPAN    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PAN  "
-if ( iPANX   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PANX "
-if ( iNTR    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: NTR  "
-if ( iNH3    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: NH3  "
-if ( iPNH4   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PNH4 "
-if ( iANH4K  == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: ANH4K"
-if ( iSO2    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: SO2  "
-if ( iSULF   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: SULF "
-end if     ! if (isMult) then
-write(*,*) ! just for looks
+      if (isMult) then ! Don't warn if we don't expect them
+         if ( iO3     == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: O3   "
+         if ( iPM25   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PM25 "
+         if ( iPM10   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PM10 "
+         if ( iPSO4   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PSO4 "
+         if ( iASO4K  == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: ASO4K"
+         if ( iPNO3   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PNO3 "
+         if ( iANO3K  == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: ANO3K"
+         if ( iPSOA   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PSOA "
+         if ( iPOC    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: POC  "
+         if ( iPEC    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PEC  "
+         if ( iASOIL  == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: ASOIL"
+         if ( iACORS  == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: ACORS"
+         if ( iNO2    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: NO2  "
+         if ( iNO     == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: NO   "
+         if ( iNO3    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: NO3  "
+         if ( iN2O5   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: N2O5 "
+         if ( iHNO3   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: HNO3 "
+         if ( iHONO   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: HONO "
+         if ( iPNA    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PNA  "
+         if ( iPAN    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PAN  "
+         if ( iPANX   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PANX "
+         if ( iNTR    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: NTR  "
+         if ( iNH3    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: NH3  "
+         if ( iPNH4   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: PNH4 "
+         if ( iANH4K  == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: ANH4K"
+         if ( iSO2    == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: SO2  "
+         if ( iSULF   == -1) write(*,*) "Warning! Did NOT find chemical/particulate species: SULF "
+      end if     ! if (isMult) then
+      write(*,*) ! just for looks
 
 !--- Find the units of this DOSAGE file, and get the conversion factor
 
-Field%timeID   = 1
-Field%userTime = TimeOut(1)%time%runTime        ! integration time in hours
-avg_time       = TimeOut(1)%time%runTime * 3600 ! integration time in seconds
+      Field%timeID   = 1
+      Field%userTime = TimeOut(1)%time%runTime        ! integration time in hours
+      avg_time       = TimeOut(1)%time%runTime * 3600 ! integration time in sec
 
-units = TRIM(ClassChoiceArray(iDOS,iChoice)%units)
-call CLOWER( units )
-call find_units_conv(units,"ug/m3", avg_time, con_units_conv)
-if (debug) print*,"units, con_units_conv = ",trim(units),con_units_conv
+      units = TRIM(ClassChoiceArray(iDOS,iChoice)%units)
+      call CLOWER( units )
+      call find_units_conv(units,"ug/m3", avg_time, con_units_conv)
+      if (debug) print*,"units, con_units_conv = ",trim(units),con_units_conv
 
 !--- Find the iClass for the DEPOSITION (drydep+wetdep) file, call it iDEP
 
-iDEP = -1
-DO i = 1,nClass
-   string1 = ClassStr(i)%string
-   CALL CUPPER( string1 )
-   IF( INDEX(string1,'SURFACE DEPOSITION') > 0 )THEN
-      iDEP = i
-      EXIT
-   END IF
-END DO
-IF( iDEP == -1 )THEN
-  WRITE(*,*)'SURFACE DOSAGE not available'
-  GOTO 9999
-END IF
+      iDEP = -1
+      DO i = 1,nClass
+         string1 = ClassStr(i)%string
+         CALL CUPPER( string1 )
+         IF( INDEX(string1,'SURFACE DEPOSITION') > 0 )THEN
+            iDEP = i
+            EXIT
+         END IF
+      END DO
+      IF( iDEP == -1 )THEN
+         WRITE(*,*)'SURFACE DOSAGE not available'
+         GOTO 9999
+      END IF
 
 !--- Find the units of this DEPOSITION file, and get the conversion factor
 
-Field%class = iDEP
-units = TRIM(ClassChoiceArray(iDep,iChoice)%units)
+      Field%class = iDEP
+      units = TRIM(ClassChoiceArray(iDep,iChoice)%units)
 
-call CLOWER( units )
-call find_units_conv( units, "kg/ha", avg_time, dep_units_conv )
-if (debug) print*,"units, dep_units_conv = ",trim(units),dep_units_conv
+      call CLOWER( units )
+      call find_units_conv( units, "kg/ha", avg_time, dep_units_conv )
+      if (debug) print*,"units, dep_units_conv = ",trim(units),dep_units_conv
 
 !--- Allocate vars to hold the concentration and deposition, at each Receptor
 !    set, for nKind chemical species.  Use MaxRec = max(nRec(:))
 
-if (debug) then
-   print*,"Allocation con,TotCon,AmbCon, using size"
-   print*,"     nRsets,MaxRec,nKind =",nRsets,MaxRec,nKind
-end if
+      if (debug) then
+         print*,"Allocation con,TotCon,AmbCon, using size"
+         print*,"     nRsets,MaxRec,nKind =",nRsets,MaxRec,nKind
+      end if
+      
+      ALLOCATE( con(nRsets,MaxRec,nKind), STAT=irv )
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating con'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',MaxRec,' : Error=',irv
+         GO TO 9999
+      END IF
+      con = 0.
 
-ALLOCATE( con(nRsets,MaxRec,nKind), STAT=irv )
-IF( irv /= 0 )THEN
-   nError = UK_ERROR
-   eRoutine = 'SciDosPost'
-   eMessage = 'Error allocating con'
-   WRITE(eInform,'(A,I0,A,I0)')'Request =',MaxRec,' : Error=',irv
-   GO TO 9999
-END IF
-con = 0.
+      ALLOCATE( TotCon(nRsets,MaxRec,nKind), STAT=irv )
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating TotCon'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',MaxRec,' : Error=',irv
+         GO TO 9999
+      END IF
+      TotCon = 0.
 
-ALLOCATE( TotCon(nRsets,MaxRec,nKind), STAT=irv )
-IF( irv /= 0 )THEN
-   nError = UK_ERROR
-   eRoutine = 'SciDosPost'
-   eMessage = 'Error allocating TotCon'
-   WRITE(eInform,'(A,I0,A,I0)')'Request =',MaxRec,' : Error=',irv
-   GO TO 9999
-END IF
-TotCon = 0.
+      ALLOCATE( AmbCon(nRsets,MaxRec,nKind), STAT=irv )
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating AmbCon'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',MaxRec,' : Error=',irv
+         GO TO 9999
+      END IF
+      AmbCon = 0.
 
-ALLOCATE( AmbCon(nRsets,MaxRec,nKind), STAT=irv )
-IF( irv /= 0 )THEN
-   nError = UK_ERROR
-   eRoutine = 'SciDosPost'
-   eMessage = 'Error allocating AmbCon'
-   WRITE(eInform,'(A,I0,A,I0)')'Request =',MaxRec,' : Error=',irv
-   GO TO 9999
-END IF
-AmbCon = 0.
+      ALLOCATE( dep(nRsets,MaxRec,nKind), STAT=irv )
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating dep'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',MaxRec,' : Error=',irv
+         GO TO 9999
+      END IF
+      dep = 0.
 
-ALLOCATE( dep(nRsets,MaxRec,nKind), STAT=irv )
-IF( irv /= 0 )THEN
-   nError = UK_ERROR
-   eRoutine = 'SciDosPost'
-   eMessage = 'Error allocating dep'
-   WRITE(eInform,'(A,I0,A,I0)')'Request =',MaxRec,' : Error=',irv
-   GO TO 9999
-END IF
-dep = 0.
+      ALLOCATE( drydep(nRsets,MaxRec,nKind), STAT=irv )
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating drydep'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',MaxRec,' : Error=',irv
+         GO TO 9999
+      END IF
+      drydep = 0.
 
-if (isMult) then ! also has Temperature, Pressure, Humidity
-   ALLOCATE( srfFldVal(nRsets,MaxRec,nKind+3,2), STAT=irv ) ! used temporarily
-else
-   ALLOCATE( srfFldVal(nRsets,MaxRec,nKind,  2), STAT=irv ) ! used temporarily
-end if
-IF( irv /= 0 )THEN
-   nError = UK_ERROR
-   eRoutine = 'SciDosPost'
-   eMessage = 'Error allocating srfFldVal'
-   WRITE(eInform,'(A,I0,A,I0)')'Request =',MaxRec,' : Error=',irv
-   GO TO 9999
-END IF
+      ALLOCATE( wetdep(nRsets,MaxRec,nKind), STAT=irv )
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating wetdep'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',MaxRec,' : Error=',irv
+         GO TO 9999
+      END IF
+      wetdep = 0.
 
-MaxRank = maxval( output(:)%rank )
+      if (isMult) then ! also has Temperature, Pressure, Humidity
+         ALLOCATE( srfFldVal(nRsets,MaxRec,nKind+3,2), STAT=irv ) ! temporary
+      else
+         ALLOCATE( srfFldVal(nRsets,MaxRec,nKind,  2), STAT=irv ) ! temporary
+      end if
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating srfFldVal'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',MaxRec,' : Error=',irv
+         GO TO 9999
+      END IF
 
-ALLOCATE( sum_val(nRsets,MaxRec,nOuts), STAT=irv )
-IF( irv /= 0 )THEN
-   nError = UK_ERROR
-   eRoutine = 'SciDosPost'
-   eMessage = 'Error allocating sum_val'
-   WRITE(eInform,'(A,I0,A,I0)')'Request =',nRsets*MaxRec*nOuts,' : Error=',irv
-   GO TO 9999
-END IF
-sum_val = 0.
+      MaxRank = maxval( output(:)%rank )
 
-ALLOCATE( max_val(nRsets,MaxRec,nOuts,MaxRank), STAT=irv )
-IF( irv /= 0 )THEN
-   nError = UK_ERROR
-   eRoutine = 'SciDosPost'
-   eMessage = 'Error allocating max_val'
-   WRITE(eInform,'(A,I0,A,I0)')'Request =',nRsets*MaxRec*nOuts*MaxRank, &
-        ' : Error=',irv
-   GO TO 9999
-END IF
-max_val = -HUGE(0.) ! most negative number
+      ALLOCATE( sum_val(nRsets,MaxRec,nOuts), STAT=irv )
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating sum_val'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',nRsets*MaxRec*nOuts,' : Error=',irv
+         GO TO 9999
+      END IF
+      sum_val = 0.
 
-ALLOCATE( max_time(nRsets,MaxRec,nOuts,MaxRank), STAT=irv )
-IF( irv /= 0 )THEN
-   nError = UK_ERROR
-   eRoutine = 'SciDosPost'
-   eMessage = 'Error allocating max_time'
-   WRITE(eInform,'(A,I0,A,I0)')'Request =',nRsets*MaxRec*nOuts*MaxRank, &
-        ' : Error=',irv
-   GO TO 9999
-END IF
-max_time = 0
+      ALLOCATE( max_val(nRsets,MaxRec,nOuts,MaxRank), STAT=irv )
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating max_val'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',nRsets*MaxRec*nOuts*MaxRank, &
+              ' : Error=',irv
+         GO TO 9999
+      END IF
+      max_val = -HUGE(0.) ! most negative number
 
-ALLOCATE( iHours(nRsets,nOuts), STAT=irv )
-IF( irv /= 0 )THEN
-   nError = UK_ERROR
-   eRoutine = 'SciDosPost'
-   eMessage = 'Error allocating iHours'
-   WRITE(eInform,'(A,I0,A,I0)')'Request =',nRsets*nOuts, &
-        ' : Error=',irv
-   GO TO 9999
-END IF
-iHours = 0
+      ALLOCATE( max_time(nRsets,MaxRec,nOuts,MaxRank), STAT=irv )
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating max_time'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',nRsets*MaxRec*nOuts*MaxRank, &
+              ' : Error=',irv
+         GO TO 9999
+      END IF
+      max_time = 0
 
-ALLOCATE( iymdh_max(nRsets,MaxRec,nOuts), STAT=irv )
-IF( irv /= 0 )THEN
-   nError = UK_ERROR
-   eRoutine = 'SciDosPost'
-   eMessage = 'Error allocating iymdh_max'
-   WRITE(eInform,'(A,I0,A,I0)')'Request =',nOuts, &
-        ' : Error=',irv
-   GO TO 9999
-END IF
-iymdh_max = 0
+      ALLOCATE( iHours(nRsets,nOuts), STAT=irv )
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating iHours'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',nRsets*nOuts, &
+              ' : Error=',irv
+         GO TO 9999
+      END IF
+      iHours = 0
+      
+      ALLOCATE( iymdh_max(nRsets,MaxRec,nOuts), STAT=irv )
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating iymdh_max'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',nOuts, &
+              ' : Error=',irv
+         GO TO 9999
+      END IF
+      iymdh_max = 0
+      
+      ALLOCATE( dBc_sum(nRsets,MaxRec,nOuts,nCont), STAT=irv )
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating dBc_sum'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',nRsets*MaxRec*nOuts*nCont,' : Error=',irv
+         GO TO 9999
+      END IF
+      dBc_sum = 0.
+      
+      ALLOCATE( dBc_max(nRsets,MaxRec,nOuts,MaxRank,nCont), STAT=irv )
+      IF( irv /= 0 )THEN
+         nError = UK_ERROR
+         eRoutine = 'SciDosPost'
+         eMessage = 'Error allocating dBc_sum'
+         WRITE(eInform,'(A,I0,A,I0)')'Request =',nRsets*MaxRec*nOuts*nCont,' : Error=',irv
+         GO TO 9999
+      END IF
+      dBc_max = -HUGE(0.) ! most negative number
 
-ALLOCATE( dBc_sum(nRsets,MaxRec,nOuts,nCont), STAT=irv )
-IF( irv /= 0 )THEN
-   nError = UK_ERROR
-   eRoutine = 'SciDosPost'
-   eMessage = 'Error allocating dBc_sum'
-   WRITE(eInform,'(A,I0,A,I0)')'Request =',nRsets*MaxRec*nOuts*nCont,' : Error=',irv
-   GO TO 9999
-END IF
-dBc_sum = 0.
+      CALL init_error()
 
-ALLOCATE( dBc_max(nRsets,MaxRec,nOuts,MaxRank,nCont), STAT=irv )
-IF( irv /= 0 )THEN
-   nError = UK_ERROR
-   eRoutine = 'SciDosPost'
-   eMessage = 'Error allocating dBc_sum'
-   WRITE(eInform,'(A,I0,A,I0)')'Request =',nRsets*MaxRec*nOuts*nCont,' : Error=',irv
-   GO TO 9999
-END IF
-dBc_max = -HUGE(0.) ! most negative number
+      irv = SAG_SetSpecialValue( .TRUE.,HP_SPV )
 
-CALL init_error()
+      irv = SAG_InitList()
 
-irv = SAG_SetSpecialValue( .TRUE.,HP_SPV )
+      first = .false.
 
-irv = SAG_InitList()
+   end if ! if (first) then
 
-Field%project  = TRIM(Project%name)
-Field%path     = TRIM(Project%path)
+   Field%project  = TRIM(Project%name)
+   Field%path     = TRIM(Project%path)
 
-OPEN(24,FILE='sciDOSpost.log')
+   CALL ReadProject( Project )
 
-CALL ReadProject( Project )
-
-CALL init_srf_blocks( ntypm )
+   CALL init_srf_blocks( ntypm )
 
 !--- Dos File
 
-dosFile  = TRIM( AddExtension( Project%name,'dos' ) )
-adosFile = TRIM( AddExtension( Project%name,'ados' ) )
-INQUIRE(FILE=TRIM(adosFile),EXIST=lAmb)
+   dosFile  = TRIM( AddExtension( Project%name,'dos' ) )
+   adosFile = TRIM( AddExtension( Project%name,'ados' ) )
+   INQUIRE(FILE=TRIM(adosFile),EXIST=lAmb)
 
 !------ Get a new SAG structure
 
-irv = SAG_NewGrdStr( cgrdI )
-IF( irv /= SAG_OK )THEN
-  nError   = UK_ERROR
-  eRoutine = 'InitGrid'
-  eMessage = 'Error creating SAG surface grid'
-  CALL ReportFileName( eInform,'File=',dosFile )
-  GOTO 9999
-END IF
+   irv = SAG_NewGrdStr( cgrdI(iProj) )
+   IF( irv /= SAG_OK )THEN
+      nError   = UK_ERROR
+      eRoutine = 'InitGrid'
+      eMessage = 'Error creating SAG surface grid'
+      CALL ReportFileName( eInform,'File=',dosFile )
+      GOTO 9999
+   END IF
 
 !------ Initialize SAG structure
 
-lun_dos = 100 + cgrdI
-irv = SAG_InitGridID( dosFile,lun_dos,SAG_GRID_BOTH,0,0,0,cgrdI )
-IF( irv /= SAG_OK )THEN
-  nError   = UK_ERROR
-  eRoutine = 'InitGrid'
-  eMessage = 'Error initializing SAG surface grid'
-  CALL ReportFileName( eInform,'File=',dosFile )
-  GOTO 9999
-END IF
+   lun_dos = 100 + cgrdI(iProj)
+   irv = SAG_InitGridID( dosFile,lun_dos,SAG_GRID_BOTH,0,0,0,cgrdI(iProj) )
+   IF( irv /= SAG_OK )THEN
+      nError   = UK_ERROR
+      eRoutine = 'InitGrid'
+      eMessage = 'Error initializing SAG surface grid'
+      CALL ReportFileName( eInform,'File=',dosFile )
+      GOTO 9999
+   END IF
 
 !------ Open surface file; read nvart for block version
 
-irv = SAG_OpenID( cgrdI )
-IF( irv /= SAG_OK )THEN
-  nError   = UK_ERROR
-  eRoutine = 'InitGrid'
-  eMessage = 'Error opening SAG file'
-  CALL ReportFileName( eInform,'File=',dosFile )
-  GOTO 9999
-END IF
+   irv = SAG_OpenID( cgrdI(iProj) )
+   IF( irv /= SAG_OK )THEN
+      nError   = UK_ERROR
+      eRoutine = 'InitGrid'
+      eMessage = 'Error opening SAG file'
+      CALL ReportFileName( eInform,'File=',dosFile )
+      GOTO 9999
+   END IF
 
-grdC => SAG_PtrGrdStr( cgrdI ) ! Associate "local" grid structure pointer
+   grdC => SAG_PtrGrdStr( cgrdI(iProj) ) ! Associate "local" grid structure pointer
 
-grdC%mxnam = grdC%nvart
+   grdC%mxnam = grdC%nvart
 
-IF( lAmb )THEN
-  !------ Get a new SAG structure
-  irv = SAG_NewGrdStr( agrdI )
-  IF( irv /= SAG_OK )THEN
-    nError   = UK_ERROR
-    eRoutine = 'InitGrid'
-    eMessage = 'Error creating SAG surface grid'
-    CALL ReportFileName( eInform,'File=',adosFile )
-    GOTO 9999
-  END IF
+   IF( lAmb )THEN
+!------ Get a new SAG structure
+      irv = SAG_NewGrdStr( agrdI(iProj) )
+      IF( irv /= SAG_OK )THEN
+         nError   = UK_ERROR
+         eRoutine = 'InitGrid'
+         eMessage = 'Error creating SAG surface grid'
+         CALL ReportFileName( eInform,'File=',adosFile )
+         GOTO 9999
+      END IF
 
-  !------ Initialize SAG structure
-  lun_ados = 100 + agrdI
-  irv = SAG_InitGridID( adosFile,lun_ados,SAG_GRID_BOTH,0,0,0,agrdI )
-  IF( irv /= SAG_OK )THEN
-    nError   = UK_ERROR
-    eRoutine = 'InitGrid'
-    eMessage = 'Error initializing SAG surface grid'
-    CALL ReportFileName( eInform,'File=',adosFile )
-    GOTO 9999
-  END IF
+!------ Initialize SAG structure
+      lun_ados = 100 + agrdI(iProj)
+      irv = SAG_InitGridID( adosFile,lun_ados,SAG_GRID_BOTH,0,0,0,agrdI(iProj) )
+      IF( irv /= SAG_OK )THEN
+         nError   = UK_ERROR
+         eRoutine = 'InitGrid'
+         eMessage = 'Error initializing SAG surface grid'
+         CALL ReportFileName( eInform,'File=',adosFile )
+         GOTO 9999
+      END IF
 
-  !------ Open surface file; read nvart for block version
-  irv = SAG_OpenID( agrdI )
-  IF( irv /= SAG_OK )THEN
-    nError   = UK_ERROR
-    eRoutine = 'InitGrid'
-    eMessage = 'Error opening SAG file'
-    CALL ReportFileName( eInform,'File=',adosFile )
-    GOTO 9999
-  END IF
-
-  grdA => SAG_PtrGrdStr( agrdI ) ! Associate "local" grid structure pointer
-  grdA%mxnam = grdA%nvart
+!------ Open surface file; read nvart for block version
+      irv = SAG_OpenID( agrdI(iProj) )
+      IF( irv /= SAG_OK )THEN
+         nError   = UK_ERROR
+         eRoutine = 'InitGrid'
+         eMessage = 'Error opening SAG file'
+         CALL ReportFileName( eInform,'File=',adosFile )
+         GOTO 9999
+      END IF
+      
+      grdA => SAG_PtrGrdStr( agrdI(iProj) ) ! Associate "local" grid structure pointer
+      grdA%mxnam = grdA%nvart
   
-ELSE
+   ELSE
   
-  agrdI = -1
+      agrdI(iProj) = -1
   
-END IF
+   END IF
   
 ! Deposition file
 
-depFile = TRIM( AddExtension( Project%name,'dep' ) )
+   depFile = TRIM( AddExtension( Project%name,'dep' ) )
 
 !------ Get a new SAG structure
 
-irv = SAG_NewGrdStr( dgrdI )
-IF( irv /= SAG_OK )THEN
-  nError   = UK_ERROR
-  eRoutine = 'InitGrid'
-  eMessage = 'Error creating SAG surface grid'
-  CALL ReportFileName( eInform,'File=',depFile )
-  GOTO 9999
-END IF
-
+   irv = SAG_NewGrdStr( dgrdI(iProj) )
+   IF( irv /= SAG_OK )THEN
+      nError   = UK_ERROR
+      eRoutine = 'InitGrid'
+      eMessage = 'Error creating SAG surface grid'
+      CALL ReportFileName( eInform,'File=',depFile )
+      GOTO 9999
+   END IF
+   
 !------ Initialize SAG structure
 
-lun_dep = 100 + dgrdI
-irv = SAG_InitGridID( depFile,lun_dep,SAG_GRID_BOTH,0,0,0,dgrdI )
-IF( irv /= SAG_OK )THEN
-  nError   = UK_ERROR
-  eRoutine = 'InitGrid'
-  eMessage = 'Error initializing SAG surface grid'
-  CALL ReportFileName( eInform,'File=',depFile )
-  GOTO 9999
-END IF
+   lun_dep = 100 + dgrdI(iProj)
+   irv = SAG_InitGridID( depFile,lun_dep,SAG_GRID_BOTH,0,0,0,dgrdI(iProj) )
+   IF( irv /= SAG_OK )THEN
+      nError   = UK_ERROR
+      eRoutine = 'InitGrid'
+      eMessage = 'Error initializing SAG surface grid'
+      CALL ReportFileName( eInform,'File=',depFile )
+      GOTO 9999
+   END IF
 
 !------ Open surface file; read nvart for block version
 
-irv = SAG_OpenID( dgrdI )
-IF( irv /= SAG_OK )THEN
-  nError   = UK_ERROR
-  eRoutine = 'InitGrid'
-  eMessage = 'Error opening SAG file'
-  CALL ReportFileName( eInform,'File=',depFile )
-  GOTO 9999
-END IF
+   irv = SAG_OpenID( dgrdI(iProj) )
+   IF( irv /= SAG_OK )THEN
+      nError   = UK_ERROR
+      eRoutine = 'InitGrid'
+      eMessage = 'Error opening SAG file'
+      CALL ReportFileName( eInform,'File=',depFile )
+      GOTO 9999
+   END IF
 
-grdD => SAG_PtrGrdStr( dgrdI ) ! Associate "local" grid structure pointer
+   grdD => SAG_PtrGrdStr( dgrdI(iProj) ) ! Associate "local" grid structure pointer
+   
+   grdD%mxnam = grdD%nvart
 
-grdD%mxnam = grdD%nvart
+! !--- Do some sanity checks 
+!
+! 2016-10-21 FIXME: need to get iy2... from last of the ProjName files...
+!
+!    if (iymdh_beg == 0) then ! flag to process all time found in file
+!
+!       iTime = 1
+!       Field%timeID   = iTime
+!       Field%userTime = TimeOut(iTime)%time%runTime  ! integration time in hours
+!       iy1 = TimeOut(iTime)%time%year  ! this year
+!       im1 = TimeOut(iTime)%time%month ! this month
+!       id1 = TimeOut(iTime)%time%day   ! this month
+!       ih1 = TimeOut(iTime)%time%hour  ! this month
+!
+!       iTime = nTimeOut
+!       Field%timeID   = iTime
+!       Field%userTime = TimeOut(iTime)%time%runTime  ! integration time in hours
+!       iy2 = TimeOut(iTime)%time%year  ! this year
+!       im2 = TimeOut(iTime)%time%month ! this month
+!       id2 = TimeOut(iTime)%time%day   ! this month
+!       ih2 = TimeOut(iTime)%time%hour  ! this month
+!     
+!       call TimeDiff(iy1,im1,id1,ih1, iy2,im2,id2,ih2, iRun_Hours)
+!    else
+!
+!       call idate2ymdh(iymdh_beg ,iy1,im1,id1,ih1)
+!       call idate2ymdh(iymdh_end ,iy2,im2,id2,ih2)
+!       call TimeDiff(iy1,im1,id1,ih1, iy2,im2,id2,ih2, iRun_Hours)
+!     
+!    end if
+!
+!    do iOut = 1, nOuts
+!       if ( iRun_Hours < output(iOut)%frequency ) then
+! 1234     format(a,i6,a,i6,a)
+!          write(*,1234) &
+!         "***** WARNING: Run Length is less than Frequency for output number ", &
+!               iOut
+!     write(*,1234) "      Run Length is ",iRun_Hours," hours, Frequency is ",  &
+!               output(iOut)%frequency," hours."
+!       end if
+!    end do
 
-!--- Do some sanity checks
-
-if (iymdh_beg == 0) then ! flag to process all time found in file
-
-   iTime = 1
-   Field%timeID   = iTime
-   Field%userTime = TimeOut(iTime)%time%runTime  ! integration time in hours
-   iy1 = TimeOut(iTime)%time%year  ! this year
-   im1 = TimeOut(iTime)%time%month ! this month
-   id1 = TimeOut(iTime)%time%day   ! this month
-   ih1 = TimeOut(iTime)%time%hour  ! this month
-
-   iTime = nTimeOut
-   Field%timeID   = iTime
-   Field%userTime = TimeOut(iTime)%time%runTime  ! integration time in hours
-   iy2 = TimeOut(iTime)%time%year  ! this year
-   im2 = TimeOut(iTime)%time%month ! this month
-   id2 = TimeOut(iTime)%time%day   ! this month
-   ih2 = TimeOut(iTime)%time%hour  ! this month
-
-   call TimeDiff(iy1,im1,id1,ih1, iy2,im2,id2,ih2, iRun_Hours)
-else
-
-   call idate2ymdh(iymdh_beg ,iy1,im1,id1,ih1)
-   call idate2ymdh(iymdh_end ,iy2,im2,id2,ih2)
-   call TimeDiff(iy1,im1,id1,ih1, iy2,im2,id2,ih2, iRun_Hours)
-
-end if
-
-do iOut = 1, nOuts
-   if ( iRun_Hours < output(iOut)%frequency ) then
-1234  format(a,i6,a,i6,a)
-      write(*,1234) &
-           "***** WARNING: Run Length is less than Frequency for output number ", &
-           iOut
-      write(*,1234) "      Run Length is ",iRun_Hours," hours, Frequency is ",  &
-           output(iOut)%frequency," hours."
-   end if
-end do
+   if (debug) print*,"Working on dates from ",iymdh_cur," to ",iymdh_end
+   INQUIRE(UNIT=24,OPENED=lopen,IOSTAT=ios)
+   IF( .NOT. lopen )OPEN(24,FILE='sciDOSpost.log',position='append')
+   write(24,*)"Working on dates from ",iymdh_cur," to ",iymdh_end
 
 !*****************************************************************
-!   LOOP OVER TIME STAMPS
+!   LOOP OVER TIME STAMPS IN THIS PROJECT FILE
 !*****************************************************************
 
-do iTime = 1, nTimeOut
+   do iTime = 1, nTimeOut
 
 ! ---Get the concentrations and deposition (wet & dry) at all rececptors,
 !    for this time-stamp
 
-   Field%timeID   = iTime
-   Field%userTime = TimeOut(iTime)%time%runTime  ! integration time in hours
+      Field%timeID   = iTime
+      Field%userTime = TimeOut(iTime)%time%runTime  ! integration time in hours
 
-   iy = TimeOut(iTime)%time%year  ! this year
-   im = TimeOut(iTime)%time%month ! this month
-   id = TimeOut(iTime)%time%day   ! this month
-   ih = TimeOut(iTime)%time%hour  ! this month
-   iymdh = iymdh2idate(iy,im,id,ih)
+      iy = TimeOut(iTime)%time%year  ! this year
+      im = TimeOut(iTime)%time%month ! this month
+      id = TimeOut(iTime)%time%day   ! this month
+      ih = TimeOut(iTime)%time%hour  ! this month
+      CALL legal_timestamp(iy,im,id,ih,23)
+      iymdh = iymdh2idate(iy,im,id,ih)
+      if( iymdh_cur == 0 )iymdh_cur = iymdh  ! Use the first available time 
 
-   if (debug) print*,"Current time-stamp from file:",iymdh
+      if (debug) then
+        print*,"Current time-stamp from file:",iymdh
+        write(24,*)"Current time-stamp from file:",iymdh,iymdh_cur,iymdh_end
+      end if
 
-   if (iymdh_beg <= iymdh .and. iymdh <= iymdh_end) then
+!--- Retrieve or skip the concentration for this time-stamp
+
+      if (iymdh_cur <= iymdh .and. iymdh <= iymdh_end) then
+         skip = .false.
+      else
+         skip = .true.
+      end if
+
+      srfFldVal = 0. 
+      CALL GetAllFieldValues( cgrdI(iProj),agrdI(iProj),nRsets,maxRec,nRec,.FALSE.,isMult,skip )
+      IF( nError /= NO_ERROR )GOTO 9999
+      
+
+      if (skip) then
+        !--- Skip the deposition for this time-stamp
+        srfFldVal = 0.
+        CALL GetAllFieldValues( dgrdI(iProj),agrdI(iProj),nRsets,maxRec,nRec,.TRUE.,isMult,skip )
+        IF( nError /= NO_ERROR )GOTO 9999
+        
+        cycle ! skip the rest of the processing for this timestep
+      end if
+
+!--- Write some progress to the screen, but not too much
 
       if ((id == 1 .and. ih == 1) .or. iTime == 1) then
          write(*,*) ! CR
          write(*,'(a,i4,"-",i2.2,a)') "Processing YEAR-MO: ",iy,im,", Day:"
+         write(24,'(a,i4,"-",i2.2,a)') "Processing YEAR-MO: ",iy,im,", Day:"
       endif
       if (ih == 1) then
          write(string1,*) id
          write(*,'(a," ",$)') trim(adjustl(string1))
       end if
+      
+!-- Increment the timestamp, so iymdh_cur is now the next desired timestamp
 
-!--- Retrieve the concentration for this time-stamp
-
-      srfFldVal = 0. 
-      CALL GetAllFieldValues( cgrdI,agrdI,nRsets,maxRec,nRec,.FALSE.,isMult )
-      IF( nError /= NO_ERROR )GOTO 9999
-
+     call idate2ymdh(iymdh_cur,iy,im,id,ih)
+     ih = ih + 1
+     call legal_timestamp(iy,im,id,ih,23)
+     iymdh_cur = iymdh2idate(iy,im,id,ih)      
+      
       if (debug) then
          do i = 1,nRsets
             print*
@@ -961,6 +1052,9 @@ do iTime = 1, nTimeOut
                end do
             end if
             con(:,:,:) = TotCon(:,:,1:nKind) - AmbCon(:,:,1:nKind)
+
+            where (con >= -1.e-10 .and. con < 0.) con = 0. ! prevent small neg.
+
          end if
 
 !
@@ -1035,7 +1129,7 @@ do iTime = 1, nTimeOut
 !--- Retrieve the deposition for this time-stamp
 
       srfFldVal = 0.
-      CALL GetAllFieldValues( dgrdI,agrdI,nRsets,maxRec,nRec,.TRUE.,isMult )
+      CALL GetAllFieldValues( dgrdI(iProj),agrdI(iProj),nRsets,maxRec,nRec,.TRUE.,isMult,skip )
       IF( nError /= NO_ERROR )GOTO 9999
 
       if (debug) then
@@ -1050,6 +1144,8 @@ do iTime = 1, nTimeOut
       
       where (srfFldVal == 1.e-30) srfFldVal = 0.
       dep(:,:,:) = (srfFldVal(:,:,:,1) + srfFldVal(:,:,:,2)) * dep_units_conv
+      drydep(:,:,:) = srfFldVal(:,:,:,1) * dep_units_conv
+      wetdep(:,:,:) = srfFldVal(:,:,:,2) * dep_units_conv
 
 !*****************************************************************
 !   LOOP OVER RECEPTOR SETS
@@ -1071,6 +1167,16 @@ do iTime = 1, nTimeOut
                CALL calc_dep( iRset, iCon(iout), iOut,iymdh) ! iCon == iDep
                IF( nError /= NO_ERROR ) goto 9999
                
+            else if (output(iOut)%ConDepVis == "DRY") then
+               
+               CALL calc_dry_dep( iRset, iCon(iout), iOut,iymdh) ! iCon == iDep
+               IF( nError /= NO_ERROR ) goto 9999
+               
+            else if (output(iOut)%ConDepVis == "WET") then
+               
+               CALL calc_wet_dep( iRset, iCon(iout), iOut,iymdh) ! iCon == iDep
+               IF( nError /= NO_ERROR ) goto 9999
+               
             else if (output(iOut)%ConDepVis == "VIS" .and. Rset(iRset)%class == 1)&
                  then
                
@@ -1081,8 +1187,9 @@ do iTime = 1, nTimeOut
             
          end do ! do iRset = 1, nRsets
       end do    ! do iOut  = 1, nOuts
-   end if       ! if (iymdh_beg <= iymdh .and. iymdh <= iymdh_end) then
-end do          ! do iTime = 1, nTimeOut
+   end do       ! do iTime = 1, nTimeOut 
+   
+end do          ! do iProj = 1, nProj
 
 write(*,*)      ! CR on last write(*,'(1x,i2.2,$)') TimeOut(iTime)%time%day
 write(*,*)      ! an extra, just for looks
@@ -1113,26 +1220,28 @@ do iRset = 1, nRsets
             
             ir = find_rank( sum_val(iRset,iRec,iOut), iRset, iRec, iOut, &
                  output(iOut)%rank)
+            ! inserts into max_val at right rank
             call insert( sum_val(iRset,iRec,iOut), iRset, iRec, iOut,   &
-                 output(iOut)%rank, ir, iymdh_max(iRset,iRec,iOut) ) ! inserts into max_val at right rank
+                 output(iOut)%rank, ir, iymdh_max(iRset,iRec,iOut) ) 
 
             if (output(iOut)%chemSpecies == "CONT") then
                do i = 1, nCont ! dBc is the dBext contributions
-                  call insert_dBc( dBc_sum(iRset,iRec,iOut,i),iRset,iRec,iOut,i,  &
-                       output(iOut)%rank, ir, iymdh_max(iRset,iRec,iOut) ) ! inserts into dBc_max
+                  ! inserts into dBc_max
+                  call insert_dBc( dBc_sum(iRset,iRec,iOut,i),iRset,iRec,iOut,i, &
+                       output(iOut)%rank, ir, iymdh_max(iRset,iRec,iOut) ) 
                end do
             end if
 
-            if ( sum_val(iRset,iRec,iOut) > output(iOut)%exceeds ) then
+            if ( sum_val(iRset,iRec,iOut) >= output(iOut)%exceeds ) then
                
-               write(string1,*) ">",output(iOut)%exceeds
+               write(string1,*) ">=",output(iOut)%exceeds
                if (output(iOut)%chemSpecies == "CONT") then
                   tmp7(:) = dBc_sum(iRset,iRec,iOut,:)
-                  call write_vis( iOut, iRset, iRec, iymdh_max(iRset,iRec,iOut), string1, &
-                       sum_val(iRset,iRec,iOut), tmp7, nCont )
+                  call write_vis( iOut, iRset, iRec, iymdh_max(iRset,iRec,iOut), &
+                       string1, sum_val(iRset,iRec,iOut), tmp7, nCont )
                else
-                  call write_output( iOut, iRset, iRec, iymdh_max(iRset,iRec,iOut), string1, &
-                       sum_val(iRset,iRec,iOut) )
+                  call write_output(iOut,iRset,iRec,iymdh_max(iRset,iRec,iOut), &
+                       string1, sum_val(iRset,iRec,iOut) )
                end if
                
             end if
@@ -1194,7 +1303,7 @@ do iRset = 1, nRsets
 
          end if ! if (output(iOut)%sel == "MAX") then 
 
-      end if ! if ( output(iOut)%exceeds < HUGE(0.) ) then
+      end if ! if ( output(iOut)%exceeds == HUGE(0.) ) then
       end if ! .not. (output(iOut)%ConDepVis == "VIS" .and. Rset(iRset)%class == 2) 
    end do    ! do iOut  = 1, nOuts
 end do       ! do iRset = 1, nRsets
@@ -1221,6 +1330,8 @@ IF( ALLOCATED(TotCon)         ) DEALLOCATE(TotCon)
 IF( ALLOCATED(AmbCon)         ) DEALLOCATE(AmbCon)
 IF( ALLOCATED(con)            ) DEALLOCATE(con)
 IF( ALLOCATED(dep)            ) DEALLOCATE(dep)
+IF( ALLOCATED(drydep)         ) DEALLOCATE(drydep)
+IF( ALLOCATED(wetdep)         ) DEALLOCATE(wetdep)
 IF( ALLOCATED(Rset)           ) DEALLOCATE(Rset)
 IF( ALLOCATED(srfFldVal)      ) DEALLOCATE(srfFldVal)
 IF( ALLOCATED(lat)            ) DEALLOCATE(lat,lon)
@@ -1244,14 +1355,16 @@ IF( ALLOCATED(iCon)           ) DEALLOCATE(iCon)
 INQUIRE(UNIT=24,OPENED=lopen,IOSTAT=ios)
 IF( lopen )CLOSE(24)
 
-irv = SAG_CloseID( cgrdI )
-irv = SAG_RmvGrdStr( cgrdI )
-IF( lAmb )THEN
-  irv = SAG_CloseID( agrdI )
-  irv = SAG_RmvGrdStr( agrdI )
-END IF
-irv = SAG_CloseID( dgrdI )
-irv = SAG_RmvGrdStr( dgrdI )
+DO iProj = 1, nProj
+  irv = SAG_CloseID( cgrdI(iProj) )
+  irv = SAG_RmvGrdStr( cgrdI(iProj) )
+  IF( lAmb )THEN
+    irv = SAG_CloseID( agrdI(iProj) )
+    irv = SAG_RmvGrdStr( agrdI(iProj) )
+  END IF
+  irv = SAG_CloseID( dgrdI(iProj) )
+  irv = SAG_RmvGrdStr( dgrdI(iProj) )
+END DO
 
 !-- Release memory
 CALL ClearMemory()

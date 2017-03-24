@@ -93,7 +93,7 @@ lat0 = Prj%Lat0; lon0 = Prj%Lon0; Prj%Lon0 = 0.; Prj%Lat0 = 0.
 irv = CheckTerrainCoord( TerHead )
 IF( irv /= SWIMsuccess )GOTO 9999
 
-Prj%Lon0 = lat0; Prj%Lat0 = lon0
+Prj%Lon0 = lon0; Prj%Lat0 = lat0
 
 !------ Set sub-domain limits
 !       N.B. Prj%Xmin, etc. must equal DEF_VAL_R

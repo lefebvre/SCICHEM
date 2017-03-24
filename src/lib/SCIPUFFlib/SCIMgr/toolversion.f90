@@ -5,8 +5,8 @@
 !*******************************************************************************
 MODULE SCIPversion_fd
   INTEGER,       PARAMETER :: SCIP_API_VERSION = 6100
-  CHARACTER(16), PARAMETER :: SCIPTOOL_TAG     = '.155'   !(Update if needed)
-  CHARACTER(16), PARAMETER :: SCIPUFF_TAG  = ' SCICHEM 3.0' !(Update if needed)
+  CHARACTER(16), PARAMETER :: SCIPTOOL_TAG     = '.180'   !(Update if needed)
+  CHARACTER(34), PARAMETER :: SCIPUFF_TAG  = 'SCICHEM Ver 3.1 Build 170222' !(Update if needed)
 END MODULE SCIPversion_fd
 
 !*******************************************************************************
@@ -111,7 +111,7 @@ IF( SCIMgrCheckState(HS_ANYSTATE) )THEN !Always available
     String = TRIM(SCIstring)//TRIM(SCIPUFF_TAG)
   ELSE
     String ='T:'//TRIM(APIstring)//TRIM(SCIPTOOL_TAG) &
-                  //'-S:'//TRIM(SCIstring)//TRIM(SCIPUFF_TAG)
+                  //'-S:'//TRIM(SCIstring)//';'//TRIM(SCIPUFF_TAG)
   END IF
 
   charString%string = String

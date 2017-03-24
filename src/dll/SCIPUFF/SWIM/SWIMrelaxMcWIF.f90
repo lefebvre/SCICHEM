@@ -69,7 +69,6 @@ DO i = 1,n
   p(i)    = 0.
 END DO
 
-
 DO
 
   irv = PostCheckMessage( )

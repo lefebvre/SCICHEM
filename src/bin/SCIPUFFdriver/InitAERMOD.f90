@@ -85,7 +85,7 @@ emiFile = ''
 new%input%domain%domain%coord = I_CARTESIAN !Default coordinates (previously I_METERS)
 new%input%option%samplerFile = ''
 
-xfac = 1.E-3 !1.0  AERMOD input is meters
+xfac = 1. !AERMOD-style Cartesian or UTM input is kilometers
 
 nAreaSrc = 1
 

@@ -86,6 +86,8 @@ END IF
 
 IF( nWetPartLiq > 0 )CALL write_prj_wetpLiquid()
 
+CALL FLUSH(lun_prj)
+
 9999 CONTINUE
 
 RETURN

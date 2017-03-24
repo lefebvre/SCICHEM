@@ -62,11 +62,13 @@ END IF
 CALL SetupStopFiles()
 
 irv = GetVersionString( 0,VersionString )
-string(3) = HEADER_CHAR//'  SCIPtool Version ' &
-          //TRIM(VersionString%string)//'  '//HEADER_CHAR
+nch = INDEX(TRIM(VersionString%string),';')
+string(3) = HEADER_CHAR//' SCIPtool Version ' &
+          //VersionString%string(1:nch-1)//'  '//HEADER_CHAR
+string(2) = HEADER_CHAR//' '//TRIM(VersionString%string(nch+1:))//&
+            REPEAT(' ',LEN_TRIM(string(3))-LEN_TRIM(VersionString%string(nch+1:))-3)//HEADER_CHAR
 string(1) = REPEAT(HEADER_CHAR,LEN_TRIM(string(3)))
-string(2) = HEADER_CHAR//REPEAT(' ',LEN_TRIM(string(3))-2)//HEADER_CHAR
-string(4) = string(2)
+string(4) = HEADER_CHAR//REPEAT(' ',LEN_TRIM(string(3))-2)//HEADER_CHAR
 nch3 = LEN_TRIM(string(3))
 CALL i_format( MAXSG,nch,ctem )
 string(5) = HEADER_CHAR//'  MaxGrid  = '//TRIM(ctem)
@@ -80,7 +82,7 @@ CALL i_format( MAX1D_MET,nch,ctem )
 string(7) = HEADER_CHAR//'  MaxMet1D = '//TRIM(ctem)
 nch = LEN_TRIM(string(7))
 string(7) = TRIM(string(7))//REPEAT(' ',nch3-nch-1)//HEADER_CHAR
-string(8) = string(2)
+string(8) = string(4)
 string(9) = string(1)
 
 DO irv = 1,9

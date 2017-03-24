@@ -139,7 +139,6 @@ CALL init_stack_rel_prime()
 !------ material definitions
 
 CALL init_matl_param()
-CALL init_status_flags()
 
 RETURN
 END
@@ -169,30 +168,10 @@ END
 
 !===============================================================================
 
-SUBROUTINE init_status_flags()
-
-USE scipuff_fi
-
-IMPLICIT NONE
-
-INTEGER i
-
-DO i = 1,TIME_STATUS_ARRAY_SIZE
-  time_status(i) = 1
-END DO
-
-DO i = 1,DOMAIN_STATUS_ARRAY_SIZE
-  domain_status(i) = 1
-END DO
-
-RETURN
-END
-
-!===============================================================================
-
 INTEGER FUNCTION time_level( dtp )
 
 USE scipuff_fi
+USE files_fi
 
 IMPLICIT NONE
 
@@ -221,6 +200,7 @@ IF( ilev > MAXTLV )THEN
   ELSE
     eAction= 'Please submit a problem report about this project'
   END IF
+  WRITE(lun_log,*,ERR=9999)'********* Time level error: dtp=',dtp,' : del=',del
   GOTO 9999
 END IF
 

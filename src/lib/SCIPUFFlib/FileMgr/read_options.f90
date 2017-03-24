@@ -105,6 +105,7 @@ IMPLICIT NONE
 
 INTEGER, INTENT( IN ) :: iunit
 
+REAL    PopSpeed, PopRes
 INTEGER ios
 
 INTEGER, EXTERNAL :: FindNML
@@ -115,7 +116,7 @@ REAL grdmin
 NAMELIST / OPTIONS / t_avg,cmin,lsplitz,delmin,wwtrop,epstrop,sltrop &
                     ,uu_calm,sl_calm,nzbl,mgrd,z_dosage,smpfile,dt_smp &
                     ,substrate_type &
-                    ,grdmin
+                    ,grdmin, PopSpeed, PopRes
 
 ios = FindNML( iunit,'options' )
 

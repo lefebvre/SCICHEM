@@ -34,10 +34,6 @@ vdry = 0.
 
 IF( ustar == 0.0 )GOTO 9999
 
-!-----  Set particle properties
-
-rpx  = 0.5*dm
-
 !-----  No canopy - use Lewellen & Sheng flat plate model
 
 IF( h_cnp <= 0.0 )THEN
@@ -57,6 +53,7 @@ ELSE
 
 !------ Canopy - use parameterized Slinn model
 
+  rpx    = 0.5*dm*1.E6
   zref   = 2.0*h_cnp
   zdispl = 0.5*h_cnp
 

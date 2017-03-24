@@ -17,8 +17,10 @@ MODULE step_p_fi
   REAL, PARAMETER :: SZFAC   = 3.0       ! Zi-split criterion (height)
   REAL, PARAMETER :: ZIDEL   = 10.0      ! Zi-split criterion (height)
 
+  REAL(8) xsav, ysav, lonsav
+
   REAL xmap, ymap, hp, hx, hy, area_fac, sz, zbar, ztop, zlim
-  REAL cnew, csav, xsav, ysav, zsav, hsav, hxsav, hysav, zisav, lonsav
+  REAL cnew, csav, zsav, hsav, hxsav, hysav, zisav
   REAL uubt, vvbt, uvbt
   REAL si, si2, sv, qosi_cc, qi, qvi, qtot, fac_diss
   REAL rhod, vfall, sigvd, vdry, vdtot, cmin2
@@ -27,7 +29,7 @@ MODULE step_p_fi
   REAL aqsosyt, aqbosyt, aqlosyt
   REAL wpuff, vel2
   REAL aspect, ztest, zexp_dos
-  REAL dts
+  REAL dts, stest
   REAL udyn, vdyn, wdyn, tdyn, bdyn, ddyn, fdyn, zdyn
   REAL tauw, difp, gt0, bv, gamma, ti
   REAL tscale
@@ -39,6 +41,7 @@ MODULE step_p_fi
   INTEGER imat
   REAL iSplit
   INTEGER iSkew
+  INTEGER ityppr
   REAL    skewness
 
   LOGICAL lzinv, lsrf, ldos, ltot, lcap, lblcap

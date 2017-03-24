@@ -61,7 +61,7 @@ INTEGER, INTENT( IN ) :: i    !Class ID
 IsWetParticle = BTEST(i,MATID_WETP)
 
 RETURN
-END
+  END
 
 !===============================================================================
 

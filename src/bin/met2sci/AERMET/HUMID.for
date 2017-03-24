@@ -1,4 +1,4 @@
-      SUBROUTINE HUMID(DB, DP, RH)
+      SUBROUTINE AERMET_HUMID(DB, DP, RH)
 C --- Calculate relative humidity (percent) given the dry-bulb and dew
 C     point temperatures. DB is dry bulb temperature in C, and 
 C     DP is dew point temperature in C.  Percent relative humidity (RH)

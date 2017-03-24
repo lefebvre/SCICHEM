@@ -47,7 +47,7 @@ REAL zinv, hmin, zbtop, TerElev
 REAL hc, alphac                                      !canopy height and flow index
 REAL sun_fac
 REAL prate
-REAL cc
+REAL cldcvr
 REAL dtdzs, us2, ws2                                  !Old ATP45_inc
 REAL wts, xml, zsl
 REAL alpha_max, alpha_min, ac_eps, p_eps

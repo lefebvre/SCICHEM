@@ -884,7 +884,7 @@ c           RELATIVE HUMIDITY  [12]  ISHOB does not report RH
             IF( FLAG12 )THEN                       !  Compute RH
                DB = FLOAT(ISHOB(10))/10.
                DP = FLOAT(ISHOB(11))/10.
-               CALL HUMID(DB, DP, RH)
+               CALL AERMET_HUMID(DB, DP, RH)
                ISHOB(12) = IFIX(RH)
             ELSE
                ISHOB(12) = SFQA(49,2)

@@ -17,7 +17,7 @@ REAL, DIMENSION(*),    INTENT( OUT ) :: sdat
 TYPE( srf_gauss_str ), INTENT( OUT ) :: s
 
 TYPE( puff_totalcc ) :: pt
-REAL zbar, deth, xp, yp, zp, zfac
+REAL xbar, ybar, zbar, deth, xp, yp, zp, zfac
 REAL facs, faci, args, arg, c0, vol, rat
 
 !------ Initialize
@@ -33,6 +33,8 @@ sdat(ISRF_TSCL) = NOT_SET_R
 
 !------ Check distance from slice
 
+xbar = SNGL(p%xbar)
+ybar = SNGL(p%ybar)
 zbar = p%zbar
 zp   = zslice - p%zbar
 
@@ -80,9 +82,9 @@ END IF
 
 s%axx = p%axx; s%axy = p%axy; s%ayy = p%ayy
 
-CALL mapfac( p%xbar,p%ybar,s%xmap,s%ymap )
-s%xbar  = p%xbar + xp*s%xmap
-s%ybar  = p%ybar + yp*s%ymap
+CALL mapfac( xbar,ybar,s%xmap,s%ymap )
+s%xbar  = xbar + xp*s%xmap
+s%ybar  = ybar + yp*s%ymap
 
 s%zp = zp
 
@@ -173,7 +175,7 @@ END IF
 
 IF( lter )THEN
 
-  CALL get_topogIn( p%xbar,p%ybar,s%h,s%hx,s%hy,getPuffifld(p) )
+  CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),s%h,s%hx,s%hy,getPuffifld(p) )
 
   CALL puff_grnd_reflect( p%zbar-s%h,p,s%hx,s%hy,xr,xnrm,deth,znrm )
   zfac = 0.5*znrm/(p%det*deth)

@@ -11,6 +11,7 @@ INTEGER FUNCTION SWIMinitWRF( unit )
 USE SWIM_fi
 USE SWIMparam_fd
 USE constants_fd
+USE netcdf_fd
 
 IMPLICIT NONE
 
@@ -24,7 +25,6 @@ LOGICAL lexist
 
 INTEGER, DIMENSION(99) :: iGrid
 
-INTEGER, EXTERNAL :: RemoveCF
 INTEGER, EXTERNAL :: SWIMreallocMetField, SWIMaddLogMessage, PostProgressMessage
 INTEGER, EXTERNAL :: InitWRFsource
 REAL,    EXTERNAL :: GetWRFTime
@@ -74,7 +74,6 @@ IF( irv /= 0 )THEN
   error%Message = 'Error reading first line in WRF list file'
   GOTO 9999
 END IF
-irv = RemoveCF(string)
 
 IF( TRIM(string) /= 'WRF' )THEN
   error%Message = 'First line in WRF list file must be "WRF"'
@@ -88,7 +87,6 @@ IF( irv /= 0 )THEN
   error%Message = 'Error reading first line in WRF list file'
   GOTO 9999
 END IF
-irv = RemoveCF(root)
 
 string = root !Copy and make case insensitive
 CALL cupper( string )
@@ -114,7 +112,6 @@ IF( i > 0 )THEN
     error%Message = 'Error reading second line in WRF list file'
     GOTO 9999
   END IF
-  irv = RemoveCF(root)
 
   string = root !Copy and make case insensitive
   CALL cupper( string )
@@ -138,7 +135,6 @@ IF( i > 0 )THEN
       GOTO 9999
     END IF
   END IF
-  irv = RemoveCF(root)
 
 END IF
 
@@ -194,6 +190,8 @@ DO i = if1,numField
   field(i)%gridSource%type = IBSET(field(i)%gridSource%type,GSB_WRF)
   field(i)%gridSource%unit = 1                                       !Used as index into array of "source" files
 
+  field(i)%type = IBSET(field(i)%type,FTB_WRF)
+
 END DO
 
 WRITE(message%bString,FMT='(A,99I3)',IOSTAT=irv) 'Using WRF grids',iGrid(1:ngrids)
@@ -230,7 +228,6 @@ DO
   ELSE
     nrd = nrd + 1
   END IF
-  irv = RemoveCF(string)
 END DO
 
 REWIND(lun,IOSTAT=irv)
@@ -259,7 +256,6 @@ DO i = 1,nrd
     error%Message = 'Error reading WRF list file'
     GOTO 9999
   END IF
-  irv = RemoveCF(string)
 
   DO j = 1,ngrids
     ifld = if1 + j-1
@@ -418,7 +414,8 @@ REAL    dx, dy, RearthKM
 REAL    rn, x0, y0, f, m0, yy0
 REAL    lonLim, xlat, xlon
 LOGICAL lZruf, lLU, lQ2, lTH2, lQFX, lHFX
-INTEGER k_len
+INTEGER(LEN_ADDRESS) k_len
+
 INTEGER, DIMENSION(3,3) :: istg3d
 
 INTEGER, DIMENSION(NF_MAX_VAR_DIMS) :: dimids
@@ -559,6 +556,10 @@ Src%nY = nyi;  Src%dY = dy
 Src%nZ  = nzi
 Src%nXY = nxi*nyi
 
+!----- Adjust reference longitude to best fit project domain
+
+CALL AdjustLongitudeDom( Src%Lon0,NOT_SET_R )
+
 !----- Vertical grid
 !      N.B. Will be defined as sigma-z coordinates in SWIMreadWRF after 3d height is set
 
@@ -588,7 +589,7 @@ lHFX  = .FALSE.
 
 DO i = 0,nvars-1
   varnam = ''
-  irv = nf90_inquire_variable( fid,i+1,name=varnam,xtype=ivtype,ndims=ndims,dimids=dimids,nAtts=natts )
+  irv = nc_inq_var( fid,i,varnam,ivtype,ndims,dimids,natts )
   IF( irv /= 0 )CYCLE
   varnam = ADJUSTL(TRIM(StripNull(varnam))); CALL cupper( varnam )
   SELECT CASE( TRIM(varnam) )
@@ -682,7 +683,7 @@ string = AddNull('stagger')
 DO i = 0,nvars-1
 
   varnam = ''
-  irv = nf90_inquire_variable( fid,i+1,name=varnam,xtype=ivtype,ndims=ndims,dimids=dimids,nAtts=natts )
+  irv = nc_inq_var( fid,i,varnam,ivtype,ndims,dimids,natts )
   IF( irv /= 0 )CYCLE
   varnam = ADJUSTL(TRIM(StripNull(varnam))); CALL cupper( varnam )
 
@@ -930,8 +931,9 @@ INTEGER id_var, ivtype, ndims, natts
 INTEGER idPH, idPHB
 LOGICAL lz0, lLU
 
-INTEGER k_len
-INTEGER, DIMENSION(5) :: istart, icount
+INTEGER(LEN_ADDRESS) k_len
+INTEGER(LEN_ADDRESS), DIMENSION(5) :: istart, icount
+
 INTEGER, DIMENSION(NF_MAX_VAR_DIMS) :: dimids
 
 CHARACTER(NF_MAX_NAME) varnam, string
@@ -960,6 +962,12 @@ INTERFACE
     REAL, DIMENSION(:), POINTER   :: wrk
     REAL, DIMENSION(:), POINTER   :: var
   END SUBROUTINE Copy2dVar
+
+  SUBROUTINE AdjustCanopyPrf( fld,is )
+    USE SWIM_fi
+    TYPE( MetField ), TARGET, INTENT( INOUT ) :: fld
+    INTEGER,                  INTENT( IN    ) :: is
+  END SUBROUTINE AdjustCanopyPrf
 
 END INTERFACE
 
@@ -1005,11 +1013,10 @@ END IF
 
 !------ Setup for 2d fields
 
-istart = 1; icount = 0
+istart = 0; icount = 0
 
 irv = nc_inq_varid( fid,AddNull('HGT'),id_var )
-irv = nf90_inquire_variable( fid,id_var+1,name=varnam,xtype=ivtype,ndims=ndims,dimids=dimids,nAtts=natts )
-dimids(1:ndims) = dimids(1:ndims)-1
+irv = nc_inq_var( fid,id_var,varnam,ivtype,ndims,dimids,natts )
 IF( irv /= 0 )GOTO 9999
 
 nx = fld%gridSource%nX
@@ -1044,7 +1051,7 @@ END IF
 
 !------ Read terrain
 
-irv = nf90_get_var( fid,id_var+1,wrk2d,start=istart,count=icount )
+irv = nc_get_vara_float( fid,id_var,istart,icount,wrk2d )
 IF( irv /= 0 )THEN
   iaddr = nc_strerror( irv )
   CALL ADDRESS_STRING( iaddr,error%Action )
@@ -1075,7 +1082,7 @@ END IF
 
 IF( lz0 .OR. lLU )THEN
 
-  irv = nf90_get_var( fid,id_var+1,wrk2d,start=istart,count=icount )
+  irv = nc_get_vara_float( fid,id_var,istart,icount,wrk2d )
   IF( irv /= 0 )THEN
     iaddr = nc_strerror( irv )
     CALL ADDRESS_STRING( iaddr,error%Action )
@@ -1098,7 +1105,7 @@ END IF
 
 IF( nc_inq_varid(fid,AddNull('ALBEDO'),id_var) == 0 )THEN
 
-  irv = nf90_get_var( fid,id_var+1,wrk2d,start=istart,count=icount )
+  irv = nc_get_vara_float( fid,id_var,istart,icount,wrk2d )
   IF( irv /= 0 )THEN
     iaddr = nc_strerror( irv )
     CALL ADDRESS_STRING( iaddr,error%Action )
@@ -1118,7 +1125,7 @@ END IF
 
 IF( nc_inq_varid(fid,AddNull('LU_INDEX'),id_var) == 0 )THEN
 
-  irv = nf90_get_var( fid,id_var+1,wrk2d,start=istart,count=icount )
+  irv = nc_get_vara_float( fid,id_var,istart,icount,wrk2d )
   IF( irv /= 0 )THEN
     iaddr = nc_strerror( irv )
     CALL ADDRESS_STRING( iaddr,error%Action )
@@ -1163,11 +1170,10 @@ IF( irv /= 0 )GOTO 9999
 irv = nc_inq_varid( fid,AddNull('PHB'),idPHB )
 IF( irv /= 0 )GOTO 9999
 
-irv = nf90_inquire_variable( fid,idPH+1,name=varnam,xtype=ivtype,ndims=ndims,dimids=dimids,nAtts=natts )
-dimids(1:ndims) = dimids(1:ndims)-1
+irv = nc_inq_var( fid,idPH,varnam,ivtype,ndims,dimids,nAtts )
 IF( irv /= 0 )GOTO 9999
 
-istart = 1; icount = 0
+istart = 0; icount = 0
 
 DO j = 1,ndims
 
@@ -1188,7 +1194,7 @@ DO j = 1,ndims
     CASE( 'bottom_top_stag' )
       icount(j) = k_len-1; iz = j
       istart(j) = istart(j) + 1      !PH is staggered vertically (and level 0 is at the ground)
-      nz = k_len-1                       !and therefore has an extra level
+      nz = k_len-1                   !and therefore has an extra level
   END SELECT
 
 END DO
@@ -1204,14 +1210,14 @@ END IF
 
 !------ Read geopotential fields (base and perturbation)
 
-irv = nf90_get_var( fid,idPH+1,wrk3d,start=istart,count=icount )
+irv = nc_get_vara_float( fid,idPH,istart,icount,wrk3d )
 IF( irv /= 0 )THEN
   iaddr = nc_strerror( irv )
   CALL ADDRESS_STRING( iaddr,error%Action )
   GOTO 9999
 END IF
 
-irv = nf90_get_var( fid,idPHB+1,aux3d,start=istart,count=icount )
+irv = nc_get_vara_float( fid,idPHB,istart,icount,aux3d )
 IF( irv /= 0 )THEN
   iaddr = nc_strerror( irv )
   CALL ADDRESS_STRING( iaddr,error%Action )
@@ -1438,7 +1444,8 @@ INTEGER, INTENT( IN ) :: fid
 
 INTEGER irv, iv, ndims, natts, I
 
-INTEGER k_len
+INTEGER(LEN_ADDRESS) k_len
+
 INTEGER, DIMENSION(NF_MAX_VAR_DIMS) :: dimids
 
 CHARACTER(NF_MAX_NAME) varnam
@@ -1450,8 +1457,7 @@ n_times = -1
 irv = nc_inq_varid( fid,AddNull('Times'),iv )
 IF( irv /= 0 )GOTO 9999
 
-irv = nf90_inquire_variable( fid,iv+1,name=varnam,xtype=iv,ndims=ndims,dimids=dimids,nAtts=natts )
-dimids(1:ndims) = dimids(1:ndims) - 1
+irv = nc_inq_var( fid,iv,varnam,iv,ndims,dimids,natts )
 IF( irv /= 0 )GOTO 9999
 
 DO i = 1,ndims
@@ -1482,7 +1488,7 @@ INTEGER irv, id_var, ivtype, ndims, natts
 
 INTEGER, DIMENSION(NF_MAX_VAR_DIMS) :: dimids
 
-INTEGER, DIMENSION(:), ALLOCATABLE :: istart, icount
+INTEGER(LEN_ADDRESS), DIMENSION(:), ALLOCATABLE :: istart, icount
 
 REAL,    DIMENSION(1) :: x4
 REAL(8), DIMENSION(1) :: x8
@@ -1492,8 +1498,7 @@ CHARACTER(NF_MAX_NAME) varnam
 CHARACTER(NF_MAX_NAME), EXTERNAL :: AddNull
 
 irv = nc_inq_varid( fid,AddNull(var_name),id_var )
-irv = nf90_inquire_variable( fid,id_var+1,name=varnam,xtype=ivtype,ndims=ndims,dimids=dimids,nAtts=natts )
-dimids(1:ndims) = dimids(1:ndims) - 1
+irv = nc_inq_var( fid,id_var,varnam,ivtype,ndims,dimids,natts )
 IF( irv /= 0 )GOTO 9999
 
 ALLOCATE( istart(ndims),icount(ndims),STAT=irv )
@@ -1503,11 +1508,9 @@ istart = 0; icount = 1
 IF( PRESENT(is) )istart(1) = is
 
 IF( ivtype == NF_REAL )THEN
-  istart = istart + 1
-  irv = nf90_get_var( fid,id_var+1,x4,start=istart,count=icount )
+  irv = nc_get_vara_float( fid,id_var,istart,icount,x4 )
 ELSE IF( ivtype == NF_DOUBLE )THEN
-  istart = istart + 1
-  irv = nf90_get_var( fid,id_var+1,x8,start=istart,count=icount )
+  irv = nc_get_vara_double( fid,id_var,istart,icount,x8 )
   IF( irv == 0 )x4 = x8
 END IF
 

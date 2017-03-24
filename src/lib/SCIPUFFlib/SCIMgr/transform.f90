@@ -185,7 +185,7 @@ IF( VertSlice )THEN
     CASE( I_UTM )
       zone = Cin%UTMZone
       irv = UTM2LL( Cin%UTMZone,Cin%vertSlice%startPt%x, &
-                               Cin%vertSlice%startPt%y,yfac,xfac )
+                                Cin%vertSlice%startPt%y,yfac,xfac )
       IF( irv /= 0 )THEN
         CALL setUTMerror( 'UTM2LL',irv )
         GOTO 9999
@@ -664,8 +664,8 @@ END IF
 IF( Aborted() ) GOTO 9999
 
 DO i = 1,np
-  xp(i) = puff(i)%xbar
-  yp(i) = puff(i)%ybar
+  xp(i) = SNGL(puff(i)%xbar)
+  yp(i) = SNGL(puff(i)%ybar)
 END DO
 
 inCoord%mode                 = Cin%mode
@@ -688,8 +688,8 @@ CALL Transform( inCoord,outCoord,np,xp,yp )
 
 IF( nError == NO_ERROR )THEN
   DO i = 1,np
-    puff(i)%xbar = xp(i)
-    puff(i)%ybar = yp(i)
+    puff(i)%xbar = DBLE(xp(i))
+    puff(i)%ybar = DBLE(yp(i))
   END DO
 END IF
 

@@ -51,6 +51,8 @@ MODULE SciDosPostTools
   REAL, DIMENSION(:,:,:),  ALLOCATABLE :: AmbCon    !index: iRset,iRec,ikind
   REAL, DIMENSION(:,:,:),  ALLOCATABLE :: con       !index: iRset,iRec,ikind
   REAL, DIMENSION(:,:,:),  ALLOCATABLE :: dep       !index: iRset,iRec,ikind
+  REAL, DIMENSION(:,:,:),  ALLOCATABLE :: wetdep    !index: iRset,iRec,ikind
+  REAL, DIMENSION(:,:,:),  ALLOCATABLE :: drydep    !index: iRset,iRec,ikind
   REAL, DIMENSION(:,:,:,:),ALLOCATABLE :: srfFldVal !index: iRset,iRec,ikind,2
   REAL, DIMENSION(:,:),    ALLOCATABLE :: lat,lon   !index: iRset,iRec
   REAL, DIMENSION(:,:),    ALLOCATABLE :: xRec,yRec !index: iRset,iRec
@@ -64,11 +66,12 @@ MODULE SciDosPostTools
   REAL, DIMENSION(nCont)               :: tmp7      !used for passing dBc_*
 
   INTEGER,DIMENSION(:,:,:,:),ALLOCATABLE :: max_time!index: same as max_val
+  INTEGER,DIMENSION(:,:,:),ALLOCATABLE :: iymdh_max ! index: iRset,iRec,iOut
   INTEGER,DIMENSION(:,:),  ALLOCATABLE :: iHours    ! index: iRset,iOut
   INTEGER,DIMENSION(:),    ALLOCATABLE :: nRec      ! index: iRset
   INTEGER                              :: iymdh_beg = 0       ! begin output
+  INTEGER                              :: iymdh_cur = 0       ! next (current) out
   INTEGER                              :: iymdh_end = HUGE(0) ! end output
-  INTEGER,DIMENSION(:,:,:),ALLOCATABLE :: iymdh_max ! index: iRset,iRec,iOut
 
 ! The iKind index of the species we need to calc max concentrations
 
@@ -94,7 +97,11 @@ MODULE SciDosPostTools
 
 ! Other path/filenames we need
 
-  CHARACTER (len=PATH_MAXLENGTH)    :: projName, controlFile, flagDir
+  INTEGER             :: nProj  ! number of projName (basename) filenames given
+  INTEGER             :: iProj  ! index for projName 
+  CHARACTER (len=PATH_MAXLENGTH), dimension(:), allocatable :: projName
+
+  CHARACTER (len=PATH_MAXLENGTH)    :: controlFile, flagDir
   CHARACTER (len=PATH_MAXLENGTH)    :: NatCondFile, LargeRHFile
   CHARACTER (len=PATH_MAXLENGTH)    :: SmallRHFile, SeaSaltFile
   CHARACTER (len=128)               :: string1  ! tmp variable
@@ -145,7 +152,11 @@ CONTAINS
        call get_word(line,1,word)
        call CUPPER( word )
 
-       if ( word(1:4) == "PROJ" ) call get_word(line,2,projName)
+       if ( word(1:4) == "PROJ" ) then
+          do i = 1, nProj
+             call get_word(line,i+1,projName(i))
+          end do
+       end if
        
        if ( word(1:4) == "CALC" ) then
           call get_word( line, 2, word2 )
@@ -185,8 +196,9 @@ CONTAINS
              write(*,*) "Error reading starting time-stamp: ",trim(line)
              stop
           end if
-          call legal_timestamp(ibyr,ibmo,ibdy,ibhr,23)
+          call legal_timestamp(ibyr,ibmo,ibdy,ibhr,24)
           iymdh_beg = iymdh2idate(ibyr,ibmo,ibdy,ibhr)
+          iymdh_cur = iymdh_beg ! set the current time to the start time
        end if
 
        if (word == "STOP" .or. word == "END") then
@@ -229,7 +241,8 @@ CONTAINS
 !
 !---- Outputs
 !
-       if (word(1:3) == "CON" .or. word(1:3) == "DEP" .or.               &
+       if (word(1:3) == "CON" .or. word(1:3) == "DEP" .or.    &
+           word(1:3) == "DRY" .or. word(1:3) == "WET" .or.    &
            word(1:3) == "VIS") then
           iOut = iOut + 1
 
@@ -250,8 +263,11 @@ CONTAINS
           else if (word2(1:1) == "M") then       ! The MAX value at MAX val point
              output(iOut)%sel = "MAX"
              output(iOut)%exceeds = HUGE(0.)     ! flag for write maximum
-          else if (word2(1:1) == ">") then
-             read(word2(2:),*) output(iOut)%exceeds
+          else if (word2(1:1) == ">") then       ! greater than, which is the
+             read(word2(2:),*) output(iOut)%exceeds ! same as >= val - tiny()
+             output(iOut)%exceeds = output(iOut)%exceeds - TINY(0.0)
+          else if (word2(1:2) == ">=") then      ! greater than or equal to
+             read(word2(3:),*) output(iOut)%exceeds
           else
              write(*,*) "Error parsing 3rd word of the following line:"
              write(*,*) trim(line)
@@ -336,6 +352,7 @@ CONTAINS
 
     nRsets  = 0 ! initialize
     nOuts   = 0
+    nProj   = 0
 
 99  format(a999)
 
@@ -352,9 +369,14 @@ CONTAINS
        call CUPPER( word )
 
        if (word == "REC") nRsets = nRsets + 1
-       if (word == "CON" .or. word == "DEP" .or. word == "VIS") &
+       if (word == "CON" .or. word == "DEP" .or. word == "DRY" .or. &
+           word == "WET" .or. word == "VIS") &
             nOuts = nOuts + 1
-
+       if (word(1:4) == "PROJ") then
+         call count_words(line,num_words)     ! non-blank line
+         nProj = num_words - 1
+       end if
+         
        read(lun,99,iostat=ios) line ! read to the next non-comment,
        call count_words(line,num_words)     ! non-blank line
        do while (num_words == 0 .and. ios == 0)
@@ -626,12 +648,14 @@ CONTAINS
     write(*,1) "rec 2  50m    utm    50m.rec"
     write(*,1) 
     write(*,1) "# OUTPUT section: "
-    write(*,1) "# 1st word is CONcentration, DEPosition, or VISibility obscuration"
+    write(*,1) "# 1st word is CONcentration, DEPosition (WET or DRY) or VISibility"
     write(*,1) "# 2nd word is the chemical species to process"
     write(*,1) "# 3rd word is a selection criteria: "
-    write(*,1) "#    ALL: output the max value (of rank) at all points in each receptor set"
+    write(*,1) "#    ALL: output the max value (of rank) at ALL points in each receptor set"
+    write(*,1) "#         Note: ALL means 'all values in space' here, not 'in time'"
     write(*,1) "#    MAX: output the single max value (of rank) within each receptor set"
-    write(*,1) "#    >N : output all values (of rank) greater than the specified value"
+    write(*,1) "#    >=N: output all values (of rank) that exceeds the specified value"
+    write(*,1) "#         To get a time series, specify just one REC and use '>=0'"
     write(*,1) "# 4th word is the rank, e.g. the 8th highest high (98th percentile)"
     write(*,1) "# 5th and 6th words specify the period over which to average or take the maximum"
     write(*,1) "# 7th word is either MAX or AVG, the statistic to take over each FREQUENCY"
@@ -662,6 +686,8 @@ CONTAINS
     write(*,1) "con  so2   max  1st  24 hr avg_in 24 hr CSV   max_concentrations.csv"
     write(*,1) "con  so2   max  1st   1 yr avg_in  1 yr CSV   max_concentrations.csv"
     write(*,1) "dep  N     max  1st   1 yr avg_in  1 yr CSV   max_deposition.csv    "
+    write(*,1) "dry  N     max  1st   1 yr avg_in  1 yr CSV   max_deposition.csv    "
+    write(*,1) "wet  N     max  1st   1 yr avg_in  1 yr CSV   max_deposition.csv    "
     write(*,1) "dep  S     max  1st   1 yr avg_in  1 yr CSV   max_deposition.csv    "
     write(*,1) "vis  dBext max  8th  24 hr avg_in 24 hr CSV   visibility_results.csv"
     write(*,1) "vis  Cont  max  8th  24 hr avg_in 24 hr CSV   visibility_contrib.csv"
@@ -697,19 +723,24 @@ CONTAINS
     end do
 
     iHours(iRset,iOut) = iHours(iRset,iOut) + 1
+    if (debug) write(24,*)'iHours for iRset,iOut ',iRset,iOut,' = ',iHours(iRset,iOut)
 
 !--- Find the n-period average value, then find the rank of this value,
 !    and insert the value at the right rank
 
     if (debug) print*,"iRset,iOut,iHours,sum_val= ",iRset,iOut,iHours(iRset,iOut),&
-       sum_val(iRset,10,iOut)
+       sum_val(iRset,1,iOut)
 
     if (iHours(iRset,iOut) == output(iOut)%frequency) then ! end frequency period
        if (debug) then
+         write(24,*)'Output for iRset,iOut ',iRset,iOut,' at ',iHours(iRset,iOut)
+         write(24,*)"Averging for output(iOut) ",iRset,iOut,iHours(iRset,iOut),output(iOut)%frequency,iymdh
+       end if
+       if (debug) then
           print*
           print*,"averging for output(iOut) ",iRset,iOut,iHours(iRset,iOut)
-          print*,"sum_val = ",sum_val(iRset,10,iOut)
-          print*,"avg_val = ",sum_val(iRset,10,iOut)/iHours(iRset,iOut)
+          print*,"sum_val = ",sum_val(iRset,1,iOut)
+          print*,"avg_val = ",sum_val(iRset,1,iOut)/iHours(iRset,iOut)
           print*
        end if
 
@@ -728,11 +759,11 @@ CONTAINS
           call insert( sum_val(iRset,iRec,iOut), iRset, iRec, iOut,   &
                output(iOut)%rank, ir, iymdh_max(iRset,iRec,iOut) ) 
 
-          if ( sum_val(iRset,iRec,iOut) > output(iOut)%exceeds ) then
+          if ( sum_val(iRset,iRec,iOut) >= output(iOut)%exceeds ) then
 
              if (debug) print*,"Output: ",iOut,iRset,iRec,iymdh, &
                   sum_val(iRset,iRec,iOut)
-             write(string1,*) ">",output(iOut)%exceeds
+             write(string1,*) ">=",output(iOut)%exceeds
              call write_output(iOut, iRset, iRec, iymdh_max(iRset,iRec,iOut),  &
                   string1, sum_val(iRset,iRec,iOut))
 
@@ -824,6 +855,7 @@ CONTAINS
     end do  ! do iRec = 1, nRec(iRset)
 
     iHours(iRset,iOut) = iHours(iRset,iOut) + 1
+    if (debug) WRITE(24,*)'Dep iHours(iRset,iOut) ',iHours(iRset,iOut)
 
 !--- Find the n-period average value, then find the rank of this value,
 !    and insert the value at the right rank
@@ -844,9 +876,9 @@ CONTAINS
           call insert( sum_val(iRset,iRec,iOut), iRset, iRec, iOut,   &
                output(iOut)%rank, ir, iymdh_max(iRset,iRec,iOut) ) 
 
-          if ( sum_val(iRset,iRec,iOut) > output(iOut)%exceeds ) then
+          if ( sum_val(iRset,iRec,iOut) >= output(iOut)%exceeds ) then
 
-             write(string1,*) ">",output(iOut)%exceeds
+             write(string1,*) ">=",output(iOut)%exceeds
              call write_output(iOut, iRset, iRec, iymdh_max(iRset,iRec,iOut),  &
                   string1, sum_val(iRset,iRec,iOut))
 
@@ -862,6 +894,234 @@ CONTAINS
    RETURN
 
   END SUBROUTINE calc_dep
+!
+!*************************************************************************
+!
+  SUBROUTINE calc_dry_dep( iRset, iKind, iOut, iymdh )
+
+    IMPLICIT NONE
+    integer                 :: iRset  ! which Class I area to process
+    integer                 :: iKind  ! which chemical species in dep() to use
+    integer                 :: iOut   ! which output we're working on
+    integer                 :: ir     ! rank of this average (H1H, H8H, etc.)
+    integer                 :: iRec   ! Class I area receptor index
+    integer                 :: iymdh  ! current time in YYYYMMDDHH format
+    real                    :: tmpDep ! Deposition rate for this hour
+
+!--- add this hour to the running total deposition of N and S
+
+    do iRec = 1, nRec(iRset)
+
+       tmpDep = 0.
+
+       if (output(iOut)%chemSpecies == "N") then ! Total Nitrogen Deposition
+
+          if (iNO   > 0) tmpDep = tmpDep &
+               + 14./30.  * drydep(iRset,iRec,iNO   ) ! NO
+          if (iNO2  > 0) tmpDep = tmpDep &
+               + 14./46.  * drydep(iRset,iRec,iNO2  ) ! NO2
+          if (iNO3   > 0) tmpDep = tmpDep &
+               + 14./62.  * drydep(iRset,iRec,iNO3  ) ! NO3
+          if (iN2O5  > 0) tmpDep = tmpDep &
+               + 28./102. * drydep(iRset,iRec,iN2O5 ) ! N2O5
+          if (iHNO3  > 0) tmpDep = tmpDep &
+               + 14./63.  * drydep(iRset,iRec,iHNO3 ) ! HNO3
+          if (iHONO  > 0) tmpDep = tmpDep &
+               + 14./47.  * drydep(iRset,iRec,iHONO ) ! HONO
+          if (iPNA   > 0) tmpDep = tmpDep &
+               + 14./79.  * drydep(iRset,iRec,iPNA  ) ! HNO4
+          if (iPAN   > 0) tmpDep = tmpDep &
+               + 14./121. * drydep(iRset,iRec,iPAN  ) ! CH3COOONO2
+          if (iPANX  > 0) tmpDep = tmpDep &
+               + 14./121. * drydep(iRset,iRec,iPANX ) ! Higher PAN
+          if (iNTR   > 0) tmpDep = tmpDep &
+               + 14./130. * drydep(iRset,iRec,iNTR  ) ! Org. Nitr
+          if (iPNO3  > 0) tmpDep = tmpDep &
+               + 28./62.  * drydep(iRset,iRec,iPNO3 ) ! NH4NO3
+          if (iANO3K > 0) tmpDep = tmpDep &
+               + 28./62.  * drydep(iRset,iRec,iANO3K) ! NH4NO3
+          if (iNH3   > 0) tmpDep = tmpDep &
+               + 14./17.  * drydep(iRset,iRec,iNH3  ) ! ammonia
+          if (iPNH4  > 0) tmpDep = tmpDep &
+               + 14./18.  * drydep(iRset,iRec,iPNH4 ) ! PM Ammonia
+          if (iANH4K > 0) tmpDep = tmpDep &
+               + 14./18.  * drydep(iRset,iRec,iANH4K) ! PM Ammonia
+
+       elseif (output(iOut)%chemSpecies == "S") then ! Total Sulfur Dep
+
+          if (iSO2   > 0) tmpDep = tmpDep &
+               + 32./64.  * drydep(iRset,iRec,iSO2  )   ! SO2
+          if (iSULF  > 0) tmpDep = tmpDep &
+               + 32./98.  * drydep(iRset,iRec,iSULF )   ! H2SO4
+          if (iPSO4  > 0) tmpDep = tmpDep &
+               + 32./96.  * drydep(iRset,iRec,iPSO4 )   ! (NH4)2SO4
+          if (iASO4K > 0) tmpDep = tmpDep &
+               + 32./96.  * drydep(iRset,iRec,iASO4K)   ! (NH4)2SO4
+
+       else ! use iKind
+          
+          tmpDep = tmpDep + drydep(iRset,iRec,iKind)
+
+       end if
+
+       call max_or_avg(sum_val(iRset,iRec,iOut), tmpDep, output(iOut)%stat, &
+            iymdh, iymdh_max(iRset,iRec,iOut) )
+
+    end do  ! do iRec = 1, nRec(iRset)
+
+    iHours(iRset,iOut) = iHours(iRset,iOut) + 1
+
+!--- Find the n-period average value, then find the rank of this value,
+!    and insert the value at the right rank
+
+    if (iHours(iRset,iOut) == output(iOut)%avgPeriods) then ! end averaging period
+
+       do iRec = 1, nRec(iRset)
+
+          if ( output(iOut)%stat == "A" ) then ! average by div sum/hours
+             sum_val(iRset,iRec,iOut) = &
+                  sum_val(iRset,iRec,iOut)/iHours(iRset,iOut)
+          end if ! if output(iOut)%stat == "M", we already have the maximum
+
+          ir = find_rank( sum_val(iRset,iRec,iOut), iRset, iRec, iOut, &
+               output(iOut)%rank)
+
+          ! inserts into max_val at right rank, with the right time
+          call insert( sum_val(iRset,iRec,iOut), iRset, iRec, iOut,   &
+               output(iOut)%rank, ir, iymdh_max(iRset,iRec,iOut) ) 
+
+          if ( sum_val(iRset,iRec,iOut) >= output(iOut)%exceeds ) then
+
+             write(string1,*) ">=",output(iOut)%exceeds
+             call write_output(iOut, iRset, iRec, iymdh_max(iRset,iRec,iOut),  &
+                  string1, sum_val(iRset,iRec,iOut))
+
+          end if
+
+       end do
+
+       iHours(iRset,iOut) = 0
+       sum_val(iRset,:,iOut) = 0.
+
+    end if ! if (iHours(iRset,iOut) == output(iOut)%avgPeriods) then
+
+   RETURN
+
+  END SUBROUTINE calc_dry_dep
+!
+!*************************************************************************
+!
+  SUBROUTINE calc_wet_dep( iRset, iKind, iOut, iymdh )
+
+    IMPLICIT NONE
+    integer                 :: iRset  ! which Class I area to process
+    integer                 :: iKind  ! which chemical species in dep() to use
+    integer                 :: iOut   ! which output we're working on
+    integer                 :: ir     ! rank of this average (H1H, H8H, etc.)
+    integer                 :: iRec   ! Class I area receptor index
+    integer                 :: iymdh  ! current time in YYYYMMDDHH format
+    real                    :: tmpDep ! Deposition rate for this hour
+
+!--- add this hour to the running total deposition of N and S
+
+    do iRec = 1, nRec(iRset)
+
+       tmpDep = 0.
+
+       if (output(iOut)%chemSpecies == "N") then ! Total Nitrogen Deposition
+
+          if (iNO   > 0) tmpDep = tmpDep &
+               + 14./30.  * wetdep(iRset,iRec,iNO   ) ! NO
+          if (iNO2  > 0) tmpDep = tmpDep &
+               + 14./46.  * wetdep(iRset,iRec,iNO2  ) ! NO2
+          if (iNO3   > 0) tmpDep = tmpDep &
+               + 14./62.  * wetdep(iRset,iRec,iNO3  ) ! NO3
+          if (iN2O5  > 0) tmpDep = tmpDep &
+               + 28./102. * wetdep(iRset,iRec,iN2O5 ) ! N2O5
+          if (iHNO3  > 0) tmpDep = tmpDep &
+               + 14./63.  * wetdep(iRset,iRec,iHNO3 ) ! HNO3
+          if (iHONO  > 0) tmpDep = tmpDep &
+               + 14./47.  * wetdep(iRset,iRec,iHONO ) ! HONO
+          if (iPNA   > 0) tmpDep = tmpDep &
+               + 14./79.  * wetdep(iRset,iRec,iPNA  ) ! HNO4
+          if (iPAN   > 0) tmpDep = tmpDep &
+               + 14./121. * wetdep(iRset,iRec,iPAN  ) ! CH3COOONO2
+          if (iPANX  > 0) tmpDep = tmpDep &
+               + 14./121. * wetdep(iRset,iRec,iPANX ) ! Higher PAN
+          if (iNTR   > 0) tmpDep = tmpDep &
+               + 14./130. * wetdep(iRset,iRec,iNTR  ) ! Org. Nitr
+          if (iPNO3  > 0) tmpDep = tmpDep &
+               + 28./62.  * wetdep(iRset,iRec,iPNO3 ) ! NH4NO3
+          if (iANO3K > 0) tmpDep = tmpDep &
+               + 28./62.  * wetdep(iRset,iRec,iANO3K) ! NH4NO3
+          if (iNH3   > 0) tmpDep = tmpDep &
+               + 14./17.  * wetdep(iRset,iRec,iNH3  ) ! ammonia
+          if (iPNH4  > 0) tmpDep = tmpDep &
+               + 14./18.  * wetdep(iRset,iRec,iPNH4 ) ! PM Ammonia
+          if (iANH4K > 0) tmpDep = tmpDep &
+               + 14./18.  * wetdep(iRset,iRec,iANH4K) ! PM Ammonia
+
+       elseif (output(iOut)%chemSpecies == "S") then ! Total Sulfur Dep
+
+          if (iSO2   > 0) tmpDep = tmpDep &
+               + 32./64.  * wetdep(iRset,iRec,iSO2  )   ! SO2
+          if (iSULF  > 0) tmpDep = tmpDep &
+               + 32./98.  * wetdep(iRset,iRec,iSULF )   ! H2SO4
+          if (iPSO4  > 0) tmpDep = tmpDep &
+               + 32./96.  * wetdep(iRset,iRec,iPSO4 )   ! (NH4)2SO4
+          if (iASO4K > 0) tmpDep = tmpDep &
+               + 32./96.  * wetdep(iRset,iRec,iASO4K)   ! (NH4)2SO4
+
+       else ! use iKind
+          
+          tmpDep = tmpDep + wetdep(iRset,iRec,iKind)
+
+       end if
+
+       call max_or_avg(sum_val(iRset,iRec,iOut), tmpDep, output(iOut)%stat, &
+            iymdh, iymdh_max(iRset,iRec,iOut) )
+
+    end do  ! do iRec = 1, nRec(iRset)
+
+    iHours(iRset,iOut) = iHours(iRset,iOut) + 1
+
+!--- Find the n-period average value, then find the rank of this value,
+!    and insert the value at the right rank
+
+    if (iHours(iRset,iOut) == output(iOut)%avgPeriods) then ! end averaging period
+
+       do iRec = 1, nRec(iRset)
+
+          if ( output(iOut)%stat == "A" ) then ! average by div sum/hours
+             sum_val(iRset,iRec,iOut) = &
+                  sum_val(iRset,iRec,iOut)/iHours(iRset,iOut)
+          end if ! if output(iOut)%stat == "M", we already have the maximum
+
+          ir = find_rank( sum_val(iRset,iRec,iOut), iRset, iRec, iOut, &
+               output(iOut)%rank)
+
+          ! inserts into max_val at right rank, with the right time
+          call insert( sum_val(iRset,iRec,iOut), iRset, iRec, iOut,   &
+               output(iOut)%rank, ir, iymdh_max(iRset,iRec,iOut) ) 
+
+          if ( sum_val(iRset,iRec,iOut) >= output(iOut)%exceeds ) then
+
+             write(string1,*) ">=",output(iOut)%exceeds
+             call write_output(iOut, iRset, iRec, iymdh_max(iRset,iRec,iOut),  &
+                  string1, sum_val(iRset,iRec,iOut))
+
+          end if
+
+       end do
+
+       iHours(iRset,iOut) = 0
+       sum_val(iRset,:,iOut) = 0.
+
+    end if ! if (iHours(iRset,iOut) == output(iOut)%avgPeriods) then
+
+   RETURN
+
+  END SUBROUTINE calc_wet_dep
 !
 !*************************************************************************
 !
@@ -1055,9 +1315,9 @@ CONTAINS
 
 !---- Write out dBext if it exceeds the requested criteria.
 
-          if (sum_val(iRset,iRec,iOut) > output(iOut)%exceeds ) then
+          if (sum_val(iRset,iRec,iOut) >= output(iOut)%exceeds ) then
 
-             write(string1,*) ">",output(iOut)%exceeds
+             write(string1,*) ">=",output(iOut)%exceeds
              if (output(iOut)%chemSpecies == "CONT") then
                 tmp7(:) = dBc_sum(iRset,iRec,iOut,:)
                 call write_vis( iOut, iRset, iRec, iymdh_max(iRset,iRec,iOut), &
@@ -1472,7 +1732,7 @@ CONTAINS
     character (len=*)       :: Cond    ! a description of what we're writing
     integer                 :: i
 
-1   format(2(a,", "),2(f12.6,", "),i11.10,2(", ",i6),", ",a,", ",99(", ",g16.6))
+1   format(2(a,", "),2(f12.6,", "),i11.10,2(", ",i6),", ",a,99(", ",g16.6))
     
 
     if (iRec > 0) then
@@ -1502,6 +1762,7 @@ CONTAINS
     integer                 :: iRset   ! which receptor
     integer                 :: iRec    ! receptor index within this receptor set
     integer                 :: iymdh   ! current time in YYYYMMDDHH format
+    integer                 :: iy,im,id,ih ! current time
     character (len=*)       :: Cond    ! a description of what we're writing
     real                    :: val     ! the value to write
     
@@ -1546,14 +1807,18 @@ CONTAINS
        
     else if (output(iOut)%OutType == "POST" .or. &
          output(iOut)%OutType == "PLOT") then
-       
-       if (iymdh > 1900000000) then
+!                   1993020100
+       if (iymdh >= 2000000000) then
           itmp = iymdh - 2000000000
        else if (iymdh > 0) then
           itmp = iymdh - 1900000000 ! cheap way to get YYMMDDHH
        else
           itmp = 0 ! goes with val == -HUGE(0.)
        endif
+
+       call idate2ymdh(itmp,iy,im,id,ih)    ! POSTFILEs are always hr 1 to 24
+       call legal_timestamp(iy,im,id,ih,24)
+       itmp = iymdh2idate(iy,im,id,ih)
        
        if (ProjectCoordinate%mode == HD_UTM) then
           x = xRec(iRset,iRec) * 1000. ! km to m
@@ -1573,9 +1838,9 @@ CONTAINS
 !              DATE                                NET ID
                itmp
 
-       else if (val > 1.e-5 .and. val /= 0.) then
+       else if (val < 1.e-5 .and. val /= 0.) then
 !                                    X  Y  AVERAGE CONC
-          write(output(iOut)%lun,3)  x, y, val,        &
+          write(output(iOut)%lun,4)  x, y, val,        &
 !              ZELEV   ZHILL ZFLAG AVE     GRP        
                elev,   Z,    Z,    AVEstr, GroupID,    &
 !              DATE                                NET ID
@@ -1583,7 +1848,7 @@ CONTAINS
        else
 
 !                                    X  Y  AVERAGE CONC
-          write(output(iOut)%lun,4)  x, y, val,        &
+          write(output(iOut)%lun,3)  x, y, val,        &
 !              ZELEV   ZHILL ZFLAG AVE     GRP        
                elev,   Z,    Z,    AVEstr, GroupID,    &
 !              DATE                                NET ID
@@ -1621,7 +1886,7 @@ CONTAINS
     else if ( stat == "M" ) then ! take the maximum
 
        !print*,"maxing ",newVal," and ",sumVal
-       if (newVal > sumVal) then
+       if (newVal > sumVal .or. sumVal == 0) then ! sumVal == 0 takes the last 0
           sumVal = newVal
           iTime_max = iTime_cur  ! will use the correct one
        endif

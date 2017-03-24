@@ -58,7 +58,7 @@ SELECT CASE( TRIM(carg(ikwrd)) )
       WRITE(*,'(A)') 'Insufficient ME PROFFILE input'
       GOTO 9999
     ELSE IF( narg-ikwrd > 1 )THEN
-      WRITE(*,'(A)') 'Too much ME SURFFILE input'
+      WRITE(*,'(A)') 'Too much ME PROFFILE input'
       WRITE(*,'(A)') 'Only file name should be specified'
       GOTO 9999
     END IF

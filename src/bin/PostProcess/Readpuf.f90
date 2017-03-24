@@ -79,14 +79,17 @@ CHARACTER(80)                            :: xtitle
 INTEGER NPM1
 INTEGER ioff, i, j, k, noutx, ncht, nchv,  ixpp, nvxpp
 INTEGER ipuf, npxpp, mmax, nchx, iend, irv, ios
+INTEGER ixbar, iybar, n1, n2, n8, i1_8, i2_8
 INTEGER ID, n, nmc
 CHARACTER(8) cindex, ctag
-LOGICAL lwrite
+LOGICAL lwrite, lout8
 
 INTEGER, DIMENSION(:), ALLOCATABLE :: ivar
 REAL, DIMENSION(:)   , ALLOCATABLE :: pdum
 REAL, DIMENSION(:,:) , ALLOCATABLE :: pmnmx
 REAL, DIMENSION(:,:) , ALLOCATABLE :: rdata
+
+REAL(8), DIMENSION(2) :: pdum8
 
 TYPE( pflagsT )    flags
 TYPE( ppuffHeadT ) puffHead
@@ -109,6 +112,8 @@ INTEGER, EXTERNAL :: GetProjectPlotTimes
 3201    FORMAT('   No.  ',8X,4(A15,1X):/(16X,4(A15,1X)))
 3300    FORMAT(I6,2X,1P7E16.4:/(8X,1P7E16.4))
 3301    FORMAT(I6,2X,1P4E16.4:/(8X,1P4E16.4))
+3302    FORMAT(I6,2X,1P7E26.12:/(8X,1P7E26.14))
+3303    FORMAT(I6,2X,1P4E26.12:/(8X,1P4E26.14))
 3332    FORMAT(' ')
 3333    FORMAT(' ',I4,'. Time = ',1PE11.4,'  No. Puffs =',I6)
 4201    FORMAT('  Variable      Min. Value    Puff', &
@@ -200,7 +205,7 @@ IF( new_input )THEN
     GOTO 99
   END IF
 
-  irv = GetProjectPuffs( ToolUserID,puffHead,1,.TRUE.,.TRUE. )
+  irv = GetProjectPuffs( ToolUserID,puffHead,1,.TRUE.,.TRUE.,0 )
 
   MAX_MC = 0
   IF( mat_mc%nMCtype > 0 )THEN
@@ -262,6 +267,7 @@ IF( new_input )THEN
   END IF
 
   CALL init_param()
+
   j = 1
   DO i = 1,NP_ALL
     IF( TRIM(names(i)) == 'GRID' )THEN
@@ -415,6 +421,8 @@ IF( new_variable )THEN
 
   new_variable = .FALSE.
 
+  lout8 = .FALSE.
+
   IF( TRIM(namey(1)) == 'ALL' )THEN
     nvar = NPM1
     DO i = 1,NPM1
@@ -429,6 +437,10 @@ IF( new_variable )THEN
         CALL cupper( name2 )
         DO j = 1,ovar
           name1 = namey(j)
+          IF( INDEX(name1,'_8') /= 0 )THEN
+            lout8 = .TRUE.
+            name1 = name1(1:INDEX(name1,'_8')-1)
+          END IF
           CALL cupper( name1 )
           IF( TRIM(name1) == TRIM(name2))THEN
             ivar(nvar) = i
@@ -446,6 +458,10 @@ IF( new_variable )THEN
       DO j = 1,nvar
         ivar(j) = 0
         name1 = namey(j)
+        IF( INDEX(name1,'_8') /= 0 )THEN
+          lout8 = .TRUE.
+          name1 = name1(1:INDEX(name1,'_8')-1)
+        END IF
         CALL cupper( name1 )
         DO i = 1,NPM1
          name2 = auxn(i)
@@ -483,7 +499,7 @@ IF( new_time )THEN
         i = i - 1
     END IF
     i = MAX(1,i)
-    irv = GetProjectPuffs( ToolUserID,puffHead,i,.TRUE.,.TRUE. )
+    irv = GetProjectPuffs( ToolUserID,puffHead,i,.TRUE.,.TRUE.,0 )
     IF( irv /= SCIPsuccess )THEN
       WRITE(6,*)' Error reading project puffs at time break ',i
       GOTO 99
@@ -560,12 +576,65 @@ ELSE
 
     mmax = MIN(nmax,npuf)
 
+    ixbar = 0
+    iybar = 0
+    IF( lout8 )THEN
+      DO i = 1,nvar
+        IF( ivar(i) == 1 )ixbar = i
+        IF( ivar(i) == 2 )iybar = i
+      END DO
+      IF( ixbar /= 0 )THEN
+        IF( iybar /= 0 )THEN
+          IF (ixbar < iybar )THEN
+            n1 = ixbar
+            i1_8 = 1
+            IF( iybar == ixbar + 1 )THEN
+              n2 = 0
+              n8 = 2
+              i2_8 = 2
+            ELSE
+              n2 = iybar
+              n8 = 1
+              i2_8 = 2
+            END IF
+          ELSE
+            n1 = iybar
+            i1_8 = 2
+            IF( ixbar == iybar + 1 )THEN
+              n2 = 0
+              n8 = 2
+              i2_8 = 1
+            ELSE
+              n8 = 1
+              i2_8 = 1
+            END IF
+          END IF
+        ELSE
+          n1 = ixbar
+          n2 = 0
+          n8 = 1
+          i1_8 = 1
+        END IF
+      ELSE IF( iybar /= 0 )THEN
+        n1 = iybar
+        n2 = 0
+        n8 = 1
+        i1_8 = 2
+      ELSE
+        n1 = 0
+        n2 = 0
+        n8 = 0
+      END IF
+    ELSE
+      n1 = 0
+    END IF
+
     DO ipuf = nmin,mmax,nskip
       IF( itype == -999 .OR. itype == puff(ipuf)%ityp )THEN
         DO i = 1,NPM1
           pdum = 1.E36
         END DO
-        CALL set_pdum( puff(ipuf),pdum,MAX_AUX )
+        CALL set_pdum( puff(ipuf),pdum,pdum8,MAX_AUX )
         IF( ixpp == 1 )THEN
           npxpp = npxpp + 1
           rdata(1,npxpp) = ipuf
@@ -575,9 +644,31 @@ ELSE
         ELSE
           IF( .NOT.lminmax )THEN
             IF( output == wide )THEN
-              WRITE(noutx,3300) ipuf,(pdum(ivar(i)),i=1,nvar)
+              IF( n1 == 0 )THEN
+                WRITE(noutx,3300) ipuf,(pdum(ivar(i)),i=1,nvar)
+              ELSE IF( n2 == 0 )THEN
+                IF( n8 == 1 )THEN
+                  WRITE(noutx,3302) ipuf,(pdum(ivar(i)),i=1,n1-1),pdum8(i1_8),(pdum(ivar(i)),i=n1+1,nvar)
+                ELSE
+                  WRITE(noutx,3302) ipuf,(pdum(ivar(i)),i=1,n1-1),pdum8(i1_8),pdum8(i2_8),(pdum(ivar(i)),i=n1+2,nvar)
+                END IF
+              ELSE
+                WRITE(noutx,3302) ipuf,(pdum(ivar(i)),i=1,n1-1),pdum8(i1_8),(pdum(ivar(i)),i=n1+1,n2-1),&
+                                  pdum8(i2_8),(pdum(ivar(i)),i=n2+1,nvar)
+              END IF
             ELSE
-              WRITE(noutx,3301) ipuf,(pdum(ivar(i)),i=1,nvar)
+              IF( n1 == 0 )THEN
+                WRITE(noutx,3301) ipuf,(pdum(ivar(i)),i=1,nvar)
+              ELSE IF( n2 == 0 )THEN
+                IF( n8 == 1 )THEN
+                  WRITE(noutx,3303) ipuf,(pdum(ivar(i)),i=1,n1-1),pdum8(i1_8),(pdum(ivar(i)),i=n1+1,nvar)
+                ELSE
+                  WRITE(noutx,3303) ipuf,(pdum(ivar(i)),i=1,n1-1),pdum8(i1_8),pdum8(i2_8),(pdum(ivar(i)),i=n1+2,nvar)
+                END IF
+              ELSE
+                WRITE(noutx,3303) ipuf,(pdum(ivar(i)),i=1,n1-1),pdum8(i1_8),(pdum(ivar(i)),i=n1+1,n2-1),&
+                                  pdum8(i2_8),(pdum(ivar(i)),i=n2+1,nvar)
+              END IF
             END IF
           ELSE
             DO i = 1,nvar
@@ -645,7 +736,7 @@ ELSE
 
     DO k = 1,nTimePuff
 
-      irv = GetProjectPuffs( ToolUserID,puffHead,k,.TRUE.,.TRUE. )
+      irv = GetProjectPuffs( ToolUserID,puffHead,k,.TRUE.,.TRUE.,0 )
       IF( irv /= SCIPsuccess )THEN
         WRITE(6,*)'Error reading project puffs at time break ',k
         GOTO 99
@@ -662,7 +753,7 @@ ELSE
           DO i = 1,NPM1
             pdum = 1.E36
           END DO
-          CALL set_pdum( puff(ipuf),pdum,MAX_AUX )
+          CALL set_pdum( puff(ipuf),pdum,pdum8,MAX_AUX )
           IF( ixpp == 1 .AND. npxpp < 4*MAXPUF )THEN
             npxpp = npxpp + 1
             rdata(1,npxpp) = ipuf
@@ -768,19 +859,23 @@ END
 
 !==============================================================================
 
-SUBROUTINE get_pdum( p,pdum )
+SUBROUTINE get_pdum( p,pdum,pdum8 )
 
 USE struct_fd
 
 REAL pdum(*)
+REAL(8) pdum8(2)
 TYPE( puff_str ) p
 
 INTEGER igrd,ifld
 
 INTEGER, EXTERNAL :: getPuffifld, getPuffipgrd
 
-pdum(1) = p%xbar
-pdum(2) = p%ybar
+pdum8(1) = p%xbar
+pdum8(2) = p%ybar
+
+pdum(1) = SNGL(p%xbar)
+pdum(2) = SNGL(p%ybar)
 pdum(3) = p%zbar
 pdum(4) = p%sxx
 pdum(5) = p%sxy
@@ -832,7 +927,7 @@ END
 
 !==============================================================================
 
-SUBROUTINE set_pdum( p,pdum,naux )
+SUBROUTINE set_pdum( p,pdum,pdum8,naux )
 
 USE scipuff_fi
 USE readpuf_inc, ONLY: mcIndex, MAX_MC
@@ -846,6 +941,7 @@ TYPE( puff_str ) p
 INTEGER naux
 
 REAL pdum(*)
+REAL(8) pdum8(2)
 
 TYPE( puff_dynamics )      pd
 TYPE( puff_dynamics_data ) pdx
@@ -862,7 +958,7 @@ LOGICAL, EXTERNAL :: IsAerosol
 
 NPA1 = NP1 + naux
 
-CALL get_pdum( p,pdum )
+CALL get_pdum( p,pdum,pdum8 )
 
 IF( p%naux /= 0 )THEN
   IF( typeID(p%ityp)%ltot )THEN

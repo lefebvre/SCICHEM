@@ -57,6 +57,7 @@ END INTERFACE
 chem => chemMC(ID)
 
 IF( p%idtl == I_STATIC .OR. isSerial )THEN
+
 !-----  get multi-components
 
 CALL GetChemAux( ID,p )
@@ -65,6 +66,7 @@ END IF
 nfast     = chem%nFast
 nslow     = chem%nSlow
 nequil    = chem%nEquilibrium
+ngaseous  = chem%nGaseous
 nparticle = chem%nParticle
 nspecies  = nfast + nslow + nparticle
 nspectot  = nspecies + nequil
@@ -106,7 +108,7 @@ END IF
 IF( p%idtl == I_STATIC .OR. isSerial )THEN
 
 !====   set ambient concentrations
-CALL SetChemAmbient( p%xbar,p%ybar,p%zbar-hp,t,.TRUE.,.TRUE. )
+CALL SetChemAmbient( SNGL(p%xbar),SNGL(p%ybar),p%zbar-hp,t,.TRUE.,.TRUE. )
 IF( nError /= NO_ERROR )GOTO 9999
 
 END IF
@@ -118,6 +120,7 @@ pscale   = SQRT(PI2*p%szz)
 !====   update rate constants
 
 CALL UpdateChemRate( .FALSE. )
+IF( carea > 0. )CALL set_sp_vdep( p )
 IF( nError /= NO_ERROR )GOTO 9999
 
 !====   Load working arrays
@@ -337,7 +340,7 @@ IF( tb > 253. .AND. tb < 373. )THEN
   ELSE
     chemMet%pratepuf = prate                           ! convert type to precip rate (mm/hr)
   END IF
-  chemMet%fcc      = cc                                ! cloud cover fraction
+  chemMet%fcc      = cldcvr                            ! cloud cover fraction
   chemMet%fprcpc   = 0.0
   chemMet%xml      = xml
   chemMet%zb1      = 10.
@@ -2073,6 +2076,10 @@ REAL    f1,cA
 
 !----- assume that the chem species are already in memory (following StepChem)
 
+species => chem%species
+
+CALL GetChemAux( ID,p )
+
 nmc = nspecies + nequil
 
 DO i = 1,nmc
@@ -2137,6 +2144,7 @@ IF( volx == 0. )RETURN
 
   END DO
 
+  CALL PutChemAux( ID,p )
 
 END IF
 
@@ -2266,6 +2274,3 @@ END IF
 
 RETURN
 END
-
-
-

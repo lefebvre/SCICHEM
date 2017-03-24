@@ -171,6 +171,8 @@ MODULE SWIMObsSort
 
   DoneCell = .FALSE.
 
+  CALL ZeroNumObsList( First )
+
 !------ Find first cell for sweep
 
   fx = (xi-First%Xmin)/(First%Xmax-First%Xmin) * FLOAT(First%Nx)
@@ -211,7 +213,7 @@ MODULE SWIMObsSort
           wt = 1.0/(1.0+r2*Obs%a2)
         END IF
         wt =  1.0/(1.0+r2*a2)
-        IF( Obs%Vel%nZ > 0 )n = n + 1
+        CALL SetNumObsList( First,Obs )
         irv = obs_tree( Root,Obs,r2,wt )
         IF( irv /= SWIMsuccess )GOTO 9999
         IF( .NOT.ASSOCIATED(GridList%Next) )EXIT
@@ -241,7 +243,7 @@ MODULE SWIMObsSort
 !       terminate if enough obs found; otherwise sweep over "outer" cells
 
     IF( i == is .AND. j == js )THEN
-      IF( n >= NearObs%numInterp )EXIT                  !Found minimum no.of obs
+      IF( CheckNumObsList(First,NearObs%numInterp) )EXIT !Found minimum no.of obs
       isn = MAX(is-1,1); ien = MIN(ie+1,First%Nx)
       jsn = MAX(js-1,1); jen = MIN(je+1,First%NY)
       IF( isn == is .AND. ien == ie .AND. &
@@ -297,6 +299,103 @@ MODULE SWIMObsSort
   RETURN
 
   END SUBROUTINE sort_obs
+
+!------------------------------------------------------------------------------
+
+  SUBROUTINE ZeroNumObsList( First )
+
+    TYPE( FirstObsGridList ), POINTER   :: First
+
+    First%nVel = 0
+    First%nT   = 0
+    First%nP   = 0
+    First%nH   = 0
+    First%nQc  = 0
+    First%nZi  = 0
+    First%nHf  = 0
+    First%nUs  = 0
+    First%nL   = 0
+    First%nCC  = 0
+    First%nPr  = 0
+
+    RETURN
+
+  END SUBROUTINE ZeroNumObsList
+
+!------------------------------------------------------------------------------
+
+  SUBROUTINE SetNumObsList( First,Obs )
+
+    TYPE( FirstObsGridList ), POINTER   :: First
+    TYPE( ObsMet           ), POINTER :: Obs
+
+    IF( First%lInterpVel )THEN
+      IF( Obs%Vel%nZ > 0 )First%nVel = First%nVel + 1
+    END IF
+    IF( First%lInterpT )THEN
+      IF( Obs%Tpot%nZ > 0 )First%nT = First%nT + 1
+    END IF
+    IF( First%lInterpP )THEN
+      IF( Obs%Press%nZ > 0 )First%nP = First%nP + 1
+    END IF
+    IF( First%lInterpH )THEN
+      IF( Obs%Humid%nZ > 0 )First%nH = First%nH + 1
+    END IF
+    IF( First%lInterpQcld )THEN
+      IF( Obs%Qcloud%nZ > 0 )First%nQc = First%nQc + 1
+    END IF
+
+    IF( First%lInterpZi )THEN
+      IF( Obs%varSrf%zi /= OBP_NODATA )First%nZi = First%nZi + 1
+    END IF
+    IF( First%lInterpHf )THEN
+      IF( Obs%varSrf%hflux /= OBP_NODATA )First%nHf = First%nHf + 1
+    END IF
+    IF( First%lInterpUs )THEN
+      IF( Obs%varSrf%ustr /= OBP_NODATA )First%nUs = First%nUs + 1
+    END IF
+    IF( First%lInterpL )THEN
+      IF( Obs%varSrf%invL /= OBP_NODATA )First%nL = First%nL + 1
+    END IF
+    IF( First%lInterpCC )THEN
+      IF( Obs%varSrf%cloudcover /= OBP_NODATA )First%nCC = First%nCC + 1
+    END IF
+    IF( First%lInterpPr )THEN
+      IF( Obs%varSrf%prcp /= OBP_NODATA )First%nPr = First%nPr + 1
+    END IF
+
+    RETURN
+
+  END SUBROUTINE SetNumObsList
+
+!------------------------------------------------------------------------------
+
+  LOGICAL FUNCTION CheckNumObsList( First,numInterp ) RESULT( lDone )
+
+    TYPE( FirstObsGridList ), POINTER :: First
+    INTEGER,            INTENT( IN ) :: numInterp
+
+    INTEGER numInterpT
+
+    lDone = .TRUE.
+
+    numInterpT = MAX(numInterp/2,2)
+
+    IF( First%lInterpVel  )lDone = lDone .AND. First%nVel >= numInterp
+    IF( First%lInterpT    )lDone = lDone .AND. First%nT   >= numInterpT
+    IF( First%lInterpP    )lDone = lDone .AND. First%nP   >= numInterpT
+    IF( First%lInterpH    )lDone = lDone .AND. First%nH   >= numInterpT
+    IF( First%lInterpQcld )lDone = lDone .AND. First%nQc  >= numInterpT
+    IF( First%lInterpZi   )lDone = lDone .AND. First%nZi  >= numInterpT
+    IF( First%lInterpHf   )lDone = lDone .AND. First%nHf  >= numInterpT
+    IF( First%lInterpUs   )lDone = lDone .AND. First%nUs  >= numInterpT
+    IF( First%lInterpL    )lDone = lDone .AND. First%nL   >= numInterpT
+    IF( First%lInterpCC   )lDone = lDone .AND. First%nCC  >= numInterpT
+    IF( First%lInterpPr   )lDone = lDone .AND. First%nPr  >= numInterpT
+
+    RETURN
+
+  END FUNCTION CheckNumObsList
 
 END MODULE SWIMObsSort
 

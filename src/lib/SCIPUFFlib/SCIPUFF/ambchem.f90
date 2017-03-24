@@ -328,11 +328,11 @@ DO i = 1,nvar3d
         iamb = iamb + 1
         chem%Ambient%ID(isp) = iamb
         chem%Ambient%read(i) = .TRUE.
-        WRITE(lun_log,'(A,I4)',IOSTAT=ios)'Recognised 3D ambient species '// &
-                            TRIM(amb_spname)//' as active species ',isp
-      ELSE
-        WRITE(lun_log,'(A)',IOSTAT=ios)'Recognised 3D ambient species '// &
-                        TRIM(amb_spname)//' as equilibrium species (Not used)'
+        !WRITE(lun_log,'(A,I4)',IOSTAT=ios)'Recognised 3D ambient species '// &
+        !                    TRIM(amb_spname)//' as active species ',isp
+      !ELSE
+        !WRITE(lun_log,'(A)',IOSTAT=ios)'Recognised 3D ambient species '// &
+        !                TRIM(amb_spname)//' as equilibrium species (Not used)'
       END IF
       found = .TRUE.
       EXIT
@@ -432,19 +432,19 @@ INTEGER i, j, iamb, lun, ntot, ios
 REAL    dum
 LOGICAL lFormat
 
-IF( chem%Ambient%time2 == NOT_SET_R )THEN
-  WRITE(lun_log,'("Reading ambient file ",A," at time ",1PG11.4,"hrs.")',IOSTAT=ios)&
-      TRIM(chem%ambFile),chem%Ambient%time1/3600.
-ELSE
-  WRITE(lun_log,'("Reading ambient file ",A," at time ",1PG11.4,"hrs.")',IOSTAT=ios)&
-      TRIM(chem%ambFile),chem%Ambient%time2/3600.
-END IF
-IF( ios /= 0 ) THEN
-  nError   = WR_ERROR
-  eRoutine = 'ReadAmbFields'
-  eMessage = 'Error writing ambient time to log file'
-  GO TO 9999
-END IF
+!IF( chem%Ambient%time2 == NOT_SET_R )THEN
+!  WRITE(lun_log,'("Reading ambient file ",A," at time ",1PG11.4,"hrs.")',IOSTAT=ios)&
+!      TRIM(chem%ambFile),chem%Ambient%time1/3600.
+!ELSE
+!  WRITE(lun_log,'("Reading ambient file ",A," at time ",1PG11.4,"hrs.")',IOSTAT=ios)&
+!      TRIM(chem%ambFile),chem%Ambient%time2/3600.
+!END IF
+!IF( ios /= 0 ) THEN
+!  nError   = WR_ERROR
+!  eRoutine = 'ReadAmbFields'
+!  eMessage = 'Error writing ambient time to log file'
+!  GO TO 9999
+!END IF
 
 lun     = chem%lunAmb
 ntot    = chem%Ambient%nx * chem%Ambient%ny * chem%Ambient%nz
@@ -1437,13 +1437,13 @@ DO im = 1,12 ! Months
             namb = namb + 1
             chem%MonthlyAmb(im)%ID(isp) = namb
             chem%MonthlyAmb(im)%read(i) = .TRUE.
-            IF( ih == 1 .AND. im == 1 )THEN
-              WRITE(lun_log,'(A,I4)',IOSTAT=ios)'Recognised 3D ambient species '// &
-                    TRIM(amb_spname)//' as active species ',isp
-            END IF
-          ELSE
-            WRITE(lun_log,'(A)',IOSTAT=ios)'Recognised 3D ambient species '// &
-                            TRIM(amb_spname)//' as equilibrium species (Not used)'
+            !IF( ih == 1 .AND. im == 1 )THEN
+            !  WRITE(lun_log,'(A,I4)',IOSTAT=ios)'Recognised 3D ambient species '// &
+            !        TRIM(amb_spname)//' as active species ',isp
+            !END IF
+          !ELSE
+            !WRITE(lun_log,'(A)',IOSTAT=ios)'Recognised 3D ambient species '// &
+            !                TRIM(amb_spname)//' as equilibrium species (Not used)'
           END IF
           found = .TRUE.
           EXIT

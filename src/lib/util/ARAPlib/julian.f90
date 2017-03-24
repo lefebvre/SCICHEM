@@ -137,3 +137,87 @@ END IF
 
 RETURN
 END
+!=============================================================================
+
+SUBROUTINE DateTimeShift( tshift,ti,yr,mnth,day,to,yro,mntho,dayo )
+
+IMPLICIT NONE
+
+INTEGER, INTENT( IN  ) :: yr ,mnth ,day
+REAL,    INTENT( IN  ) :: tshift, ti
+INTEGER, INTENT( OUT ) :: yro,mntho,dayo
+REAL,    INTENT( OUT ) :: to
+
+INTEGER days, iday, jul, julo
+REAL    t
+LOGICAL leap
+
+INTEGER, EXTERNAL :: julian_day
+LOGICAL, EXTERNAL :: leap_year
+
+INTEGER, DIMENSION(12), PARAMETER :: NDAY = &
+           (/0,31,59,90,120,151,181,212,243,273,304,334/)
+
+t = ti + tshift
+
+iday = INT(t/24.)
+to   = t - 24.*FLOAT(iday)
+IF( to < 0. )THEN
+  iday = iday - 1
+  to = to + 24.
+END IF
+
+jul  = julian_day( mnth,day,yr )
+julo = jul + iday
+
+yro = yr
+
+leap = leap_year( yro )
+IF( leap )THEN
+  days = 366
+ELSE
+  days = 365
+END IF
+
+DO WHILE( julo <= 0 )
+  yro  = yro - 1
+  leap = leap_year( yro )
+  IF( leap )THEN
+    days = 366
+  ELSE
+    days = 365
+  END IF
+  julo = julo + days
+END DO
+
+leap = leap_year( yro )
+IF( leap )THEN
+  days = 366
+ELSE
+  days = 365
+END IF
+
+DO WHILE( julo > days )
+  julo = julo - days
+  yro  = yro + 1
+  leap = leap_year( yro )
+  IF( leap )THEN
+    days = 366
+  ELSE
+    days = 365
+  END IF
+END DO
+
+DO mntho = 12,1,-1
+  IF( mntho >= 3 .AND. leap )THEN
+    days = NDAY(mntho) + 1
+  ELSE
+    days = NDAY(mntho)
+  END IF
+  IF( julo > days )EXIT
+END DO
+
+dayo = julo - days
+
+RETURN
+END

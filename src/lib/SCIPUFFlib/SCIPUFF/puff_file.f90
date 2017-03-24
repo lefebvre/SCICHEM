@@ -103,7 +103,7 @@ ELSE
   END IF
 
   SELECT CASE( pufffile_version )
-    CASE( 0 )
+    CASE( 0,1 )
     CASE( PUFFFILE_VERSION_VALUE )
     CASE DEFAULT
       CALL SetUnrecognizedVersionError( 'OpenPuffFile' )
@@ -344,7 +344,7 @@ IF( isOpen )THEN
         GOTO 9999
       END IF
       pufffile_record = PUFFFILE_TIME_HEADER
-    CASE( PUFFFILE_VERSION_VALUE )
+    CASE( 1,PUFFFILE_VERSION_VALUE )
       nrec = pufffile_record - PUFFFILE_TIME_HEADER
       IF( nrec == 0 )THEN  !Already pointing to a time header. Back up a full break
         nrec = PUFFFILE_NUM_RECORD
@@ -408,7 +408,7 @@ LOGICAL isOpen
 INTEGER ios
 INTEGER n0, n1, n2, i, j, nrec
 REAL    dum
-TYPE( puff_str_ri_NOaux )pdum
+TYPE( puff_str_ri_NOaux_old )pdum
 
 LOGICAL, EXTERNAL :: IsPuffFileOpen
 
@@ -451,7 +451,7 @@ SELECT CASE( pufffile_version )
     END IF
     IF( ios /= 0 )GOTO 9998
     pufffile_record = PUFFFILE_MET_HEADER
-  CASE( PUFFFILE_VERSION_VALUE )
+  CASE( 1,PUFFFILE_VERSION_VALUE )
 !------ Advance to the next time header if not already pointing to a time header
     IF( pufffile_record /= PUFFFILE_TIME_HEADER )THEN
       nrec = PUFFFILE_NUM_RECORD - pufffile_record + PUFFFILE_TIME_HEADER
@@ -548,7 +548,7 @@ SELECT CASE( pufffile_version )
     eMessage = 'Old SCIPUFF puff file format version encountered'
     eInform  = 'Unable to resume or restart from the old version'
     GOTO 9999
-  CASE( PUFFFILE_VERSION_VALUE )
+  CASE( 1,PUFFFILE_VERSION_VALUE )
 !------ Advance to the next data header if not already pointing to a data header
     IF( pufffile_record /= PUFFFILE_MET_HEADER )THEN
 !------ If past the current data header
@@ -652,7 +652,7 @@ END IF
 !==== If Opened then read next time header
 
 SELECT CASE( pufffile_version )
-  CASE( 0 )
+  CASE( 0,1 )
 !------ This routine is only called on resume and restart
 !------ We should never get here because version checks should throw an error
 !------ We will set an error here just in case
@@ -789,7 +789,7 @@ SELECT CASE( pufffile_version )
     ios = ReadPuffArrayOld( lun,puff,npuf )
     IF( ios /= 0 )GOTO 9998
     pufffile_record = PUFFFILE_TIME_HEADER
-  CASE( PUFFFILE_VERSION_VALUE )
+  CASE( 1,PUFFFILE_VERSION_VALUE )
 !------ Advance to the next puff record if not already pointing to a puff record
     IF( pufffile_record /= PUFFFILE_PUFF_RECORD )THEN
 !------ If past the current puff record
@@ -996,6 +996,7 @@ END
 INTEGER FUNCTION ReadPuffArray( lun,p,num ) RESULT( ios )
 
 USE puffstruct_fd
+USE files_fi, ONLY: pufffile_version
 
 IMPLICIT NONE
 
@@ -1005,14 +1006,42 @@ TYPE( puff_str    ), DIMENSION(num), INTENT( INOUT ) :: p   !puff array - For La
 
 INTEGER i
 
-READ(lun,IOSTAT=ios)(p(i)%xbar,p(i)%ybar,p(i)%zbar,                                  &
-                     p(i)%sxx,p(i)%sxy,p(i)%sxz,p(i)%syy,p(i)%syz,p(i)%szz,          &
-                     p(i)%axx,p(i)%axy,p(i)%axz,p(i)%ayy,p(i)%ayz,p(i)%azz,p(i)%det, &
-                     p(i)%c,p(i)%cc,p(i)%xuc,p(i)%xvc,p(i)%yvc,p(i)%yvsc,p(i)%yvbc,  &
-                     p(i)%zwc,p(i)%wc,p(i)%ccb,p(i)%si,p(i)%si2,p(i)%sv,             &
-                     p(i)%sr,p(i)%cfo,p(i)%zi,p(i)%zc,p(i)%uo,p(i)%vo,p(i)%wo,       &
-                     p(i)%ityp,p(i)%inxt,p(i)%iprv,p(i)%ipgd,p(i)%idtl,p(i)%idtn,    &
-                     p(i)%naux,i=1,num)
+REAL, DIMENSION(:), ALLOCATABLE :: xbar, ybar
+
+SELECT CASE( pufffile_version )
+  CASE( 1 )
+    ALLOCATE( xbar(num),ybar(num),STAT=ios )
+    IF( ios /= 0 )GOTO 9999
+
+    READ(lun,IOSTAT=ios) (xbar(i),ybar(i),p(i)%zbar,                                      &
+                         p(i)%sxx,p(i)%sxy,p(i)%sxz,p(i)%syy,p(i)%syz,p(i)%szz,          &
+                         p(i)%axx,p(i)%axy,p(i)%axz,p(i)%ayy,p(i)%ayz,p(i)%azz,p(i)%det, &
+                         p(i)%c,p(i)%cc,p(i)%xuc,p(i)%xvc,p(i)%yvc,p(i)%yvsc,p(i)%yvbc,  &
+                         p(i)%zwc,p(i)%wc,p(i)%ccb,p(i)%si,p(i)%si2,p(i)%sv,             &
+                         p(i)%sr,p(i)%cfo,p(i)%zi,p(i)%zc,p(i)%uo,p(i)%vo,p(i)%wo,       &
+                         p(i)%ityp,p(i)%inxt,p(i)%iprv,p(i)%ipgd,p(i)%idtl,p(i)%idtn,    &
+                         p(i)%naux,i=1,num)
+
+    IF( ios /= 0 )GOTO 9999
+
+    DO i = 1,num
+      p(i)%xbar = DBLE(xbar(i))
+      p(i)%ybar = DBLE(ybar(i))
+    END DO
+
+  CASE( 2 )
+    READ(lun,IOSTAT=ios)(p(i)%xbar,p(i)%ybar,p(i)%zbar,                                  &
+                         p(i)%sxx,p(i)%sxy,p(i)%sxz,p(i)%syy,p(i)%syz,p(i)%szz,          &
+                         p(i)%axx,p(i)%axy,p(i)%axz,p(i)%ayy,p(i)%ayz,p(i)%azz,p(i)%det, &
+                         p(i)%c,p(i)%cc,p(i)%xuc,p(i)%xvc,p(i)%yvc,p(i)%yvsc,p(i)%yvbc,  &
+                         p(i)%zwc,p(i)%wc,p(i)%ccb,p(i)%si,p(i)%si2,p(i)%sv,             &
+                         p(i)%sr,p(i)%cfo,p(i)%zi,p(i)%zc,p(i)%uo,p(i)%vo,p(i)%wo,       &
+                         p(i)%ityp,p(i)%inxt,p(i)%iprv,p(i)%ipgd,p(i)%idtl,p(i)%idtn,    &
+                         p(i)%naux,i=1,num)
+
+END SELECT
+
+9999 CONTINUE
 
 RETURN
 END
@@ -1173,7 +1202,7 @@ TYPE( puff_str ), DIMENSION(np), INTENT( INOUT ) :: p   !puff array
 INTEGER i, j, n1,n2
 REAL    dum
 
-TYPE( puff_str_ri_NOaux )pdum
+TYPE( puff_str_ri_NOaux_old )pdum
 
 INTEGER, EXTERNAl :: allocatePuffAuxs
 INTEGER, EXTERNAl :: ReadPuffsOld
@@ -1193,6 +1222,7 @@ READ(lun,IOSTAT=ios)dum,n1,(pdum,i=1,np),n2,((p(i)%aux(j),j=1,p(i)%naux),i=1,np)
 IF( ios /= 0 )GOTO 9999
 
 CALL resetLiquidAuxs( np,p )
+
 
 9999 CONTINUE
 
@@ -1217,7 +1247,12 @@ TYPE( puff_str    ), DIMENSION(np), INTENT( OUT ) :: p   !puff array - For Lahey
 INTEGER i, n1
 REAL    dum
 
-READ(lun,IOSTAT=ios)dum,n1,(p(i)%xbar,p(i)%ybar,p(i)%zbar,                                  &
+REAL, DIMENSION(:), ALLOCATABLE :: xbar, ybar
+
+ALLOCATE( xbar(np),ybar(np),STAT=ios )
+IF( ios /= 0 )GOTO 9999
+
+READ(lun,IOSTAT=ios)dum,n1,(xbar(i),ybar(i),p(i)%zbar,                                  &
                             p(i)%sxx,p(i)%sxy,p(i)%sxz,p(i)%syy,p(i)%syz,p(i)%szz,          &
                             p(i)%axx,p(i)%axy,p(i)%axz,p(i)%ayy,p(i)%ayz,p(i)%azz,p(i)%det, &
                             p(i)%c,p(i)%cc,p(i)%xuc,p(i)%xvc,p(i)%yvc,p(i)%yvsc,p(i)%yvbc,  &
@@ -1225,6 +1260,14 @@ READ(lun,IOSTAT=ios)dum,n1,(p(i)%xbar,p(i)%ybar,p(i)%zbar,                      
                             p(i)%sr,p(i)%cfo,p(i)%zi,p(i)%zc,p(i)%uo,p(i)%vo,p(i)%wo,       &
                             p(i)%ityp,p(i)%inxt,p(i)%iprv,p(i)%ipgd,p(i)%idtl,p(i)%idtn,    &
                             p(i)%naux,i=1,np)
+IF( ios /= 0 )GOTO 9999
+
+DO i = 1,np
+  p(i)%xbar = DBLE(xbar(i))
+  p(i)%ybar = DBLE(ybar(i))
+END DO
+
+9999 CONTINUE
 
 RETURN
 END

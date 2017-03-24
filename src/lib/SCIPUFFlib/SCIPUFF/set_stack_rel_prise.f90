@@ -3,7 +3,7 @@
 !$Revision$
 !$Date$
 !*******************************************************************************
-SUBROUTINE set_stack_rel_prise()
+SUBROUTINE set_stack_rel_prise( release )
 !******************************************************************************
 !
 ! FUNCTION:  Set true release parameters for STACK release
@@ -27,6 +27,8 @@ use files_fi
 
 implicit none
 
+TYPE( releaseT ), INTENT( IN ) :: release
+
 ! --- LOCALS
 
 real tstack, tab_stk
@@ -43,6 +45,10 @@ real  wstk, zplm, sigz0
 real  hflx
 
 logical lprcap
+
+REAL                      :: sigx,sigy,sigz,sigRxy,sigRxz,sigRyz,buoy,cmass
+REAL, DIMENSION(3)        :: mom
+
 
 !------ Set vertical grid (use existing one, if exists)
 nzp = 0
@@ -79,11 +85,15 @@ IF( alloc_stat /= 0 ) THEN
   IF( nError /= NO_ERROR ) GOTO 9999
 END IF
 
-CALL set_plmrs_grid(zf,zh,zstk,nzp,ipbl,istk,hp)
+CALL set_plmrs_grid(zf,zh,zstk,nzp,ipbl,istk,hp,release%xrel,release%yrel,release%zrel)
 
 ! ---- Set stack parameters
 
-CALL get_met(SNGL(xrel),SNGL(yrel),zrel,0.,0.,1 )
+CALL get_met(SNGL(release%xrel),SNGL(release%yrel),release%zrel,0.,0.,1 )
+
+CALL getReleaseSigmas( release,sigx,sigy,sigz,sigRxy,sigRxz,sigRyz )
+CALL getReleaseDynamics( release,buoy,mom )
+CALL getReleaseMass( release,cmass )
 
 pb      = pb/1013.25                        ! press(atm)
 tab_stk = thb
@@ -92,10 +102,10 @@ wstk    = sqrt(ub*ub + vb*vb)
 
 ! --- Set meteorological arrays for plume rise calculation
 
-CALL get_met(SNGL(xrel),SNGL(yrel),0.,0.,0.,1 )
+CALL get_met(SNGL(release%xrel),SNGL(release%yrel),0.,0.,0.,1 )
 thv1 = (1. + 0.608*hb)*thb
 
-CALL get_met(SNGL(xrel),SNGL(yrel),zh(1),0.,0.,1 )
+CALL get_met(SNGL(release%xrel),SNGL(release%yrel),zh(1),0.,0.,1 )
 pb       = pb/1013.25                        ! press(atm)
 wspd(1)  = sqrt(ub*ub + vb*vb)
 ta(1)    = thb
@@ -105,7 +115,7 @@ dthdz(1) = (thv2-thv1)/zh(1)
 do k = 2, nzp
   ddz = 1./(zh(k) - zh(k-1))
   thv1 = thv2
-  call get_met(SNGL(xrel),SNGL(yrel),zh(k),0.,0.,1 )
+  call get_met(SNGL(release%xrel),SNGL(release%yrel),zh(k),0.,0.,1 )
   pb       = pb/1013.25                        ! press(atm)
   wspd(k)  = sqrt(ub*ub + vb*vb)
   ta(k)    = thb
@@ -118,8 +128,8 @@ end do
 hflx   = wts ! wtbl?
 dstack = 2.*sigx  ! stack diameter (m) - See comments in set_stack_rel_prime.f90(179)
 
-call plmris( nzp, ipbl, istk, hflx, zinv, dstack, zrel,&
-                  tstack, wmom, tab_stk, dthdz, ta, wspd,&
+call plmris( nzp, ipbl, istk, hflx, zinv, dstack, release%zrel,&
+                  tstack, mom(3), tab_stk, dthdz, ta, wspd,&
                           zf, zh, zstk, wstk, zplm, invflg )
 
 ! Compute plume spread
@@ -134,32 +144,23 @@ if (invflg == 1 .or. invflg == 2) then   !capped
   end if
 end if
 
-if (zbar < zrel + hp) then
+if (zbar < release%zrel + hp) then
 
   nError = WN_ERROR
   eRoutine='set_stack_rel_prise'
   eMessage='Plume rise calculation failed, zbar < zrel'
-  write(eInform,*)'Eff stack ht set equal to stack ht', zbar, zrel, zrel + hp, hp
+  write(eInform,*)'Eff stack ht set equal to stack ht', zbar, release%zrel, release%zrel + hp, hp
   eAction  = char(0)
 
   call WarningMessage(.true.)
   if (nError /= NO_ERROR) go to 9999
 
-  zbar = zrel + hp
+  zbar = release%zrel + hp
 
 end if
 
-write(lun_log,FMT="('Plume rise calculation (xrel,yrel,zrel,zeff,hp,texit(K),wexit,tamb,vel,nzp): ',1p,9E12.3,0p,1x,I3)",IOSTAT=alloc_stat) &
-                     xrel, yrel, zrel, zbar, hp, tstack, wmom, tab_stk, wstk, nzp
-
-buoy     = 0.0
-wmom     = 0.0
-umom     = 0.0
-vmom     = 0.0
-sigy     = sigz0
-sigz     = sigz0
-sigx     = 0.0
-size_rel = 0.0
+!write(lun_log,FMT="('Plume rise calculation (xrel,yrel,zrel,zeff,hp,texit(K),wexit,tamb,vel,nzp): ',1p,9E12.3,0p,1x,I3)",IOSTAT=alloc_stat) &
+!                     xrel, yrel, zrel, zbar, hp, tstack, wmom, tab_stk, wstk, nzp
 
 CALL set_prise_rel( sigz0,zbar )
 
@@ -169,7 +170,6 @@ IF( ALLOCATED(dthdz) )THEN
   DEALLOCATE( dthdz, ta, wspd, STAT = alloc_stat )
   DEALLOCATE( zh, zstk, STAT = alloc_stat )
 END IF
-
 
 RETURN
 END
@@ -193,29 +193,7 @@ RETURN
 END
 
 !==============================================================================
-
-SUBROUTINE load_prise_rel( irel,zbar )
-
-USE scipuff_fi
-USE sciprime_fi
-
-IMPLICIT NONE
-
-INTEGER :: irel
-REAL    :: zbar
-
-sigy    = sigy_prm(irel)
-sigz    = sigz_prm(irel)
-zbar    = zrel_prm(irel)
-buoy    = 0.0
-wmom    = 0.0
-umom    = 0.0
-vmom    = 0.0
-
-RETURN
-END
-
-subroutine set_plmrs_grid(zf,zh,zstk,nzp,ipbl,istk,hp)
+subroutine set_plmrs_grid(zf,zh,zstk,nzp,ipbl,istk,hp,xrel,yrel,zrel)
 !******************************************************************************
 !
 ! FUNCTION:  Set the vertical grid to be used in the plume rise calculation
@@ -243,11 +221,13 @@ integer nzp           !Number of layers
 integer ipbl          !Layer of inversion height
 integer istk          !Layer of stack height
 real    hp            !Terrain height
-
+REAL(8) xrel
+REAL(8) yrel
+REAL    zrel
 ! --- LOCALS
 
 integer k
-real    dp, hx, hy, delz
+real    hx, hy, delz
 
 !------ Get topography
 

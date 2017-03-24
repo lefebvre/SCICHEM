@@ -3,17 +3,20 @@ INTEGER FUNCTION WriteUAdata() RESULT( irv )
 !------ Read data in temporary file and output SCICHEM UA file
 
 USE met2sci_fi
+USE BLOCK2_IRND
 
 IMPLICIT NONE
 
 INTEGER nt, i
-INTEGER iyr, imo, iday, ihr, nlev
+INTEGER iyr, imo, iday, ihr, nlev, jday, ih
 INTEGER p, temp, wspd, wdir, z, dwpt
 REAL    lat, lon, v, d, rh
 
 INTEGER, DIMENSION(22) :: sfobs
 
 CHARACTER(1) c
+
+INTEGER, EXTERNAL :: JULIAN
 
 irv = FAILURE
 
@@ -90,6 +93,16 @@ DO
     IF( wdir /= 999 .AND. wspd /= 9990 )THEN
       d = FLOAT(wdir)
       v = FLOAT(wspd) / 10.
+      IF( lRandUA )THEN
+        jday = JULIAN(iyr,imo,iday )
+        ih = ihr + 1; IF( ih > 24 )ih = ih-24
+        d = d + (IRND(ih,jday) - 4.0)*dRanUA
+        IF( d > 360.0) THEN
+         d = d - 360.0
+        ELSEIF (d < 0.0) THEN
+          d = d + 360.0
+        ENDIF
+      END IF
     ELSE IF( wdir == 999 .AND. wspd == 9990 )THEN
       d = MISSING_R
       v = MISSING_R
@@ -109,7 +122,6 @@ DO
 !------ Temperature
 
     IF( temp /= 9990 )THEN
-!    IF( -1000 < temp .AND. temp < 1000 )THEN
       v = FLOAT(temp) / 10.
       WRITE(lunOutUA,2001,ADVANCE='NO',IOSTAT=ios,ERR=9999) v
     ELSE
@@ -123,7 +135,7 @@ DO
 !        -1000 < dwpt .AND. dwpt < 1000 )THEN
       v = FLOAT(temp) / 10.
       d = FLOAT(dwpt) / 10.
-      CALL HUMID( v,d,rh )
+      CALL AERMET_HUMID( v,d,rh )
       WRITE(lunOutUA,2001,ADVANCE='NO',IOSTAT=ios,ERR=9999) rh
     ELSE
       WRITE(lunOutUA,2002,ADVANCE='NO',IOSTAT=ios,ERR=9999) MISSING_C

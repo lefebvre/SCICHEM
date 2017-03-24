@@ -44,7 +44,7 @@ MODULE SCIPUFFdriver_fi
   TYPE( createNewT ) new
   TYPE( materialT  ),DIMENSION(:), ALLOCATABLE :: mtlList
   TYPE( releaseT   ),DIMENSION(:), ALLOCATABLE :: relList
-  TYPE( releaseMCT), DIMENSION(:), ALLOCATABLE :: relMCList
+  TYPE( releaseMCT ), DIMENSION(:), ALLOCATABLE :: relMCList
   TYPE( pendT      ) run
   TYPE( limitT     ) limit
 
@@ -60,8 +60,11 @@ MODULE SCIPUFFdriver_fi
 
   INTEGER jul0, year0           !For reading times on file
   REAL    hour0, tEmi, tNextEmi
+
+  LOGICAL :: lEmissionFile  = .FALSE.
   LOGICAL :: lReadEmission  = .FALSE.
   LOGICAL :: lIntrpEmission = .FALSE.
+  LOGICAL :: lPRIME = .FALSE.   ! PRIME disabled for SCICHEM 3.1
 
   REAL, DIMENSION(:), ALLOCATABLE :: emiRate1, emiTemp1, emiVel1
   REAL, DIMENSION(:), ALLOCATABLE :: emiRate2, emiTemp2, emiVel2
@@ -92,7 +95,7 @@ MODULE SCIPUFFdriver_fi
 
   INTEGER nMC, nMCrel
 
-  CHARACTER(1000)                               :: MCList
+  CHARACTER(1000)                               :: MCList = ''
   CHARACTER(16),    DIMENSION(:),   ALLOCATABLE :: MCname
   REAL,             DIMENSION(:,:), ALLOCATABLE :: MCrate
   REAL,             DIMENSION(:,:), ALLOCATABLE :: emiMC1, emiMC2

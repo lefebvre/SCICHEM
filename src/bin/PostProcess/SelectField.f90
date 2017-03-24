@@ -72,6 +72,7 @@ END
 SUBROUTINE pickPlotClass()
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -105,7 +106,47 @@ Field%class = 0
 
 IF( UseKey )THEN
   WRITE(6,'(/,A,$)')'Class keyword? '
-  READ(lun_in,'(A)')string
+  IF( iFld > 0 )THEN
+    narg          = 0
+    fld%fcategory = ''
+    fld%fkind     = 'Total'
+    cmd           = TRIM(cmds(iFld)%cargs)
+    CALL SplitString( cmd,',',narg,cargs,lerr )
+    SELECT CASE( TRIM(cargs(1)) )
+    CASE( 'dos' )
+      fld%fclass = 'Surface Dosage'
+    CASE( 'dep' )
+      fld%fclass = 'Surface Deposition'
+    CASE( 'con' )
+      fld%fclass = 'Concentration'
+    CASE( 'ico' )
+      fld%fclass = 'Integrated Concentration'
+    CASE( 'dur' )
+      fld%fclass = 'Dosage Duration'
+    CASE( 'txd' )
+      fld%fclass = 'Toxic Dosage'
+    CASE( 'agl' )
+      fld%fclass = 'AEGLs'
+      fld%fkind  = 'AEGLs  '! Need space to skip 10% exceedance
+    CASE( 'inh' )
+      fld%fclass = 'Inhalable Dosage'
+    CASE( 'ter' )
+      fld%fclass = 'Terrain'
+    CASE( 'pbt' )
+      fld%fclass = 'Probit Function'
+    CASE DEFAULT
+      WRITE(6,'(A)')'Unable to set valid Field class selection, exiting'
+      nError = UK_ERROR
+      eMessage = 'Unable to set valid Field class selection, exiting'
+      WRITE(eInform,'("Input Field class value is ",A)')TRIM(cargs(1))
+      GOTO 9999
+    END SELECT
+    IF( narg > 1 )fld%fkind = cargs(2)
+    fld%fchoice = matName
+    string      = fld%fclass
+  ELSE
+    READ(lun_in,'(A)')string
+  END IF
   string = ADJUSTL(string)
   CALL CUPPER( string )
   j = LEN_TRIM(string)
@@ -162,6 +203,7 @@ END
 SUBROUTINE pickPlotChoice( iClass,iChoice,header )
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -173,7 +215,8 @@ INTEGER i, j, maxChoice, itry, count, oneChoice
 LOGICAL lFld
 CHARACTER(128) string, string1
 
-count = 0
+count     = 0
+oneChoice = 1
 ! User Input : Plot Field Choice
 WRITE(6,'(A)')'Available '//TRIM(header)//' Choices'
 WRITE(6,'(A)')'===================================='
@@ -197,7 +240,15 @@ IF( lScript .OR. maxChoice > 1 )THEN
   iChoice = 0
   IF( UseKey )THEN
     WRITE(6,'(/,A,$)')'Choice keyword? '
-    READ(lun_in,'(A)')string
+    IF( iFld > 0 )THEN
+      IF( LEN_TRIM(matName) > 0 )THEN
+        string = matName
+      ELSE
+        string = TRIM(ChoiceStr(oneChoice)%string)
+      END IF
+    ELSE
+      READ(lun_in,'(A)')string
+    END IF
     string = ADJUSTL(string)
     CALL CUPPER( string )
     j = LEN_TRIM(string)
@@ -245,6 +296,7 @@ END
 SUBROUTINE pickPlotKind( iClass,iChoice,iKind,header )
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -273,21 +325,34 @@ IF( lFld )THEN
 100 CONTINUE
 
     ikind = 0
+    jkind = 0
     IF( UseKey )THEN
       WRITE(6,'(/,A,$)')'Kind keyword? '
-      READ(lun_in,'(A)')String
-      String = ADJUSTL(String)
-      CALL CUPPER( String )
-      j = LEN_TRIM(String)
-      i = 1
-      DO i = 1,ClassChoiceArray(iClass,iChoice)%nkind
-        string1 = KindStr(i+ClassChoiceArray(iClass,iChoice)%ikind-1)%string
-        CALL CUPPER( string1 )
-        IF( INDEX(string1,String(1:j)) > 0 )THEN
-          jkind = i
-          EXIT
+      IF( iFld > 0 )THEN
+        IF( TRIM(fld%fkind) == 'AEGLs' )THEN
+          jkind = 2
+        ELSE IF( INDEX('Probit Function',fld%fclass) > 0 )THEN
+          jkind = 1
+        ELSE
+          String = fld%fkind
         END IF
-      END DO
+      ELSE
+        READ(lun_in,'(A)')String
+      END IF
+      IF( jkind == 0 )THEN
+        String = ADJUSTL(String)
+        CALL CUPPER( String )
+        j = LEN_TRIM(String)
+        i = 1
+        DO i = 1,ClassChoiceArray(iClass,iChoice)%nkind
+          string1 = KindStr(i+ClassChoiceArray(iClass,iChoice)%ikind-1)%string
+          CALL CUPPER( string1 )
+          IF( INDEX(string1,String(1:j)) > 0 )THEN
+            jkind = i
+            EXIT
+          END IF
+        END DO
+      ENDIF
     ELSE
       WRITE(6,'(/,A,$)')'Kind  number? '
       READ(lun_in,'(I3)')jkind
@@ -306,10 +371,10 @@ IF( lFld )THEN
       END IF
     END IF
   ELSE
-    jKind = 1
+    jkind = 1
   END IF
 
-  iKind = jkind + ClassChoiceArray(iClass,iChoice )%ikind-1
+  ikind = jkind + ClassChoiceArray(iClass,iChoice )%ikind-1
   WRITE(6,'(/,A," Kind : ",I3,A)')TRIM(header),jkind,' ('//TRIM(KindStr(iKind)%string)//')'
 
 END IF
@@ -324,6 +389,7 @@ END
 SUBROUTINE pickPlotCategory( iClass,iCategory,header )
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -373,7 +439,23 @@ IF( lScript .OR. maxCat > 1 )THEN
 
   IF( UseKey )THEN
     WRITE(6,'(/,A,$)')'Category keyword? '
-    READ(lun_in,'(A)')String
+    IF( iFld  > 0 )THEN
+      IF( Hslc  > 0 )THEN
+        String = 'Horizontal Slice'
+      ELSE IF( Sslc  > 0 )THEN
+        String = 'Surface Slice'
+      ELSE IF( Vslc > 0 )THEN
+        String = 'Vertical Slice'
+      ELSE IF( Vint > 0 )THEN
+        String = 'Vertically Integrated Slice'
+      ELSE IF( Hpro > 0 )THEN
+        String = 'Horizontal Projection'
+      ELSE
+        String = 'Unknown Category'
+      END IF
+    ELSE
+      READ(lun_in,'(A)')String
+    END IF
     String = ADJUSTL(String)
     CALL CUPPER( String )
     j = LEN_TRIM(String)
@@ -411,6 +493,7 @@ END IF
 iCategory = iCat
 
 WRITE(6,'(/,A," category : ",I3,A)')TRIM(header),iCategory,' ('//TRIM(CATEGORY_STRING(iCategory))//')'
+IF(iFld > 0 )fld%fcategory = TRIM(CATEGORY_STRING(iCategory))
 
 9999 CONTINUE
 
@@ -422,6 +505,7 @@ END
 SUBROUTINE pickPlotType( iClass,iCategory,iType,dType,header )
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -454,6 +538,9 @@ IF( CatClassArray(iCategory,iClass)%type == SCIPtrue )THEN
     IF( lFld )THEN
       maxType = maxType + 1
       iTyp = i
+      IF( iFld > 0 )THEN
+        IF( maxType == 1 )String = TRIM(TYPE_STRING(i))
+      END IF
     END IF
   END DO
 
@@ -472,7 +559,15 @@ IF( CatClassArray(iCategory,iClass)%type == SCIPtrue )THEN
     iTyp = 0
     IF( UseKey )THEN
       WRITE(6,'(/,A,$)')'Type keyword? '
-      READ(lun_in,'(A)')String
+      IF( iFld > 0 )THEN
+        IF( LEN_TRIM(fld%ftype) > 0 )THEN
+          String = TRIM(fld%ftype)
+        ELSE
+          String = TRIM(TYPE_STRING(1))
+        END IF
+      ELSE
+        READ(lun_in,'(A)')String
+      END IF
       String = ADJUSTL(String)
       CALL CUPPER(String)
       j = LEN_TRIM(String)
@@ -530,6 +625,7 @@ END
 SUBROUTINE setPlotTypeData( typeID,typeData,line )
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -546,21 +642,25 @@ IF( typeID == HP_PROB )THEN
 
   DO
     WRITE(6,'(/,"Probability of exceeding ? (CR=default): ",$)')
-    READ(lun_in,'(A)')input
-    IF( LEN_TRIM(input) <= 0 )input = '0.0'
-    input = ADJUSTR(input)
+    IF( iFld > 0 )THEN
+      typeData = vexcd
+    ELSE
+      READ(lun_in,'(A)')input
+      IF( LEN_TRIM(input) <= 0 )input = '0.0'
+      input = ADJUSTR(input)
 
-    itry = itry + 1
+      itry = itry + 1
 
-    READ(input,*,IOSTAT=ios)typeData
-    IF( ios /= 0 )THEN
-      IF( itry < maxTry )THEN
-        WRITE(6,'(A)')'Error reading value from '//TRIM(ADJUSTL(input))//'. try again'
-        CYCLE
-      ELSE
-        nError   = UK_ERROR
-        eMessage = 'Error reading value from '//TRIM(ADJUSTL(input))
-        GOTO 9999
+      READ(input,*,IOSTAT=ios)typeData
+      IF( ios /= 0 )THEN
+        IF( itry < maxTry )THEN
+          WRITE(6,'(A)')'Error reading value from '//TRIM(ADJUSTL(input))//'. try again'
+          CYCLE
+        ELSE
+          nError   = UK_ERROR
+          eMessage = 'Error reading value from '//TRIM(ADJUSTL(input))
+          GOTO 9999
+        END IF
       END IF
     END IF
     EXIT
@@ -571,30 +671,34 @@ IF( typeID == HP_PROB )THEN
 ELSE IF( typeID == HP_EXCEED )THEN
 
   DO
-    WRITE(6,'(/,"Exceedance level [0.-100.]? (CR=default): ",$)')
-    READ(lun_in,'(A)')input
-    IF( LEN_TRIM(input) <= 0 )input = '10.0'
-    input = ADJUSTR(input)
+    IF( iFld > 0 )THEN
+      typeData = pexcd
+    ELSE
+      WRITE(6,'(/,"Exceedance level [0.-100.]? (CR=default): ",$)')
+      READ(lun_in,'(A)')input
+      IF( LEN_TRIM(input) <= 0 )input = '10.0'
+      input = ADJUSTR(input)
 
-    itry = itry + 1
+      itry = itry + 1
 
-    READ(input,*,IOSTAT=ios)typeData
-    IF( ios /= 0 )THEN
-      IF( itry < maxTry )THEN
-        WRITE(6,'(A)')'Error reading value from '//TRIM(ADJUSTL(input))//'. try again'
-        CYCLE
-      ELSE
-        nError   = UK_ERROR
-        eMessage = 'Error reading value from '//TRIM(ADJUSTL(input))
-        GOTO 9999
-      END IF
-    ELSE IF( typeData >= 100.0 .OR. typeData <=0. )THEN
-      IF( itry < maxTry )THEN
-        WRITE(6,'(A)')'Invalid probability. 0.< input <100. : '//TRIM(ADJUSTL(input))//'. try again'
-      ELSE
-        nError   = UK_ERROR
-        eMessage = 'Invalid probability. 0.< input <100. : '//TRIM(ADJUSTL(input))
-        GOTO 9999
+      READ(input,*,IOSTAT=ios)typeData
+      IF( ios /= 0 )THEN
+        IF( itry < maxTry )THEN
+          WRITE(6,'(A)')'Error reading value from '//TRIM(ADJUSTL(input))//'. try again'
+          CYCLE
+        ELSE
+          nError   = UK_ERROR
+          eMessage = 'Error reading value from '//TRIM(ADJUSTL(input))
+          GOTO 9999
+        END IF
+      ELSE IF( typeData >= 100.0 .OR. typeData <=0. )THEN
+        IF( itry < maxTry )THEN
+          WRITE(6,'(A)')'Invalid probability. 0.< input <100. : '//TRIM(ADJUSTL(input))//'. try again'
+        ELSE
+          nError   = UK_ERROR
+          eMessage = 'Invalid probability. 0.< input <100. : '//TRIM(ADJUSTL(input))
+          GOTO 9999
+        END IF
       END IF
     END IF
     EXIT
@@ -619,6 +723,7 @@ SUBROUTINE pickPlotTime( iClass,iChoice,iTime,rTime,header )
 
 USE Extract_fi
 USE GetTimes_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -632,6 +737,7 @@ INTEGER i, j, itry, jtry
 
 LOGICAL lUserTime
 REAL    pTime, maxTime
+REAL    minTime
 REAL    dt, dtx
 CHARACTER(120) string, string1, usertime
 
@@ -642,6 +748,7 @@ lUserTime = loadPlotTimes( ClassChoiceArray(iClass,iChoice)%itime, &
 
 iTime = 0
 rTime = 0.0
+minTime = HUGE(1.0)
 
 IF( nTimeOut > 0 )THEN
 
@@ -650,6 +757,16 @@ IF( nTimeOut > 0 )THEN
   DO i = 1,nTimeOut
     WRITE(6,'(F10.4,7X,"(",A,")")')TimeOut(i)%time%runTime,TimeOut(i)%string
   END DO
+  IF( iTim > 0 )THEN
+    DO i = 1,nTimeOut
+      IF( minTime > ABS(TimeOut(i)%time%runTime - tOut) )THEN
+        minTime = AMIN1(minTime,ABS(TimeOut(i)%time%runTime - tOut))
+        iTime   = i
+        rTime   = TimeOut(i)%time%runTime
+      ENDIF
+    END DO
+  END IF
+
   IF( lUserTime )THEN
     IF( maxTime < HUGE(1.0) )THEN
       WRITE(usertime,'(F13.5)')maxTime
@@ -660,88 +777,92 @@ IF( nTimeOut > 0 )THEN
     WRITE(6,'(A)')usertime
   END IF
 
-  IF( UseKey )THEN
-    itry = 0
-100 CONTINUE
-    itry = itry + 1
-    WRITE(6,'(/,A,$)')'Plot time keyword ? '
-    READ(lun_in,'(A)')string
-    string = ADJUSTL(string)
-    CALL CUPPER( string )
-    j = LEN_TRIM(string)
-
-    iTime = -1
-    DO i = 1,nTimeOut
-      string1 = TimeOut(i)%string
-      CALL CUPPER( string1 )
-      IF( INDEX(string1,string(1:j)) > 0 )THEN
-        iTime = i
-        rTime = TimeOut(i)%time%runTime
-        EXIT
-      END IF
-    END DO
-    IF( lUserTime .AND. iTime < 1 )THEN
-      string1 = usertime
-      CALL CUPPER( string1 )
-      IF( INDEX(string1,string(1:j)) > 0 )THEN
-        jtry = 0
-200     CONTINUE
-        WRITE(6,'(/,"User Time : ",$)')
-        READ(lun_in,*)pTime
-        jtry = jtry + 1
-        IF( pTime <= TimeOut(nTimeOut)%time%runTime )THEN
-          IF( jtry < maxTry )THEN
-            WRITE(6,'(A,F10.4)')'User time must be greater than',TimeOut(nTimeOut)%time%runTime
-            GOTO 200
-          ELSE
-            nError = UK_ERROR
-            WRITE(eMessage,'(A,F10.4)')'User time must be greater than',TimeOut(nTimeOut)%time%runTime
-          END IF
-        ELSE
-          iTime = nTimeOut+1
-          rTime = MIN(pTime,maxTime)
-        END IF
-      END IF
-    END IF
-
-    IF( iTime < 1 )THEN
-      IF( itry < maxTry )THEN
-        WRITE(6,'(/,"Cannot find keyword ",(A)," in time strings. Please try again")')TRIM(string)
-        GOTO 100
-      ELSE
-        nError   = UK_ERROR
-        eMessage = 'Cannot find keyword '//TRIM(string)//' in time strings.'
-        GOTO 9999
-      END IF
-    ELSE
-    END IF
-
+  IF( iTim > 0 )THEN
+    WRITE(6,'(/,"Using output time of ",F10.4,7X,"(",A,")")')TimeOut(iTime)%time%runTime,TimeOut(iTime)%string
   ELSE
-    WRITE(6,'(/,"Plot Time : ",$)')
-    READ(lun_in,*)pTime
+    IF( UseKey )THEN
+      itry = 0
+100   CONTINUE
+      itry = itry + 1
+      WRITE(6,'(/,A,$)')'Plot time keyword ? '
+      READ(lun_in,'(A)')string
+      string = ADJUSTL(string)
+      CALL CUPPER( string )
+      j = LEN_TRIM(string)
 
-    iTime = 0
-    IF( pTime <= TimeOut(1)%time%runTime )THEN
-      iTime = 1
-      rTime = TimeOut(1)%time%runTime
-    ELSE IF( pTime >= TimeOut(nTimeOut)%time%runTime )THEN
-      IF( lUserTime )THEN
-        iTime = nTimeOut+1
-        rTime = MIN(pTime,maxTime)
-      ELSE
-        iTime = nTimeOut
-        rTime = TimeOut(nTimeOut)%time%runTime
-      END IF
-    ELSE
-      dtx = HUGE(1.0)
+      iTime = -1
       DO i = 1,nTimeOut
-        dt = ABS(pTime - TimeOut(i)%time%runTime)
-        IF( dt < dtx )THEN
-          dtx = dt
+        string1 = TimeOut(i)%string
+        CALL CUPPER( string1 )
+        IF( INDEX(string1,string(1:j)) > 0 )THEN
           iTime = i
           rTime = TimeOut(i)%time%runTime
+          EXIT
         END IF
       END DO
+      IF( lUserTime .AND. iTime < 1 )THEN
+        string1 = usertime
+        CALL CUPPER( string1 )
+        IF( INDEX(string1,string(1:j)) > 0 )THEN
+          jtry = 0
+200       CONTINUE
+          WRITE(6,'(/,"User Time : ",$)')
+          READ(lun_in,*)pTime
+          jtry = jtry + 1
+          IF( pTime <= TimeOut(nTimeOut)%time%runTime )THEN
+            IF( jtry < maxTry )THEN
+              WRITE(6,'(A,F10.4)')'User time must be greater than',TimeOut(nTimeOut)%time%runTime
+              GOTO 200
+            ELSE
+              nError = UK_ERROR
+              WRITE(eMessage,'(A,F10.4)')'User time must be greater than',TimeOut(nTimeOut)%time%runTime
+            END IF
+          ELSE
+            iTime = nTimeOut+1
+            rTime = MIN(pTime,maxTime)
+          END IF
+        END IF
+      END IF
+
+      IF( iTime < 1 )THEN
+        IF( itry < maxTry )THEN
+          WRITE(6,'(/,"Cannot find keyword ",(A)," in time strings. Please try again")')TRIM(string)
+          GOTO 100
+        ELSE
+          nError   = UK_ERROR
+          eMessage = 'Cannot find keyword '//TRIM(string)//' in time strings.'
+          GOTO 9999
+        END IF
+      ELSE
+      END IF
+
+    ELSE
+      WRITE(6,'(/,"Plot Time : ",$)')
+      READ(lun_in,*)pTime
+
+      iTime = 0
+      IF( pTime <= TimeOut(1)%time%runTime )THEN
+        iTime = 1
+        rTime = TimeOut(1)%time%runTime
+      ELSE IF( pTime >= TimeOut(nTimeOut)%time%runTime )THEN
+        IF( lUserTime )THEN
+          iTime = nTimeOut+1
+          rTime = MIN(pTime,maxTime)
+        ELSE
+          iTime = nTimeOut
+          rTime = TimeOut(nTimeOut)%time%runTime
+        END IF
+      ELSE
+        dtx = HUGE(1.0)
+        DO i = 1,nTimeOut
+          dt = ABS(pTime - TimeOut(i)%time%runTime)
+          IF( dt < dtx )THEN
+            dtx = dt
+            iTime = i
+            rTime = TimeOut(i)%time%runTime
+          END IF
+        END DO
+      END IF
     END IF
   END IF
 
@@ -750,6 +871,7 @@ IF( nTimeOut > 0 )THEN
   ELSE
     WRITE(6,'(F10.4,7X,"(",A,")")')TimeOut(iTime)%time%runTime,TimeOut(iTime)%string
   END IF
+
 END IF
 
 9999 CONTINUE

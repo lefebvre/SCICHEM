@@ -283,8 +283,7 @@ SELECT CASE( TRIM(carg(ikwrd)) )
         IF( narg > ikwrd+1 )THEN
           SELECT CASE( TRIM(carg(ikwrd+2)) )
             CASE( 'M','METERS' )
-              lDomRef = .TRUE.
-              new%input%domain%domain%coord = I_CARTESIAN !I_METERS
+              new%input%domain%domain%coord = I_METERS  !I_CARTESIAN
               xfac = 1.E-3
             CASE( 'CARTESIAN','KM','KILOMETERS' )
               new%input%domain%domain%coord = I_CARTESIAN
@@ -595,6 +594,19 @@ SELECT CASE( TRIM(carg(ikwrd)) )
 
   CASE( 'MAXPUFFS','MAXMET1D','MAXSURFG' )
     !Ignore as these were read in ReadPathwaySC/ParseSC
+
+  CASE( 'RUNPRIME' )
+
+    IF( narg-ikwrd > 0 )THEN
+      SELECT CASE( ADJUSTL(carg(ikwrd+1)(1:1)) )
+        CASE( 'Y','y' )
+          lPRIME = .FALSE.  ! PRIME disabled for SCICHEM version 3.1
+        CASE( 'N','n' )
+          lPRIME = .FALSE.
+        CASE DEFAULT
+          lPRIME = .FALSE.  ! PRIME disabled for SCICHEM version 3.1
+      END SELECT
+    END IF
 
   CASE( 'DELPRJFI' )
       IF( narg-ikwrd > 0 )lDeletePrj = carg(ikwrd+1)(1:1) == 'Y'

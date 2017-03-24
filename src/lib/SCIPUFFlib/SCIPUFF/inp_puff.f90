@@ -3,7 +3,7 @@
 !$Revision$
 !$Date$
 !*******************************************************************************
-SUBROUTINE input_puff( nun,iflag,npo )
+SUBROUTINE input_puff( initRel,nun,iflag,npo )
 
 USE scipuff_fi
 USE files_fi
@@ -19,6 +19,7 @@ USE UtilMtlAux
 
 IMPLICIT NONE
 
+TYPE( ReleaseT ), INTENT ( IN ) :: initRel
 INTEGER, INTENT( IN  ) :: nun, iflag
 INTEGER, INTENT( OUT ) :: npo
 
@@ -98,9 +99,9 @@ READ(nun,101,ERR=1000,END=1000) npi !No. Input puffs
 IF( npi+npuf > MAXPUF )THEN
   nError   = SZ_ERROR
   eRoutine = 'input_puff'
-  eMessage = 'Too many puffs in CLOUDTRANS data'
-  WRITE(eInform,'(A,I8)',IOSTAT=ios) 'Maximum number is ',MAXPUF-npuf
-  CALL ReportFileName( eAction,'File=',file_tmp )
+  eMessage = 'Insufficient space in puff array to create puffs from CLOUDTRANS file'
+  CALL ReportFileName( eInform,'File=',file_tmp )
+  WRITE(eAction,'(A,I9)',IOSTAT=ios)'Try increasing the Maximum Puff Limit. Current limit=',MAXPUF
   GOTO 9999
 END IF
 
@@ -465,7 +466,6 @@ mpuf = npuf
 
 READ(nun,100,ERR=1000,END=1000) !Puff data header
 
-
 DO ip = 1,npi
 
   READ(nun,*,ERR=1000,END=1000) i,ityp,isg,(dati(i),i=1,ndp)
@@ -505,8 +505,8 @@ DO ip = 1,npi
     GOTO 9999
   END IF
 
-  pin%xbar = dati(ix)*xfac
-  pin%ybar = dati(iy)*yfac
+  pin%xbar = DBLE(dati(ix)*xfac)
+  pin%ybar = DBLE(dati(iy)*yfac)
   pin%zbar = dati(iz)
 
   IF( icfo <= 0 )THEN
@@ -799,8 +799,9 @@ TYPE( puff_str ) :: ptmp
 INTEGER i,j
 REAL    pmass,xx,yy,zz
 
-REAL, DIMENSION(ntypp)   :: ctot, xbar, ybar, zbar, sv
-REAL, DIMENSION(6,ntypp) :: sig
+REAL(8), DIMENSION(ntypp)   :: xbar, ybar
+REAL,    DIMENSION(ntypp)   :: ctot, zbar, sv
+REAL,    DIMENSION(6,ntypp) :: sig
 
 IF( np <= 0 )RETURN
 
@@ -808,8 +809,8 @@ DO j = 1,ntypp
 
   ctot(j) = 0.
 
-  xbar(j) = 0.
-  ybar(j) = 0.
+  xbar(j) = 0.D0
+  ybar(j) = 0.D0
   zbar(j) = 0.
 
   sig(1,j) = 0.
@@ -830,8 +831,8 @@ DO i = 1,np
 
   ctot(j) = ctot(j) + pmass
 
-  xbar(j) = xbar(j) + pmass*p(i)%xbar
-  ybar(j) = ybar(j) + pmass*p(i)%ybar
+  xbar(j) = xbar(j) + DBLE(pmass)*p(i)%xbar
+  ybar(j) = ybar(j) + DBLE(pmass)*p(i)%ybar
   zbar(j) = zbar(j) + pmass*p(i)%zbar
 
 END DO
@@ -840,8 +841,8 @@ DO j = 1,ntypp
 
   pmass = ctot(j)
   IF( pmass > 0. )THEN
-    xbar(j) = xbar(j)/pmass
-    ybar(j) = ybar(j)/pmass
+    xbar(j) = xbar(j)/DBLE(pmass)
+    ybar(j) = ybar(j)/DBLE(pmass)
     zbar(j) = zbar(j)/pmass
   END IF
 
@@ -852,9 +853,9 @@ DO i = 1,np
   j = p(i)%ityp
   pmass = p(i)%c
 
-  xx = p(i)%xbar - xbar(j)
-  yy = p(i)%ybar - ybar(j)
-  zz = p(i)%zbar - zbar(j)
+  xx = SNGL(p(i)%xbar - xbar(j))
+  yy = SNGL(p(i)%ybar - ybar(j))
+  zz =      p(i)%zbar - zbar(j)
 
   sig(1,j) = sig(1,j) + pmass*(xx**2 + p(i)%sxx)
   sig(4,j) = sig(4,j) + pmass*(yy**2 + p(i)%syy)

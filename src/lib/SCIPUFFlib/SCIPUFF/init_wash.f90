@@ -17,15 +17,9 @@ REAL, PARAMETER :: B_SNOW = 0.25
 REAL, PARAMETER :: RHOW   = 1.00E+03
 REAL, PARAMETER :: V_SNOW = 1.1
 
-!-----  Set Rain Precipitation Groups (mm/hr): Rain + Snow
-
-REAL, DIMENSION(NRAIN+NSNOW), PARAMETER :: PR = (/ 0.5,3.5,25.0,5.,20.,100. /)
-
 TYPE( puff_material )pmatl
 
 INTEGER i, j, icls, alloc_stat
-
-REAL, DIMENSION(NWASH) :: dr
 
 REAL,    EXTERNAL :: ufall
 LOGICAL, EXTERNAL :: IsGas,IsParticle
@@ -34,7 +28,7 @@ LOGICAL, EXTERNAL :: IsWetParticle
 
 !----- Allocate arrays
 
-ALLOCATE( twash(0:NWASH,ntypp),vwash(0:NWASH),STAT=alloc_stat )
+ALLOCATE( twash(0:NWASH,ntypp),vwash(0:NWASH),dwash(0:NWASH),STAT=alloc_stat )
 IF( alloc_stat /= 0 )THEN
   nError   = UK_ERROR
   eRoutine = 'init_wash'
@@ -51,18 +45,19 @@ IF( alloc_stat /= 0 )THEN
 END IF
 pratebl(0) = 0.
 DO i = 1,NRAIN
-  pratebl(i) = PR(i)
+  pratebl(i) = PWASH(i)
 END DO
 
 !-----  Set Precipitation fall velocity (m/s) and mean drop diam (m)
 
-vwash(0) =  0.0 !No precipitation
+vwash(0) = 0.0 !No precipitation
+dwash(0) = 0.0
 DO i = 1,NRAIN
-  dr(i)    = A_RAIN*PR(i)**B_RAIN
-  vwash(i) = ufall( rhoair,RHOW,rmuair,dr(i) )
+  dwash(i) = A_RAIN*PWASH(i)**B_RAIN
+  vwash(i) = ufall( rhoair,RHOW,rmuair,dwash(i) )
 END DO
 DO i = NRAIN+1,NWASH
-  dr(i)    = A_SNOW*PR(i)**B_SNOW
+  dwash(i) = A_SNOW*PWASH(i)**B_SNOW
   vwash(i) = V_SNOW
 END DO
 
@@ -79,7 +74,7 @@ DO j = 1,ntypp
   IF( IsGas(icls) )THEN
 
     DO i = 1,NWASH
-      CALL get_wash_gas( i,icls,pmatl,PR(i),dr(i),vwash(i),twash(i,j) )
+      CALL get_wash_gas( i,icls,pmatl,PWASH(i),dwash(i),vwash(i),twash(i,j) )
     END DO
 
 !-----  Note: Wet particles only washout at the rate of the dry particle size
@@ -87,7 +82,7 @@ DO j = 1,ntypp
   ELSE IF( IsLiquid(icls) .OR. IsParticle(icls) .OR. IsWetParticle(icls) )THEN
 
     DO i = 1,NWASH
-      CALL get_wash_part( i,icls,pmatl,PR(i),dr(i),vwash(i),twash(i,j) )
+      CALL get_wash_part( i,icls,pmatl,PWASH(i),dwash(i),vwash(i),twash(i,j) )
     END DO
 
   END IF
@@ -107,18 +102,15 @@ USE scipuff_fi
 
 IMPLICIT NONE
 
-REAL, PARAMETER :: MUW    = 1.00E-03
-REAL, PARAMETER :: CNVFAC = 4.167E-07
-
 INTEGER,               INTENT( IN  ) :: ityppr, icls
 TYPE( puff_material ), INTENT( IN  ) :: pmatl
 REAL,                  INTENT( IN  ) :: pr, dr, vr
 REAL,                  INTENT( OUT ) :: tauwo
 
 REAL dif, rhop
-REAL dp, vp, sc3, tau
-REAL re, re2, sc, st, wi, h, e1, e2, e3, sc2
+REAL dp, vp
 
+REAL,    EXTERNAL :: SetWashScale
 LOGICAL, EXTERNAL :: IsParticle
 LOGICAL, EXTERNAL :: IsLiquid
 LOGICAL, EXTERNAL :: IsWetParticle
@@ -143,23 +135,51 @@ IF( vp > vr )THEN
 
 ELSE
 
+  tauwo = SetWashScale( vp,dp,ityppr,pr,vr,dr,dif )
+
+END IF
+
+RETURN
+END
+
+!===============================================================================
+
+REAL FUNCTION SetWashScale( vp,dp,ip,pr,vr,dr,dif )
+
+USE scipuff_fi
+
+IMPLICIT NONE
+
+REAL,    INTENT( IN ) :: vp, dp      !Particle fall speed and diameter
+INTEGER, INTENT( IN ) :: ip          !Precip type ID
+REAL,    INTENT( IN ) :: pr, vr, dr  !Precip rate, fall speed and idameter
+REAL,    INTENT( IN ) :: dif         !Particle diffusivity
+
+REAL, PARAMETER :: MUW    = 1.00E-03
+REAL, PARAMETER :: CNVFAC = 4.167E-07
+
+REAL sc3, tau
+REAL re, re2, sc, st, wi, h, e1, e2, e3, sc2
+
+!--- Set washout time scale for particle size
+
 !-----  Calculate dimensionless groups
 
-  tau = vp/g
-  re  = (0.5*dr*vr*rhoair)/rmuair
-  sc  = rmuair/(rhoair*dif)
-  st  = 2.*tau*(vr-vp)/dr
-  h   = dp/dr
+tau = vp/g
+re  = (0.5*dr*vr*rhoair)/rmuair
+sc  = rmuair/(rhoair*dif)
+st  = 2.*tau*(vr-vp)/dr
+h   = dp/dr
 
-  IF( ityppr <= NRAIN )THEN
-    wi = rmuair/MUW !RAIN
-  ELSE
-    wi = 0.         !SNOW
-  END IF
+IF( ip <= NRAIN )THEN
+  wi = rmuair/MUW !RAIN
+ELSE
+  wi = 0.         !SNOW
+END IF
 
-  re2 = SQRT(re)
-  sc2 = SQRT(sc)
-  sc3 = sc**(1./3.)
+re2 = SQRT(re)
+sc2 = SQRT(sc)
+sc3 = sc**(1./3.)
 
 !-----  Seinfeld model uses St* (sts) but gives unreasonably sensitive
 !       response; full model is:
@@ -177,9 +197,7 @@ ELSE
 !----- Also reduce efficiency by factor of 3 to match Horn et al. (1988)
 !      and Sparmacher (1993) data
 
-  tauwo = CNVFAC*pr*(e1 + e2 + e3)/(3.0*dr)
-
-END IF
+SetWashScale = CNVFAC*pr*(e1 + e2 + e3)/(3.0*dr)
 
 RETURN
 END

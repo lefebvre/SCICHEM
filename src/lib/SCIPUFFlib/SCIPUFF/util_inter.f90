@@ -18,7 +18,7 @@ REAL sx, sy, ztest
 INTEGER, EXTERNAL :: getPuffifld
 
 IF( lter )THEN
-  CALL get_topogIn( p%xbar,p%ybar,h,hx,hy,getPuffifld(p) )
+  CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),h,hx,hy,getPuffifld(p) )
   sx    = SQRT(p%sxx)
   sy    = SQRT(p%syy)
   zp    = p%zbar - h
@@ -69,7 +69,7 @@ REAL(8), DIMENSION(7),   INTENT( IN  ) :: asig
 REAL(8), DIMENSION(3,3), INTENT( IN  ) :: a
 REAL(8), DIMENSION(7),   INTENT( OUT ) :: bsig
 
-REAL, DIMENSION(3,3) :: at, b, c
+REAL(8), DIMENSION(3,3) :: at, b, c
 
 b(1,1) = asig(1)
 b(1,2) = asig(2)
@@ -81,9 +81,9 @@ b(2,1) = b(1,2)
 b(3,1) = b(1,3)
 b(3,2) = b(2,3)
 
-c = MATMUL( a,b )
+c  = MATMUL( a,b )
 at = TRANSPOSE( a )
-b = MATMUL( c,at )
+b  = MATMUL( c,at )
 
 bsig(1) = b(1,1)
 bsig(2) = b(1,2)

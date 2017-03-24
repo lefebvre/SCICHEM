@@ -240,7 +240,7 @@ INTEGER, EXTERNAL :: getPuffifld
 
 fmax = 0.0
 
-CALL mapfac( puffj%xbar,puffj%ybar,xmap,ymap )
+CALL mapfac( SNGL(puffj%xbar),SNGL(puffj%ybar),xmap,ymap )
 
 xbar = puffj%xbar
 ybar = puffj%ybar
@@ -259,7 +259,7 @@ zp = (vs-vbar)
 CALL zi_reflect( vbar,puffj%zc,puffj%zc,vs,rat,faci )
 
 IF( lter )THEN
-  CALL get_topogIn( puffj%xbar,puffj%ybar,hz,hx,hy,getPuffifld(puffj) )
+  CALL get_topogIn( SNGL(puffj%xbar),SNGL(puffj%ybar),hz,hx,hy,getPuffifld(puffj) )
   CALL get_asig( puffj,asig )
   CALL grnd_reflect( vbar-hz,asig,hx,hy,xr,xnrm,deth,znrm )
   zfac = 0.5*znrm/(puffj%det*deth)
@@ -389,11 +389,11 @@ IF( chemMC(ID)%nStar <= 0 )RETURN
 CALL GetChemInter1( ID,puffi )
 
 IF( lter )THEN
-  CALL get_topogIn( puffi%xbar,puffi%ybar,hp,hx,hy,getPuffifld(puffi) )
+  CALL get_topogIn( SNGL(puffi%xbar),SNGL(puffi%ybar),hp,hx,hy,getPuffifld(puffi) )
 ELSE
   hp = 0.0
 END IF
-CALL SetChemAmbient( puffi%xbar,puffi%ybar,puffi%zbar-hp,t,.FALSE.,.TRUE. )
+CALL SetChemAmbient( SNGL(puffi%xbar),SNGL(puffi%ybar),puffi%zbar-hp,t,.FALSE.,.TRUE. )
 IF( nError /= NO_ERROR )GOTO 9999
 
 ispuf = ipuf - chem%imax

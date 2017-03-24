@@ -264,23 +264,23 @@ REAL,    DIMENSION(:), ALLOCATABLE :: drt, drb, dlt, dlb !gradient data
 INTERFACE
   SUBROUTINE SAG_SetGradientBoth( grd,ifld,drt,drb,dlt,dlb )
     USE sagstr_fd
-    TYPE( SAGgrid_str ),        POINTER       :: grd
-    INTEGER,                    INTENT( IN  ) :: ifld
-    REAL, DIMENSION(*), TARGET, INTENT( OUT ) :: drt,drb,dlt,dlb
+    TYPE( SAGgrid_str ),        POINTER         :: grd
+    INTEGER,                    INTENT( IN    ) :: ifld
+    REAL, DIMENSION(*), TARGET, INTENT( INOUT ) :: drt,drb,dlt,dlb
   END SUBROUTINE SAG_SetGradientBoth
 
   SUBROUTINE SAG_SetGradientVert( grd,ifld,drt,drb,dlt,dlb )
     USE sagstr_fd
-    TYPE( SAGgrid_str ),        POINTER       :: grd
-    INTEGER,                    INTENT( IN  ) :: ifld
-    REAL, DIMENSION(*), TARGET, INTENT( OUT ) :: drt,drb,dlt,dlb
+    TYPE( SAGgrid_str ),        POINTER         :: grd
+    INTEGER,                    INTENT( IN    ) :: ifld
+    REAL, DIMENSION(*), TARGET, INTENT( INOUT ) :: drt,drb,dlt,dlb
   END SUBROUTINE SAG_SetGradientVert
 
   SUBROUTINE SAG_SetGradientHorz( grd,ifld,drt,drb,dlt,dlb )
     USE sagstr_fd
-    TYPE( SAGgrid_str ),        POINTER       :: grd
-    INTEGER,                    INTENT( IN  ) :: ifld
-    REAL, DIMENSION(*), TARGET, INTENT( OUT ) :: drt,drb,dlt,dlb
+    TYPE( SAGgrid_str ),        POINTER         :: grd
+    INTEGER,                    INTENT( IN    ) :: ifld
+    REAL, DIMENSION(*), TARGET, INTENT( INOUT ) :: drt,drb,dlt,dlb
   END SUBROUTINE SAG_SetGradientHorz
 
   SUBROUTINE SAG_SetBottomValueBoth( grd,ifld,drt,drb,dlt,dlb )
@@ -1293,9 +1293,9 @@ REAL,    DIMENSION(:,:), ALLOCATABLE :: drt, drb, dlt, dlb !gradient data
 INTERFACE
   SUBROUTINE SAG_SetGradientBoth( grd,ifld,drt,drb,dlt,dlb )
     USE sagstr_fd
-    TYPE( SAGgrid_str ),        POINTER       :: grd
-    INTEGER,                    INTENT( IN  ) :: ifld
-    REAL, DIMENSION(*), TARGET, INTENT( OUT ) :: drt,drb,dlt,dlb
+    TYPE( SAGgrid_str ),        POINTER         :: grd
+    INTEGER,                    INTENT( IN    ) :: ifld
+    REAL, DIMENSION(*), TARGET, INTENT( INOUT ) :: drt,drb,dlt,dlb
   END SUBROUTINE SAG_SetGradientBoth
 
   SUBROUTINE SAG_SetBottomValueCN2Both( grd,mx,dat2,drt,drb,dlt,dlb,lComp2 )
@@ -1303,7 +1303,7 @@ INTERFACE
     TYPE( SAGgrid_str ),   POINTER       :: grd
     INTEGER,               INTENT( IN  ) :: mx
     REAL, DIMENSION(2,mx), INTENT( OUT ) :: dat2
-    REAL, DIMENSION(2,*),  TARGET        :: drt, drb, dlt, dlb
+    REAL, DIMENSION(mx,2),  TARGET        :: drt, drb, dlt, dlb
     LOGICAL,               INTENT( OUT ) :: lComp2
   END SUBROUTINE SAG_SetBottomValueCN2Both
 

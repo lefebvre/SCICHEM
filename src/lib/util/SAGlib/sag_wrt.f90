@@ -259,7 +259,17 @@ INTERFACE
     USE sagtri_fd
     USE sagstr_fd
     TYPE( SAGtriangleT_str ), POINTER  :: triT
-    INTEGER,                  EXTERNAL :: UserFunction
+    INTERFACE
+      INTEGER FUNCTION UserFunction( ntri,tri,nnode,node,mxdata,dat )
+        USE sagtri_fd
+        INTEGER,                           INTENT( IN ) :: ntri
+        INTEGER,                           INTENT( IN ) :: nnode
+        INTEGER,                           INTENT( IN ) :: mxdata
+        TYPE ( SAGtriangle_str ), DIMENSION(:), POINTER :: tri
+        TYPE ( SAGnode_str ),     DIMENSION(:), POINTER :: node
+        REAL,                     DIMENSION(:), POINTER :: dat
+      END FUNCTION UserFunction
+    END INTERFACE
     TYPE ( SAGgrid_str ),     POINTER  :: grd
   END FUNCTION SAG_UserField
 
@@ -341,6 +351,8 @@ ELSE
   IF(irv /= SAG_OK)GOTO 9998
 
 END IF
+
+CALL FLUSH(uwrite%lun)
 
 !==============================================================================
 ! Set return value

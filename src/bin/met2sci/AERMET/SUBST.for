@@ -1219,7 +1219,7 @@ C ---       Use ONSITE RH, if available
 C ---       Calculate RH from OS temp and dew point, if available;
 C           adjust T(IH) and TD since already in degrees K;
 C           subroutine HUMID assumes inputs in C
-            CALL HUMID( T(IH)-273.15, DEWP(IH)-273.15, RH(IH) )
+            CALL AERMET_HUMID( T(IH)-273.15, DEWP(IH)-273.15, RH(IH) )
          ELSEIF( SFOBS(IH,49) .NE. SFQA(49,2) )THEN
 C ---       Use SURFACE station RH, if available
             RH(IH) = FLOAT(SFOBS(IH,49))
@@ -1228,14 +1228,14 @@ C ---       Use SURFACE station RH, if available
 C ---       Calculate RH from SURFACE temp and dew point, if available;
 C           adjust T(IH) and TD since already in degrees K;
 C           subroutine HUMID assumes inputs in C
-            CALL HUMID( T(IH)-273.15, (FLOAT(SFOBS(IH,48))/10.0),
+            CALL AERMET_HUMID( T(IH)-273.15, (FLOAT(SFOBS(IH,48))/10.0),
      &                                                    RH(IH) )
          ELSEIF( SFOBS(IH,46) .NE. SFQA(46,2) .AND.
      &           SFOBS(IH,48) .NE. SFQA(48,2) )THEN
 C ---       Calculate RH from SURFACE temp and dew point, if available;
 C           adjust T(IH) and TD since already in degrees K;
 C           subroutine HUMID assumes inputs in C
-            CALL HUMID( FLOAT(SFOBS(IH,46))/10.0,
+            CALL AERMET_HUMID( FLOAT(SFOBS(IH,46))/10.0,
      &                  FLOAT(SFOBS(IH,48))/10.0, RH(IH) )
          ELSE
 C ---       Missing relative humidity, assign SF data missing code

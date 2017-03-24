@@ -9,6 +9,7 @@ USE scipuff_fi
 USE files_fi
 USE cont_rel_fi
 USE cont_rel_functions
+USE convert_fd
 
 !   Releases all puffs at time t
 
@@ -18,20 +19,21 @@ INTEGER mpuf, mcrel, crmode
 INTEGER n1, n2
 
 CHARACTER(128) cmsg,cmsg2,cmsg3
-CHARACTER(8)   ctmp
+REAL, EXTERNAL :: ScaleReal
+CHARACTER(12), EXTERNAL :: FormatPuffs
 
 CALL start_clock()
 
 mpuf  = npuf
 mcrel = count_nrel()
 
-DO WHILE( trel < t+delt .AND. ActiveSource )
+DO WHILE( ScaleReal(currentSpec%release%trel,HCF_HOUR2SEC) < t+delt .AND. ActiveSource )
 
   init_source = init_source + 1
   cmsg  = CHAR(0)
   cmsg2 = CHAR(0)
-  IF( LEN_TRIM(relDisplay) > 0 )THEN
-    WRITE(cmsg3,'(A,I5,''('',A,'')'')')'Preparing source',init_source,TRIM(relDisplay)
+  IF( LEN_TRIM(currentSpec%release%relDisplay) > 0 )THEN
+    WRITE(cmsg3,'(A,I5,''('',A,'')'')')'Preparing source',init_source,TRIM(currentSpec%release%relDisplay)
   ELSE
     WRITE(cmsg3,'(A,I5)')'Preparing source',init_source
   END IF
@@ -41,12 +43,12 @@ DO WHILE( trel < t+delt .AND. ActiveSource )
 
   crmode = CRMODE_START
 
-  CALL process_scn( crmode )
+  CALL process_scn( crmode,currentSpec )
   IF( nError /= NO_ERROR )GOTO 9999
 
-  t_old_r = trel
+  t_old_r =  ScaleReal(currentSpec%release%trel,HCF_HOUR2SEC)
 
-  CALL get_scn( lun_scn,file_scn )
+  CALL get_scn( lun_scn,file_scn,currentSpec )
   IF( nError /= NO_ERROR )GOTO 9999
 
 END DO
@@ -55,11 +57,9 @@ END DO
 
 IF( npuf > mpuf )THEN
 
-  WRITE(ctmp,'(I8)')npuf-mpuf
-  ctmp  = ADJUSTL(ctmp)
   cmsg  = CHAR(0)
   cmsg2 = CHAR(0)
-  WRITE(cmsg3,'(A)')'Initializing '//TRIM(ctmp)//' new puffs'
+  cmsg3 = 'Initializing '//TRIM(FormatPuffs(npuf-mpuf))//' new puffs'
   CALL write_progress( cmsg,cmsg2,cmsg3 )
 
   n1 = mpuf + 1
@@ -71,11 +71,9 @@ END IF
 
 IF( count_nrel() > mcrel )THEN
 
-  WRITE(ctmp,'(I8)')count_nrel()-mcrel
-  ctmp  = ADJUSTL(ctmp)
   cmsg  = CHAR(0)
   cmsg2 = CHAR(0)
-  WRITE(cmsg3,'(A)')'Initializing '//TRIM(ctmp)//' new releases'
+  cmsg3 = 'Initializing '//TRIM(FormatPuffs(count_nrel()-mcrel))//' new releases'
   CALL write_progress( cmsg,cmsg2,cmsg3 )
 
   CALL InteractContinuousReleases( .TRUE. )
@@ -94,7 +92,7 @@ END
 
 !===============================================================================
 
-SUBROUTINE get_scn( lun,file )
+SUBROUTINE get_scn( lun,file,relSpec )
 
 USE scipuff_fi
 
@@ -102,60 +100,26 @@ IMPLICIT NONE
 
 INTEGER,      INTENT( IN ) :: lun
 CHARACTER(*), INTENT( IN ) :: file
+TYPE( releaseSpecT ), INTENT( INOUT ) :: relSpec
 
-INTEGER i
 
 !------ defaults
-
-xrel     = DEF_VAL_D
-yrel     = DEF_VAL_D
-zrel     = 0.
-trel     = 0.
-urel     = 0.
-vrel     = 0.
-wrel     = 0.
-tdur     = 0.
-cmass    = 0.
-umom     = DEF_VAL_R
-vmom     = DEF_VAL_R
-wmom     = 0.
-buoy     = 0.
-size_rel = 0.
-sigx     = 0.
-sigy     = 0.
-sigz     = 0.
-subgroup = 1
-
-rel_dist = NOT_SET_I
-DO i = 1,SCIPUFF_MAXRELPARAM
-  rel_param(i) = NOT_SET_R
-END DO
-
-reltyp   = ' '
-relmat   = 'UNKNOWN'
-name_rel = ' '
-
-relName    = '<empty>'
-relDisplay = '<empty>'
-
-opid = 0
-DO i = 1,SCIPUFF_STATUS_ARRAY_SIZE
-  opmod(i) = 0
-END DO
-
-relStatus  = NOT_SET_I
 
 RelLoop : DO
 
 !------ read and check input
 
-  CALL ReadNamelistScn( lun )
+  relSpec%ityp = NOT_SET_I
+  relSpec%distrib = NOT_SET_I
+  relSpec%release%trel = NOT_SET_R
+  CALL ClearMCrelList(relSpec%MClist)
+
+  CALL ReadNamelistScn( lun,relSpec )
 
   IF( nError == EOF_ERROR )THEN
 
     CALL init_error()
-    trel   = 1.E+36
-    tdur   = 1.E+36
+    relSpec%release%trel   = 1.E+36
     ActiveSource = .FALSE.
 
   ELSE IF( nError /= NO_ERROR )THEN
@@ -164,23 +128,14 @@ RelLoop : DO
     CALL ReportFileName( eInform,'File=',file )
     GOTO 9999
 
-  ELSE IF( reltyp(1:1) =='C' .OR. reltyp(1:1) =='I' )THEN
+  ELSE IF( BTEST(relSpec%release%type,HRB_CONT) .OR. BTEST(relSpec%release%type,HRB_INST) )THEN
 
     IF( lmap == I_LATLON )THEN
-      CALL check_lonD( xrel,xmin,xmax )
+      CALL check_lonD( relSpec%release%xrel,xmin,xmax )
       IF( nError /= NO_ERROR )THEN
         eInform = 'Setting source location'
         GOTO 9999
       END IF
-    END IF
-
-    CALL LoadRelease( currentRelease )
-    IF( nError /= NO_ERROR )THEN
-      nError   = RD_ERROR
-      eRoutine = 'get_scn'
-      eMessage = 'Error loading source data into release structure'
-      CALL ReportFileName( eInform,'File=',file )
-      GOTO 9999
     END IF
 
   ELSE
@@ -202,119 +157,9 @@ END DO RelLoop
 RETURN
 END
 
-!===============================================================================
-
-SUBROUTINE copy_scn()
-
-USE scipuff_fi
-
-IMPLICIT NONE
-
-INTEGER i
-
-!------ copy standard (non-interactive) source back into common
-
-xrel     = xrel_scn
-yrel     = yrel_scn
-zrel     = zrel_scn
-trel     = trel_scn
-urel     = urel_scn
-vrel     = vrel_scn
-wrel     = wrel_scn
-tdur     = tdur_scn
-cmass    = cmass_scn
-umom     = umom_scn
-vmom     = vmom_scn
-wmom     = wmom_scn
-buoy     = buoy_scn
-size_rel = size_scn
-sigx     = sigx_scn
-sigy     = sigy_scn
-sigz     = sigz_scn
-sigRxy   = sigRxy_scn
-sigRxz   = sigRxz_scn
-sigRyz   = sigRyz_scn
-subgroup = subgroup_scn
-
-rel_dist = rel_dist_scn
-DO i = 1,SCIPUFF_MAXRELPARAM
-  rel_param(i) = rel_param_scn(i)
-END DO
-
-reltyp   = reltyp_scn
-relmat   = relmat_scn
-name_rel = name_rel_scn
-
-opid = opid_scn
-DO i = 1,SCIPUFF_STATUS_ARRAY_SIZE
-  opmod(i) = opmod_scn(i)
-END DO
-
-relName    = relName_scn
-relDisplay = relDisplay_scn
-relStatus  = relStatus_scn
-
-RETURN
-END
-
-!===============================================================================
-
-SUBROUTINE save_scn()
-
-USE scipuff_fi
-
-IMPLICIT NONE
-
-INTEGER i
-
-!------ save standard (non-interactive) source paramtersn
-
-xrel_scn     = xrel
-yrel_scn     = yrel
-zrel_scn     = zrel
-trel_scn     = trel
-urel_scn     = urel
-vrel_scn     = vrel
-wrel_scn     = wrel
-tdur_scn     = tdur
-cmass_scn    = cmass
-umom_scn     = umom
-vmom_scn     = vmom
-wmom_scn     = wmom
-buoy_scn     = buoy
-size_scn     = size_rel
-sigx_scn     = sigx
-sigy_scn     = sigy
-sigz_scn     = sigz
-sigRxy_scn   = sigRxy
-sigRxz_scn   = sigRxz
-sigRyz_scn   = sigRyz
-subgroup_scn = subgroup
-
-rel_dist_scn = rel_dist
-DO i = 1,SCIPUFF_MAXRELPARAM
-  rel_param_scn(i) = rel_param(i)
-END DO
-
-reltyp_scn   = reltyp
-relmat_scn   = relmat
-name_rel_scn = name_rel
-
-opid_scn = opid
-DO i = 1,SCIPUFF_STATUS_ARRAY_SIZE
-  opmod_scn(i) = opmod(i)
-END DO
-
-relName_scn    = relName
-relDisplay_scn = relDisplay
-relStatus_scn  = relStatus
-
-RETURN
-END
-
 !============================================================================
 
-SUBROUTINE init_random_loc()
+SUBROUTINE init_random_loc(relSpec)
 
 USE scipuff_fi
 USE relparam_fd
@@ -322,102 +167,106 @@ USE constants_fd
 
 IMPLICIT NONE
 
-INTEGER ireal, i, alloc_stat
-REAL    spread, xmap, ymap, ranx, rad, ang
-REAL    spreadT, spreadV, cs, sn, rx, ry
+TYPE( releaseSpecT ), INTENT(INOUT) :: relSpec
+
+INTEGER ireal, i, alloc_stat, nSeed
+REAL    rSpread(3), xmap, ymap, ranx, rad, ang
+REAL    spreadA, spreadT, spreadV, cs, sn, rx, ry, rDir
 
 INTEGER, DIMENSION(:), ALLOCATABLE :: iseed
 
 REAL, EXTERNAL :: sind, cosd, erfcinv
 
-IF( reltyp(1:1) == 'I' .AND. rel_param(REL_RAND_INDX) /= NOT_SET_R )THEN
+IF( BTEST(relSpec%release%type,HRB_INST) )THEN
 
-  nRandom = NINT(rel_param(REL_RAND_INDX))
+  CALL getReleaseRandomParams( relSpec%release,nRandom,nSeed,rSpread,rDir )
+
+  IF( nRandom /= NOT_SET_R )THEN
 
 !---- Do Nothing if only 1 realization
 
-  IF( nRandom > 1 )THEN
+    IF( nRandom > 1 )THEN
 
-    ALLOCATE( xRandom(nRandom),yRandom(nRandom),zRandom(nRandom),STAT=alloc_stat )
-    IF( alloc_stat /= 0 )THEN
-      nError = IV_ERROR
-      eRoutine = 'init_random_loc'
-      eMessage = 'Uanble to allocate work arrays'
-      WRITE(eInform,*)'Size =',nRandom
-      GOTO 9999
-    END IF
+      ALLOCATE( xRandom(nRandom),yRandom(nRandom),zRandom(nRandom),STAT=alloc_stat )
+      IF( alloc_stat /= 0 )THEN
+        nError = IV_ERROR
+        eRoutine = 'init_random_loc'
+        eMessage = 'Uanble to allocate work arrays'
+        WRITE(eInform,*)'Size =',nRandom
+        GOTO 9999
+      END IF
 
-    spread = rel_param(REL_SPREAD_INDX)
-    IF( rel_param(REL_SEED_INDX) <= 0.0 .OR. &
-        rel_param(REL_SEED_INDX) == DEF_VAL_R .OR. &
-        rel_param(REL_SEED_INDX) == NOT_SET_R .OR. &
-        rel_param(REL_SEED_INDX) == DEFERRED_R )THEN
-      nError = IV_ERROR
-      eRoutine = 'init_random_loc'
-      eMessage = 'Invalid random seed'
-      WRITE(eInform,*)'Seed =',rel_param(REL_SEED_INDX)
-      GOTO 9999
-    END IF
+      IF( nSeed <= 0.0 .OR. &
+          nSeed == DEF_VAL_I .OR. &
+          nSeed == NOT_SET_I .OR. &
+          nSeed == DEFERRED_I )THEN
+        nError = IV_ERROR
+        eRoutine = 'init_random_loc'
+        eMessage = 'Invalid random seed'
+        WRITE(eInform,*)'Seed =',nSeed
+        GOTO 9999
+      END IF
 
-    CALL RANDOM_SEED( SIZE=i )  ! I is set to the size of  the seed array
-    ALLOCATE( iseed(i),STAT=alloc_stat )
-    IF( alloc_stat /= 0 )THEN
-      nError = IV_ERROR
-      eRoutine = 'init_random_loc'
-      eMessage = 'Error allocating work arrays (iseed)'
-      GOTO 9999
-    END IF
-    iseed(1) = NINT(rel_param(REL_SEED_INDX))
-    DO i = 2,SIZE(iseed)
-      iseed(i) = 2*iseed(i-1) + 1
-    END DO
-    CALL RANDOM_SEED( PUT=iseed )
-
-!-----  Generate random locations
-
-    IF( rel_param(REL_SPREADT_INDX) == NOT_SET_R )THEN
-
-      CALL mapfac( SNGL(xrel),SNGL(yrel),xmap,ymap )
-
-      DO ireal = 1,nRandom
-        CALL RANDOM_NUMBER( HARVEST=ranx )
-        rad  = spread*SQRT(ranx) !circle
-        CALL RANDOM_NUMBER( HARVEST=ranx )
-        ang  = 360.*ranx !circle
-        xRandom(ireal) = DBLE(rad*xmap*cosd( ang )) !circle
-        yRandom(ireal) = DBLE(rad*ymap*sind( ang )) !circle
-        zRandom(ireal) = 0.0
+      CALL RANDOM_SEED( SIZE=i )  ! I is set to the size of  the seed array
+      ALLOCATE( iseed(i),STAT=alloc_stat )
+      IF( alloc_stat /= 0 )THEN
+        nError = IV_ERROR
+        eRoutine = 'init_random_loc'
+        eMessage = 'Error allocating work arrays (iseed)'
+        GOTO 9999
+      END IF
+      iseed(1) = nSeed
+      DO i = 2,SIZE(iseed)
+        iseed(i) = 2*iseed(i-1) + 1
       END DO
+      CALL RANDOM_SEED( PUT=iseed )
+
+  !-----  Generate random locations
+
+      IF( rSpread(2) == NOT_SET_R )THEN
+
+        CALL mapfac( SNGL(relSpec%release%xrel),SNGL(relSpec%release%yrel),xmap,ymap )
+
+        DO ireal = 1,nRandom
+          CALL RANDOM_NUMBER( HARVEST=ranx )
+          rad  = rSpread(1)*SQRT(ranx) !circle
+          CALL RANDOM_NUMBER( HARVEST=ranx )
+          ang  = 360.*ranx !circle
+          xRandom(ireal) = DBLE(rad*xmap*cosd( ang )) !circle
+          yRandom(ireal) = DBLE(rad*ymap*sind( ang )) !circle
+          zRandom(ireal) = 0.0
+        END DO
+
+      ELSE
+
+        CALL mapfac( SNGL(relSpec%release%xrel),SNGL(relSpec%release%yrel),xmap,ymap )
+
+  !---- Convert input values to Gaussian std deviations
+
+        spreadA = rSpread(1)/0.675
+        spreadT = rSpread(2)/0.675
+        spreadV = rSpread(3)/0.675
+        cs      = cosd(rDir)
+        sn      = sind(rDir)
+
+        DO ireal = 1,nRandom
+          CALL RANDOM_NUMBER( HARVEST=ranx )
+          rx = SQRT2*spreadA*erfcinv( 2.*ranx )
+          CALL RANDOM_NUMBER( HARVEST=ranx )
+          ry = SQRT2*spreadT*erfcinv( 2.*ranx )
+          CALL RANDOM_NUMBER( HARVEST=ranx )
+          zRandom(ireal) = SQRT2*spreadV*erfcinv( 2.*ranx )
+          xRandom(ireal) = DBLE(xmap*(rx*sn - ry*cs ))
+          yRandom(ireal) = DBLE(ymap*(ry*sn + rx*cs ))
+        END DO
+
+      END IF
 
     ELSE
 
-      CALL mapfac( SNGL(xrel),SNGL(yrel),xmap,ymap )
-
-!---- Convert input values to Gaussian std deviations
-
-      spread  = spread/0.675
-      spreadT = rel_param(REL_SPREADT_INDX)/0.675
-      spreadV = rel_param(REL_SPREADV_INDX)/0.675
-      cs      = cosd(rel_param(REL_RANDIR_INDX))
-      sn      = sind(rel_param(REL_RANDIR_INDX))
-
-      DO ireal = 1,nRandom
-        CALL RANDOM_NUMBER( HARVEST=ranx )
-        rx = SQRT2*spread*erfcinv( 2.*ranx )
-        CALL RANDOM_NUMBER( HARVEST=ranx )
-        ry = SQRT2*spreadT*erfcinv( 2.*ranx )
-        CALL RANDOM_NUMBER( HARVEST=ranx )
-        zRandom(ireal) = SQRT2*spreadV*erfcinv( 2.*ranx )
-        xRandom(ireal) = DBLE(xmap*(rx*sn - ry*cs ))
-        yRandom(ireal) = DBLE(ymap*(ry*sn + rx*cs ))
-      END DO
+      nRandom = 0
 
     END IF
-
-  ELSE
-
-    nRandom = 0
-
   END IF
 
 ELSE
@@ -494,10 +343,10 @@ jtyp = p%ityp
 icls = typeID(jtyp)%icls
 ifld = getPuffifld( p )
 
-CALL get_met( p%xbar,p%ybar,p%zbar,p%szz,p%zc,0,inField=ifld )
+CALL get_met( SNGL(p%xbar),SNGL(p%ybar),p%zbar,p%szz,p%zc,0,inField=ifld )
 
 IF( lter )THEN
-  CALL get_topogIn( p%xbar,p%ybar,hp,hx,hy,ifld )
+  CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),hp,hx,hy,ifld )
 ELSE
   hp = 0.0
 END if
@@ -526,11 +375,15 @@ ELSE
 END IF
 sx = MAX(si,SQRT(xlam))
 
+IF( p%syy == 0. )THEN
+  qosi_cc = 0.
+ELSE
+
 qosi_cc = MAX(0.5*SQRT(qqb)/sx,0.25*SQRT(qqbi)/si)
 
 !------ account for dynamics
 
-IF( dynamic )THEN
+IF( dynamic .AND. p%c > 0. )THEN
   udyn = pd%ucp/p%c
   vdyn = pd%vcp/p%c
   wdyn = pd%wcp/p%c
@@ -554,6 +407,8 @@ qpi    = SQRT(CQB*wp2 + qqvrtx)
 qosi_p = 0.5*qpi/si
 
 qosi_cc = qosi_cc + qosi_p
+
+END IF
 
 IF( qosi_cc > SMALL )THEN
   dtcc = 0.25/qosi_cc
@@ -663,7 +518,7 @@ IF( nError /= NO_ERROR )THEN
   WRITE(lun_log,*,ERR=9999)TRIM(eInform)
   WRITE(lun_log,*,ERR=9999)'DT(cc,w,a,k,b)=',dtcc,dtw,dta,dtk,dtb
   WRITE(lun_log,*,ERR=9999)'DELT=',delt
-  WRITE(lun_log,*,ERR=9999)'LEVEL=',ilev,MAXTLV
+  WRITE(lun_log,*,ERR=9999)'DTP,LEVEL=',dtp,ilev,MAXTLV
   WRITE(lun_log,*,ERR=9999)'DZG,DRAT,DIFB,VEL2,QOSI=', &
                                            dzg,drat,difb,vel2,qosi_cc
   CALL dump_puff( 0,p )
@@ -701,7 +556,7 @@ TYPE( puff_totalcc  ) pti
 TYPE( puff_liquid   ) pqi
 TYPE( puff_material ) pmatl
 
-CALL mapfac( puff(n1)%xbar,puff(n1)%ybar,xmap_i,ymap_i )
+CALL mapfac( SNGL(puff(n1)%xbar),SNGL(puff(n1)%ybar),xmap_i,ymap_i )
 
 !----   Prepare to compute interactions
 
@@ -792,7 +647,7 @@ DO i = n1,n2
   puff(i)%vo   = vb
   puff(i)%wo   = wb
   puff(i)%zi   = zinv
-  CALL set_zcap_rel( getPuffifld(puff(i)),puff(i)%xbar,puff(i)%ybar,puff(i)%zbar, &
+  CALL set_zcap_rel( getPuffifld(puff(i)),SNGL(puff(i)%xbar),SNGL(puff(i)%ybar),puff(i)%zbar, &
                                           puff(i)%szz,zinv,dtdzs,puff(i)%zc,lbl )
 
   mxtlev = MAX(mxtlev,puff(i)%idtl)
@@ -895,12 +750,11 @@ INTEGER, INTENT( IN ) :: lev      !Time level of release time, min puff level
 INTEGER i
 
 CHARACTER(128) cmsg,cmsg2,cmsg3
-CHARACTER(6)   ctmp
+CHARACTER(12), EXTERNAL :: FormatPuffs
 
 cmsg  = CHAR(0)
 cmsg2 = CHAR(0)
-WRITE(ctmp,'(I6)') n-m+1
-cmsg3 = ' Initializing '//TRIM(ADJUSTL(ctmp))//' new puffs'
+cmsg3 = ' Initializing '//TRIM(FormatPuffs(n-m+1))//' new puffs'
 CALL write_progress( cmsg,cmsg2,cmsg3 )
 IF( nError /= NO_ERROR )GOTO 9999
 
@@ -957,7 +811,7 @@ END
 
 !============================================================================
 
-SUBROUTINE set_puff_rel( p,xmass,zbar,ityp,naux,ifld )
+SUBROUTINE set_puff_rel( relSpec,p,xmass,zbar,ityp,naux,ifld )
 
 USE nextRel_fi
 USE default_fd
@@ -965,6 +819,7 @@ USE relparam_fd
 
 IMPLICIT NONE
 
+TYPE( releaseSpecT ), INTENT( INOUT ) :: relSpec
 TYPE( puff_str ), INTENT( INOUT ) :: p          !New puff structure
 REAL,             INTENT( IN    ) :: xmass      !Puff mass
 REAL,             INTENT( IN    ) :: zbar       !Puff centroid height
@@ -972,12 +827,16 @@ INTEGER,          INTENT( IN    ) :: ityp       !Puff type ID
 INTEGER,          INTENT( IN    ) :: naux       !No. of auxiliary variables
 INTEGER,          INTENT( IN    ) :: ifld       !Met field index
 
+REAL sigx,sigy,sigz,sigRxy,sigRxz,sigRyz
+REAL kyprm, kzprm
+
 CALL zero_puff( p )
 
 p%c    = xmass
-p%xbar = SNGL(xrel)
-p%ybar = SNGL(yrel)
+p%xbar = relSpec%release%xrel
+p%ybar = relSpec%release%yrel
 p%zbar = zbar
+CALL getReleaseSigmas( relSpec%release,sigx,sigy,sigz,sigRxy,sigRxz,sigRyz )
 IF( sigx /= DEF_VAL_R .AND. sigx /= NOT_SET_R )THEN
   p%sxx = sigx*sigx
   p%syy = sigy*sigy
@@ -985,31 +844,33 @@ IF( sigx /= DEF_VAL_R .AND. sigx /= NOT_SET_R )THEN
   p%si  = MIN(sigx,sigy)
   p%si2 = MAX(sigx,sigy)
   p%sv  = sigz
-  IF( reltyp(2:2) == 'X' )THEN
+  IF( BTEST(relSpec%release%type,HRB_OFFDIAG) )THEN
     p%sxy = sigRxy*sigx*sigy
-    p%syz = sigRxz*sigx*sigz
+    p%sxz = sigRxz*sigx*sigz
     p%syz = sigRyz*sigy*sigz
   END IF
 END IF
 IF( wake )THEN
+  CALL getReleasePrime( relSpec%release,kyprm,kzprm )
   p%yvsc = xmass*kyprm
   p%zwc  = xmass*kzprm
 END IF
-p%cfo = rel_param(REL_AFRAC_INDX)
+
+CALL getReleaseActiveFraction( relSpec%release,p%cfo )
 
 p%ityp = ityp
 
 CALL setPuffifld( p,ifld )
 CALL setPuffirel( p,0 )
 
-CALL set_aux_rel( p,naux )
+CALL set_aux_rel(  relSpec,p,naux )
 
 RETURN
 END
 
 !=============================================================================
 
-SUBROUTINE set_aux_rel( p,naux )
+SUBROUTINE set_aux_rel( relSpec,p,naux )
 
 ! ----- Set auxiliary space for new puff
 
@@ -1020,9 +881,13 @@ USE met_fi
 
 IMPLICIT NONE
 
-TYPE( puff_str ) p
+TYPE( releaseSpecT ) :: relSpec
+TYPE( puff_str )     :: p
 
 INTEGER, INTENT( IN ) :: naux
+
+REAL buoy, dryFrac
+REAL, DIMENSION(3) :: mom
 
 TYPE( puff_liquid   ) pq
 TYPE( puff_aerosol  ) pa
@@ -1047,12 +912,15 @@ icls = typeID(ityp)%icls
 p%naux = naux
 ios = allocatePuffAux( p )
 
+CALL getReleaseDynamics( relSpec%release,buoy,mom )
+CALL getReleaseDryFraction( relSpec%release,dryFrac )
+
 IF( dynamic )THEN
   CALL get_dynamics( p,pd )
-  pd%w = wmom
+  pd%w = mom(3)
   pd%t = buoy
-  pd%un = umom
-  pd%vn = vmom
+  pd%un = mom(1)
+  pd%vn = mom(2)
   CALL put_dynamics( p,pd )
 END IF
 
@@ -1080,7 +948,7 @@ ELSE IF( IsWetParticle(icls) )THEN
   ELSE
     rat = pmatpart%rho/RHO_WATER
   END IF
-  rat = (1.0+rat*(1.0/rel_param(REL_WMFRAC_INDX)-1.0))**0.3333333
+  rat = (1.0+rat*(1.0/dryFrac-1.0))**0.3333333
   pq%d     = pmatpart%dbar * rat
   pq%sigd  = (pmatpart%dmax-pmatpart%dmin)/(2.*SQRT3) * rat
   pq%tevap = 0.0
@@ -1099,15 +967,15 @@ IF( IsAerosol(icls) )THEN
     IF( dynamic )temp = temp + pd%ctp/p%c
     rhoa = fun_rhoa( temp,pb )
     rhov = rhoa*pmatliq%w/MWAIR
-    rhoi = (1.0-rel_param(REL_WMFRAC_INDX))/rhov + rel_param(REL_WMFRAC_INDX)/pmatliq%rho
+    rhoi = (1.0-dryFrac)/rhov + dryFrac/pmatliq%rho
     pa%tevap = 0.0
-    pa%fl    = rel_param(REL_WMFRAC_INDX)
+    pa%fl    = dryFrac
     pa%fw    = 1.0E-10
     CALL put_aerosol( p,pa )
 END IF
 
 IF( IsMulti(icls) )THEN
-  CALL InitMCinst( p )
+  CALL InitMCinst( relSpec,p )
   IF( nError /= NO_ERROR )GOTO 9999
 END IF
 
@@ -1118,14 +986,15 @@ END
 
 !===============================================================================
 
-SUBROUTINE InitMCinst( p )
+SUBROUTINE InitMCinst( relSpec,p )
 
 USE scipuff_fi
 USE error_fi
 
 IMPLICIT NONE
 
-TYPE( puff_str ), INTENT( INOUT ) :: p
+TYPE( releaseSpecT), INTENT( IN    ) :: relSpec
+TYPE( puff_str ),    INTENT( INOUT ) :: p
 
 INTEGER mcID
 
@@ -1133,7 +1002,7 @@ mcID = typeID(p%ityp)%mcID
 
 SELECT CASE( mat_mc%type(mcID) )
   CASE( MC_CHEM )
-    CALL InitChemInst( p,mat_mc%ID(mcID) )
+    CALL InitChemInst( relSpec,p,mat_mc%ID(mcID) )
   CASE DEFAULT
     nError   = UK_ERROR
     eRoutine = 'InitMCinst'
@@ -1250,29 +1119,20 @@ USE files_fi
 
 IMPLICIT NONE
 
-TYPE( releaseT ) newRelease
+TYPE( releaseSpecT ) :: oldSpec
 
+TYPE( releaseSpecT ), EXTERNAL :: UpdateRelease
 LOGICAL, EXTERNAL :: IsReady
-TYPE( releaseT ), EXTERNAL :: UpdateRelease
 
-IF( .NOT.IsReady(relName,relStatus) )THEN
+IF( .NOT.IsReady(currentSpec%release%relName,currentSpec%release%status) )THEN
 
-  newRelease = UpdateRelease( currentRelease )
+  CALL InitReleaseSpec(oldSpec)
+  CALL copyReleaseSpec(currentSpec,oldSpec)
+  currentSpec = UpdateRelease( oldSpec, t + delt )
   IF( nError /= NO_ERROR )GOTO 9999
 
-  CALL UnloadRelease( newRelease )
-  IF( nError /= NO_ERROR )THEN
-    nError   = IV_ERROR
-    eRoutine = 'update_scn'
-    eMessage = 'Unable to unload updated release structure'
-    eInform  = 'UnloadRelease failure'
-    GOTO 9999
-  END IF
-
-  currentRelease = newRelease
-
   IF( lmap == I_LATLON )THEN
-    CALL check_lonD( xrel,xmin,xmax )
+    CALL check_lonD( currentSpec%release%xrel,xmin,xmax )
     IF( nError /= NO_ERROR )THEN
       eInform = 'Setting source location'
       GOTO 9999
@@ -1289,7 +1149,7 @@ END
 
 !===============================================================================
 
-SUBROUTINE valid_scn()
+SUBROUTINE valid_scn(relSpec)
 
 USE scipuff_fi
 USE met_fi
@@ -1298,36 +1158,43 @@ USE adjoint_fi
 
 IMPLICIT NONE
 
-INTEGER ityp
+TYPE( releaseSpecT ), INTENT(INOUT) :: relSpec
+
 INTEGER imat
 REAL    zbar, h, hx, hy
+REAL tdur
+REAL, DIMENSION(3) :: vel
+REAL sigx,sigy,sigz,sigRxy,sigRxz,sigRyz,cmass,mmd,sigma
+INTEGER subgroup
 
-WRITE(eAction,'(A,F8.2)')'Release time TREL=',trel
+CHARACTER(PATH_MAXLENGTH) relFile
 
-IF( xrel >= DEF_VAL_D )THEN
+WRITE(eAction,'(A,F8.2)')'Release time TREL=',relSpec%release%trel
+
+IF( relSpec%release%xrel >= DEF_VAL_D )THEN
   eMessage = 'Must set XREL in scenario input'
   GOTO 9998
 END IF
 
-IF( yrel >= DEF_VAL_D )THEN
+IF( relSpec%release%yrel >= DEF_VAL_D )THEN
   eMessage = 'Must set YREL in scenario input'
   GOTO 9998
 END IF
 
-IF( zrel >= DEF_VAL_R )THEN
+IF( relSpec%release%zrel >= DEF_VAL_R )THEN
   eMessage = 'Must set ZREL in scenario input'
   GOTO 9998
 END IF
 
 !------ Make sure xrel inside domain if global longitude
 
-IF( global_lon )CALL SetGlobalLonD( xrel )
+IF( global_lon )CALL SetGlobalLonD( relSpec%release%xrel )
 
 !------ Check continuous release parameters
 
-IF( reltyp(1:1) == 'C' )THEN
+IF( BTEST(relSpec%release%type,HRB_CONT) )THEN
 
-  IF( tdur == DEF_VAL_R )subgroup = 0 !set vapor group for pools
+  CALL getReleaseDuration( relSpec%release,tdur )
 
   IF( tdur <= 0. )THEN
     eMessage = 'Must set TDUR for RELTYP=C in scenario input'
@@ -1339,90 +1206,81 @@ IF( reltyp(1:1) == 'C' )THEN
     GOTO 9998
   END IF
 
-  IF( wrel < 0.0 .AND. tdur*wrel < -zrel )THEN
+  CALL getReleaseVelocity( relSpec%release,vel )
+
+  IF( vel(3) < 0.0 .AND. tdur*vel(3) < -relSpec%release%zrel )THEN
     eMessage = 'End point of moving source trajectory below ground'
     GOTO 9998
   END IF
 
 END IF
 
-IF( name_rel == ' ' )THEN
+CALL getReleaseFile( relSpec%release,relFile )
+IF( relFile == ' ' .OR. relSpec%release%type == HR_CONTF .OR. relSpec%release%type == HR_STACKF .OR. relSpec%release%type == HR_STACK3F )THEN
 
-  IF( zrel < 0. .AND. tdur /= DEF_VAL_R )THEN
+  CALL getReleaseMass( relSpec%release,cmass )
+  IF( relSpec%release%zrel < 0. .AND. tdur /= DEF_VAL_R )THEN
     eMessage = 'Must set ZREL >= 0 in scenario input'
     GOTO 9998
   END IF
 
-  IF( size_rel <= 0. )THEN
-    IF( reltyp(1:1) == 'I' )THEN
-      IF( reltyp(2:2) /= 'A' )THEN
-        IF( sigx <= 0. .OR. sigy <= 0. .OR. sigz <= 0. )THEN
-          eMessage = 'Must set SIZE or SIGX, SIGY, and SIGZ in'// &
-                     ' scenario input'
-          GOTO 9998
-        END IF
-        IF( (sigx >= DEF_VAL_R .OR. sigy >= DEF_VAL_R .OR. &
-                sigz >= DEF_VAL_R) )THEN
-          eMessage = 'Must set SIZE or SIGX, SIGY, and SIGZ in'// &
-                     ' scenario input'
-          GOTO 9998
-        END IF
+  CALL getReleaseSigmas( relSpec%release,sigx,sigy,sigz,sigRxy,sigRxz,sigRyz )
+  IF( BTEST(relSpec%release%type,HRB_INST) )THEN
+      IF( sigx <= 0. .OR. sigy <= 0. .OR. sigz <= 0. )THEN
+        eMessage = 'Must set SIZE or SIGX, SIGY, and SIGZ in'// &
+                    ' scenario input'
+        GOTO 9998
+      END IF
+      IF( (sigx >= DEF_VAL_R .OR. sigy >= DEF_VAL_R .OR. &
+              sigz >= DEF_VAL_R) )THEN
+        eMessage = 'Must set SIZE or SIGX, SIGY, and SIGZ in'// &
+                    ' scenario input'
+        GOTO 9998
+      END IF
+  ELSE
+    IF( tdur /= DEF_VAL_R )THEN
+      IF( sigy <= 0. )THEN
+        eMessage = 'Must set SIZE or SIGY for continuous release'
+        GOTO 9998
+      END IF
+      IF( (sigy >= DEF_VAL_R .OR. sigz >= DEF_VAL_R) )THEN
+        eMessage = 'Must set SIZE or SIGY and SIGZ in scenario'// &
+                    ' input'
+        GOTO 9998
       END IF
     ELSE
-      IF( tdur /= DEF_VAL_R )THEN
-        IF( sigy <= 0. )THEN
-          eMessage = 'Must set SIZE or SIGY for continuous release'
-          GOTO 9998
-        END IF
-        IF( (sigy >= DEF_VAL_R .OR. sigz >= DEF_VAL_R) )THEN
-          eMessage = 'Must set SIZE or SIGY and SIGZ in scenario'// &
-                     ' input'
-          GOTO 9998
-        END IF
-      ELSE
-        IF( sigz /= 0. )THEN
-          eMessage = 'Must set SIGZ=0 for liquid pool release in'// &
-                    ' scenario input'
-          GOTO 9998
-        END IF
-        IF( sigx <= 0. .OR. sigy <= 0. )THEN
-          eMessage = 'Must set SIZE or SIGX and SIGY in scenario'// &
-                     ' input'
-          GOTO 9998
-        END IF
-        IF( (sigx >= DEF_VAL_R .OR. sigy >= DEF_VAL_R)  )THEN
-          eMessage = 'Must set SIZE or SIGX and SIGY in scenario'// &
-                     ' input'
-          GOTO 9998
-        END IF
+      IF( sigz /= 0. )THEN
+        eMessage = 'Must set SIGZ=0 for liquid pool release in'// &
+                  ' scenario input'
+        GOTO 9998
+      END IF
+      IF( sigx <= 0. .OR. sigy <= 0. )THEN
+        eMessage = 'Must set SIZE or SIGX and SIGY in scenario'// &
+                    ' input'
+        GOTO 9998
+      END IF
+      IF( (sigx >= DEF_VAL_R .OR. sigy >= DEF_VAL_R)  )THEN
+        eMessage = 'Must set SIZE or SIGX and SIGY in scenario'// &
+                    ' input'
+        GOTO 9998
       END IF
     END IF
-  ELSE
-    IF( sigx > 0. .OR. sigy > 0. .OR. sigz > 0. )THEN
-      eMessage = 'Cannot set SIZE and SIGX, SIGY or SIGZ in'// &
-                 ' scenario input'
-      GOTO 9998
-    END IF
-    sigx = size_rel
-    sigy = size_rel
-    sigz = size_rel
   END IF
 
-  CALL set_rel_type( relmat,subgroup,ityp,rel_dist )
+  CALL getReleaseDistribution( relSpec%release,subgroup,mmd,sigma )
+  CALL set_rel_type( relSpec%release%material,subgroup,relSpec%ityp,relSpec%distrib )
   IF( nError /= NO_ERROR )GOTO 9998
 
-  rel_ityp = ityp
-
   IF( BTEST(run_mode,REVERSE_MODE) )THEN
-    imat = typeID(ityp)%imat
+    imat = typeID(relSpec%ityp)%imat
     IF( AdjMat(imat)%umet == NOT_SET_R )THEN
 
-      CALL get_topog( SNGL(xrel),SNGL(yrel),h,hx,hy )
+      CALL get_topog( SNGL(relSpec%release%xrel),SNGL(relSpec%release%yrel),h,hx,hy )
       IF( nError /= NO_ERROR )GOTO 9999
 
-      zbar = MAX(zrel,10.0) + h
+      zbar = MAX(relSpec%release%zrel,10.0) + h
 
-      CALL get_met( SNGL(xrel),SNGL(yrel),zbar,0.0,0.,0 )
+      CALL get_met( SNGL(relSpec%release%xrel),SNGL(relSpec%release%yrel),zbar,0.0,0.,0 )
 
       AdjMat(imat)%umet = ub
       AdjMat(imat)%vmet = vb
@@ -1451,7 +1309,7 @@ END
 
 !==============================================================================
 
-SUBROUTINE check_liquid_reltyp( ityp,zbar,l2phase )
+SUBROUTINE check_liquid_reltyp( ityp,xrel,yrel,zbar,mmd,wfrac,l2phase )
 
 ! Checks for wet particle release
 
@@ -1463,11 +1321,15 @@ USE met_fi
 IMPLICIT NONE
 
 INTEGER, INTENT( INOUT ) :: ityp
+REAL(8), INTENT( IN    ) :: xrel
+REAL(8), INTENT( IN    ) :: yrel
 REAL,    INTENT( IN    ) :: zbar
+REAL,    INTENT( IN    ) :: mmd
+REAL,    INTENT( IN    ) :: wfrac
 LOGICAL, INTENT(   OUT ) :: l2phase
 
 INTEGER imat, icls, ios
-REAL    wfrac, tboil
+REAL    tboil
 LOGICAL checkHE
 
 TYPE( puff_material   ) pmatl
@@ -1480,8 +1342,6 @@ l2phase = .FALSE.
 imat = typeID(ityp)%imat
 icls = material(imat)%icls
 
-wfrac = rel_param(REL_WMFRAC_INDX)
-
 IF( IsLiquid(icls) )THEN
 
 !--- check for 2-phase release
@@ -1493,7 +1353,7 @@ IF( IsLiquid(icls) )THEN
       eMessage = 'Invalid release liquid fraction'
       eInform  = 'Liquid fraction must be between 0.0 and 1.0'
       WRITE(eAction,'(A,ES10.2)',IOSTAT=ios) &
-                  'Release value =',rel_param(REL_WMFRAC_INDX)
+                  'Release value =',wfrac
       GOTO 9999
     END IF
 
@@ -1504,10 +1364,10 @@ IF( IsLiquid(icls) )THEN
     CALL get_puff_material( ityp,pmatl )
     matl = TRANSFER(pmatl,matl)
 
-    IF( rel_dist <= 0 )THEN
+    IF( currentSpec%distrib <= 0 )THEN
       checkHE = matl%dbar < 100.0E-6
     ELSE
-      checkHE = rel_param(REL_MMD_INDX) < 100.0E-6
+      checkHE = mmd < 100.0E-6
     END IF
 
     IF( checkHE )THEN
@@ -1516,8 +1376,7 @@ IF( IsLiquid(icls) )THEN
       IF( tb > tboil + 5.0 )THEN
         ityp = material(imat)%ioffp + &
                GetSubgroups( material(imat),mat_aux ) + 2
-        rel_dist = 0
-        subgroup = 0
+        currentSpec%distrib = 0
         l2phase  = .FALSE.
       END IF
     END IF
@@ -1533,7 +1392,7 @@ END
 
 !==============================================================================
 
-SUBROUTINE check_wet_reltyp( ityp )
+SUBROUTINE check_wet_reltyp( ityp,wfrac )
 
 ! Checks for wet particle release
 
@@ -1544,16 +1403,14 @@ USE UtilMtlAux
 IMPLICIT NONE
 
 INTEGER, INTENT( INOUT ) :: ityp
+REAL,    INTENT( IN    ) :: wfrac
 
 INTEGER imat, icls, ios
-REAL    wfrac
 
 LOGICAL, EXTERNAL :: IsWetParticle, IsParticle
 
 imat = typeID(ityp)%imat
 icls = material(imat)%icls
-
-wfrac = rel_param(REL_WMFRAC_INDX)
 
 IF( IsWetParticle(icls) )THEN
   IF( wfrac /= 1.0 .AND. wfrac /= NOT_SET_R )THEN
@@ -1563,7 +1420,7 @@ IF( IsWetParticle(icls) )THEN
       eMessage = 'Invalid release mass fraction'
       eInform  = 'Wet particle agent fraction must be between 0.0 and 1.0'
       WRITE(eAction,'(A,ES10.2)',IOSTAT=ios) &
-                  'Release value =',rel_param(REL_WMFRAC_INDX)
+                  'Release value =',wfrac
       GOTO 9999
     END IF
     ityp = ityp + GetSubgroups( material(imat),mat_aux )
@@ -1575,7 +1432,7 @@ ELSE IF( IsParticle(icls) )THEN
     eMessage = 'Invalid release dry mass fraction'
     eInform  = 'Dry mass fraction only allowed for wet particle materials'
     WRITE(eAction,'(A,ES10.2)',IOSTAT=ios) &
-                'Release value =',rel_param(REL_WMFRAC_INDX)
+                'Release value =',wfrac
     GOTO 9999
   END IF
 END IF

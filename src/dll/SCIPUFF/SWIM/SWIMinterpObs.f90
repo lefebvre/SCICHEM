@@ -80,7 +80,7 @@ jrv = PostCheckMessage()
 
 !------ Set assimilation flag
 
-lAssm      = .NOT.BTEST(fld%type,FTB_OBS)
+lAssm = .NOT.BTEST(fld%type,FTB_OBS)
 
 irv = SWIMnullifyInterpPrf( InterpPrf )  !Nullify here in case of error
 IF( irv /= SWIMsuccess )GOTO 9999        !before actual interpolation starts
@@ -185,6 +185,15 @@ DO i = 1,fld%nObsSource
   jObs = fld%iObsSource(i)
   NearObs(jObs)%numInterp = NearestObsParam( ObsSrc(jObs),Prj%maxObs )
   IF( BTEST(ObsSrc(jObs)%type,OTB_RIFL) )InterpPrf%type = IBSET(InterpPrf%type,OIB_RIFL)
+END DO
+
+DO j = 1,fld%nObsSource
+  jObs = fld%iObsSource(j)
+  IF( ASSOCIATED(ObsSrc(jObs)%GridList)) THEN
+    IF( ObsSrc(jObs)%numObs > 0 .OR. ObsSrc(jObs)%PrevNumObs > 0 )THEN
+       CALL SWIMsetObsInterpVar( InterpPrf,ObsSrc(jObs) )
+    END IF
+  END IF
 END DO
 
 !------ Set time weight for previous Obs lists; set max obs level and weighted total obs
@@ -596,7 +605,7 @@ SCMiteration : DO iter = 1,SCM_MAXITER
   END IF
 
   jProgress = nx*ny*fld%nObsSource
-iProgress_last = 0
+  iProgress_last = 0
 jLoop : DO jy = 1,ny
   jyProgress = (jy-1)*nx*fld%nObsSource
   i0 = (jy-1)*nx
@@ -612,6 +621,7 @@ jLoop : DO jy = 1,ny
   iLoop : DO ix = 1,nx
     ixProgress = (ix-1)*fld%nObsSource
     i  = i0 + ix
+
     xi = fld%grid%Xmin + FLOAT(ix-1)*dx
 
     hp = fld%grid%terrain%H(i)
@@ -947,6 +957,63 @@ END DO SCMiteration
 jrv = PostProgressBarMessage( 0 )
 SWIMinterpObs = SWIMresult
 
+!------ Set bottom slice for staggered grid
+
+IF( BTEST(fld%grid%type,GTB_STAGGERZ) )THEN
+
+  IF( BTEST(InterpPrf%type,OIB_UV) )THEN
+    DO i = 1,nxy
+      fld%NextField%U(i) = fld%NextField%U(i+nxy)
+      fld%NextField%V(i) = fld%NextField%V(i+nxy)
+    END DO
+  END IF
+
+  IF( BTEST(InterpPrf%type,OIB_LSV) )THEN
+    DO i = 1,nxy
+      fld%NextLSV%UU(i) = fld%NextLSV%UU(i+nxy)
+      fld%NextLSV%UV(i) = fld%NextLSV%UV(i+nxy)
+      fld%NextLSV%VV(i) = fld%NextLSV%VV(i+nxy)
+      IF( BTEST(fld%type,FTB_LSVL) )fld%NextLSV%SL(i) = fld%NextLSV%SL(i+nxy)
+    END DO
+  END IF
+
+  IF( BTEST(InterpPrf%type,OIB_UU) )THEN
+    DO i = 1,nxy
+      fld%NextBLprof%UU(i) = fld%NextBLprof%UU(i+nxy)
+      fld%NextBLprof%VV(i) = fld%NextBLprof%VV(i+nxy)
+      fld%NextBLprof%WW(i) = fld%NextBLprof%WW(i+nxy)
+      fld%NextBLprof%WT(i) = fld%NextBLprof%WT(i+nxy)
+      fld%NextBLprof%SL(i) = fld%NextBLprof%SL(i+nxy)
+      fld%NextBLprof%SZ(i) = fld%NextBLprof%SZ(i+nxy)
+    END DO
+  END IF
+
+  IF( ASSOCIATED(InterpPrf%Tpot%obs) )THEN
+    DO i = 1,nxy
+      fld%NextField%Tpot(i) = fld%NextField%Tpot(i+nxy)
+    END DO
+  END IF
+
+  IF( ASSOCIATED(InterpPrf%Press%obs) )THEN
+    DO i = 1,nxy
+      fld%NextField%Press(i) = fld%NextField%Press(i+nxy)
+    END DO
+  END IF
+
+  IF( ASSOCIATED(InterpPrf%Humid%obs) )THEN
+    DO i = 1,nxy
+      fld%NextField%Humid(i) = fld%NextField%Humid(i+nxy)
+    END DO
+  END IF
+
+  IF( ASSOCIATED(InterpPrf%Qcloud%obs) )THEN
+    DO i = 1,nxy
+      fld%NextField%Qcloud(i) = fld%NextField%Qcloud(i+nxy)
+    END DO
+  END IF
+
+END IF
+
 9999 CONTINUE
 
 IF( ALLOCATED(NearObs) )DEALLOCATE( NearObs,STAT=irv )
@@ -1048,6 +1115,66 @@ ELSE IF( n_max <= 0 )THEN
 ELSE
   NearestObsParam = MIN(n_max,MAX(First%numObs,First%PrevNumObs))
 END IF
+
+RETURN
+END
+
+!==============================================================================
+
+SUBROUTINE SWIMsetObsInterpVar( InterpPrf,First )
+
+USE SWIM_fi
+USE SWIMparam_fd
+USE SWIMobsInterp_fd
+USE SWIMObsSort
+
+TYPE( ObsInterp ),  INTENT( INOUT ) :: InterpPrf
+TYPE( FirstObs  ),  INTENT( INOUT ) :: First
+
+  First%GridList%lInterpVel  = .FALSE.
+  First%GridList%lInterpP    = .FALSE.
+  First%GridList%lInterpT    = .FALSE.
+  First%GridList%lInterpH    = .FALSE.
+  First%GridList%lInterpQcld = .FALSE.
+  First%GridList%lInterpZi   = .FALSE.
+  First%GridList%lInterpHf   = .FALSE.
+  First%GridList%lInterpUs   = .FALSE.
+  First%GridList%lInterpL    = .FALSE.
+  First%GridList%lInterpCC   = .FALSE.
+  First%GridList%lInterpPr   = .FALSE.
+
+  IF( BTEST(InterpPrf%type,OIB_UV ) .OR. &
+      BTEST(InterpPrf%type,OIB_LSV) .OR. &
+      BTEST(InterpPrf%type,OIB_UU ) )THEN
+      First%GridList%lInterpVel = .TRUE.
+  END IF
+
+  IF( BTEST(First%type,OTB_T) .AND. ASSOCIATED(InterpPrf%Tpot%obs) )THEN
+      First%GridList%lInterpT = .TRUE.
+  END IF
+
+  IF( BTEST(First%type,OTB_P) .AND. ASSOCIATED(InterpPrf%Press%obs) )THEN
+      First%GridList%lInterpP = .TRUE.
+  END IF
+
+!------ Humidity
+
+  IF( BTEST(First%type,OTB_H) .AND. ASSOCIATED(InterpPrf%Humid%obs) )THEN
+      First%GridList%lInterpH = .TRUE.
+  END IF
+
+  IF( BTEST(First%type,OTB_QCLD) .AND. ASSOCIATED(InterpPrf%Qcloud%obs) )THEN
+      First%GridList%lInterpQcld = .TRUE.
+  END IF
+
+  IF( BTEST(First%type,OTB_BLV) )THEN
+    First%GridList%lInterpZi = BTEST(First%type,OTB_ZI)
+    First%GridList%lInterpHf = BTEST(First%type,OTB_HFLX)
+    First%GridList%lInterpUs = BTEST(First%type,OTB_UST)
+    First%GridList%lInterpL  = BTEST(First%type,OTB_MOL)
+    First%GridList%lInterpCC = BTEST(First%type,OTB_CC)
+    First%GridList%lInterpPr = BTEST(First%type,OTB_PRCP) .OR. BTEST(First%type,OTB_PRATE)
+  END IF
 
 RETURN
 END
@@ -1215,7 +1342,7 @@ TYPE( MetField ),  INTENT( IN  )   :: fld
 TYPE( ObsInterp ), INTENT( INOUT ) :: InterpPrf
 
 INTEGER alloc_stat, irv
-INTEGER, EXTERNAl :: SWIMdeallocObsInterpPrf
+INTEGER, EXTERNAL :: SWIMdeallocObsInterpPrf
 
 IF( ASSOCIATED(InterpPrf%z) )DEALLOCATE( InterpPrf%z,STAT=alloc_stat )
 

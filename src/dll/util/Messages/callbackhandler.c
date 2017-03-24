@@ -21,13 +21,13 @@ int  callbackMessage( callback, id, a, b, flag )
 
 #ifdef Linux
 int  callback_byreference_( callbackAddress, id, a, b )
-  int *callbackAddress;
+  callbackInt *callbackAddress;
   int *a, *b, *id;
   {
 	  return callbackMessage(*callbackAddress, id, a, b, 1 );
   }
 int  callback_byvalue_( callbackAddress, id, a, b )
-  int *callbackAddress;
+  callbackInt *callbackAddress;
   int *a, *b, *id;
   {
 	  return callbackMessage(*callbackAddress, id, a, b, 0 );

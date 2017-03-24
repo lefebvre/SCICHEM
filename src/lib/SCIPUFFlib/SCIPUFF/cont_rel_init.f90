@@ -3,37 +3,65 @@
 !$Revision$
 !$Date$
 !*******************************************************************************
-SUBROUTINE process_scn_cont( crmode,defIN )
+SUBROUTINE process_scn_cont( relSpec,crmode,defIN )
 
 USE scipuff_fi
 USE cont_rel_fi
 USE cont_rel_functions
+USE convert_fd
+USE files_fi
 
 IMPLICIT NONE
 
-INTEGER,           INTENT( IN ) :: crmode      !CRMODE_START, CRMODE_RESTART or CRMODE_UPDATE
-INTEGER, OPTIONAL, INTENT( IN ) :: defIN       !Release ID (for update only)
+TYPE( releaseSpecT ), INTENT( INOUT ) :: relSpec
+INTEGER,              INTENT( IN    ) :: crmode      !CRMODE_START, CRMODE_RESTART or CRMODE_UPDATE
+INTEGER, OPTIONAL,    INTENT( IN    ) :: defIN       !Release ID (for update only)
 
-INTEGER defID
+INTEGER defID, ios
+
+REAL cmass, tdur, buoy
+REAL sigx, sigy, sigz, sigRxy, sigRxz, sigRyz
+REAL, DIMENSION(3) :: vel, mom
+LOGICAL moving, pool
+CHARACTER(PATH_MAXLENGTH) :: file
+
+REAL,    EXTERNAL :: ScaleReal
 LOGICAL, EXTERNAL :: still_active_rel
 LOGICAL, EXTERNAL :: in_domain_rel
 
-!Stack sources input a stack diameter. Need to convert this to sigmas for
-! - Domain check (now)
-! - Initializing plen (now)
-! - Convert stack exit speed and temperature to momentum and buoyancy (later)
-IF( reltyp(2:2) == 'S' )CALL set_stack_sig()
+CALL getReleaseMass( relSpec%release,cmass )
+CALL getReleaseSigmas( relSpec%release,sigx,sigy,sigz,sigRxy,sigRxz,sigRyz )
+CALL getReleaseVelocity( relSpec%release,vel )
+CALL getReleaseDynamics( relSpec%release,buoy,mom )
+CALL getReleaseDuration( relSpec%release,tdur )
+CALL getReleaseFile( relSpec%release,file )
+
+moving = BTEST(relSpec%release%type,HRB_MOVE)
+pool = BTEST(relSpec%release%type,HRB_POOL)
 
 SELECT CASE( crmode )
   CASE( CRMODE_START )
     IF( cmass < 0.0          )GOTO 9999
-    IF( .NOT.in_domain_rel() )GOTO 9999
+    IF( .NOT.in_domain_rel(moving,tdur,relSpec%release%xrel,relSpec%release%yrel,sigx,sigy,vel) )THEN
+      nError   = IV_ERROR
+      eRoutine = 'process_scn_cont'
+      WRITE(eMessage,'(A,F7.2,A)',IOSTAT=ios)'Continuouse release  at t =', &
+                                  t/3600.,'hrs. outside domain'
+      WRITE(eInform,'(A,F10.4,1X,F10.4)',IOSTAT=ios)'Location: ',relSpec%release%xrel,relSpec%release%yrel
+    END IF
     defID = nextDefinition()
   CASE( CRMODE_RESTART )
     IF( cmass <  0.0            )GOTO 9999
-    IF( .NOT.still_active_rel() )GOTO 9999
-    IF( .NOT.in_domain_rel()    )GOTO 9999
-    IF( reltyp(2:2) == 'M' )CALL restart_moving_cont() !Reset moving release start position on a restart
+    IF( .NOT.still_active_rel(pool,ScaleReal(relSpec%release%trel,HCF_HOUR2SEC),tdur) )GOTO 9999
+    IF( .NOT.in_domain_rel(moving,tdur,relSpec%release%xrel,relSpec%release%yrel,sigx,sigy,vel) )THEN
+      nError   = IV_ERROR
+      eRoutine = 'process_scn_cont'
+      WRITE(eMessage,'(A,F7.2,A,I5)',IOSTAT=ios)'Continuouse release  at t =', &
+                                  t/3600.,'hrs. outside domain - ignored'
+      WRITE(eInform,'(A,F10.4,1X,F10.4)',IOSTAT=ios)'Location: ',relSpec%release%xrel,relSpec%release%yrel
+    END IF
+    IF( moving )CALL restart_moving_cont(relSpec%release%xrel,relSpec%release%yrel,relSpec%release%zrel,&
+                                         ScaleReal(relSpec%release%trel,HCF_HOUR2SEC),vel) !Reset moving release start position on a restart
     defID = nextDefinition()
   CASE( CRMODE_UPDATE )
     IF( PRESENT(defIN) )THEN
@@ -58,7 +86,7 @@ SELECT CASE( crmode )
 END SELECT
 IF( nError /= NO_ERROR )GOTO 9999
 
-CALL create_Definition( defID,crmode )
+CALL create_Definition( relSpec,defID,crmode )
 
 9999 CONTINUE
 
@@ -67,7 +95,7 @@ END
 !*******************************************************************************
 ! create_Definition
 !*******************************************************************************
-SUBROUTINE create_Definition( defIN,crmode )
+SUBROUTINE create_Definition( relSpec,defIN,crmode )
 
 USE scipuff_fi
 USE cont_rel_fi
@@ -75,49 +103,53 @@ USE relparam_fd
 USE cont_rel_functions
 USE default_fd
 USE files_fi
+USE convert_fd
 
 IMPLICIT NONE
 
+TYPE( releaseSpecT ), INTENT( INOUT ) :: relSpec !Release Specification
 INTEGER, INTENT( IN ) :: defIN       !cDefinition structure ID
 INTEGER, INTENT( IN ) :: crmode      !CRMODE_START, CRMODE_RESTART or CRMODE_UPDATE
 
 INTEGER ios
 REAL    h0, hx, hy
+REAL    tdur
+REAL    sigx, sigy, sigz, sigRxy, sigRxz, sigRyz
+REAL, DIMENSION(3) :: vel
 
 REAL,    EXTERNAL :: set_moving_step
+REAL,    EXTERNAL :: ScaleReal
 LOGICAL, EXTERNAL :: IsReady
+REAL,    EXTERNAL :: GetNextUpdtTime
+
+CALL getReleaseVelocity( relSpec%release,vel )
+CALL getReleaseDuration( relSpec%release,tdur )
+CALL getReleaseSigmas( relSpec%release,sigx,sigy,sigz,sigRxy,sigRxz,sigRyz )
 
 !---- Set release definition parameters used in the colocation check for interactions
 
-cDefinition(defIN)%loc%x = xrel
-cDefinition(defIN)%loc%y = yrel
+cDefinition(defIN)%loc%x = relSpec%release%xrel
+cDefinition(defIN)%loc%y = relSpec%release%yrel
 
-IF( reltyp(2:2) == 'M' )THEN
+IF( relSpec%release%type == HR_MOVE )THEN
   cDefinition(defIN)%isMoving = .TRUE.
-  cDefinition(defIN)%vel%x = urel
-  cDefinition(defIN)%vel%y = vrel
-  cDefinition(defIN)%vel%z = wrel
+  cDefinition(defIN)%vel%x = vel(1)
+  cDefinition(defIN)%vel%y = vel(2)
+  cDefinition(defIN)%vel%z = vel(3)
 END IF
 
-cDefinition(defIN)%mID = typeID(rel_ityp)%imat
+cDefinition(defIN)%mID = typeID(relSpec%ityp)%imat
 
-!---- Set release defintion parameters
+!---- Set release definition parameters
 
-cDefinition(defIN)%isPool    = reltyp(2:2) == 'P'  !Used to check tdur == NOT_SET_R but IMHO this is more consistent
-cDefinition(defIN)%time   = MAX(trel,t)
+cDefinition(defIN)%isPool    = BTEST(relSpec%release%type,HRB_POOL)
+IF( crmode /= CRMODE_UPDATE)cDefinition(defIN)%time = MAX(ScaleReal( relSpec%release%trel,HCF_HOUR2SEC ),t)
 cDefinition(defIN)%dur    = tdur
 
-cDefinition(defIN)%update = ( .NOT.IsReady(relName,relStatus) ) .AND. .NOT.cDefinition(defIN)%isPool !Pools get updated only initially
-IF( cDefinition(defIN)%update .AND. crmode /= CRMODE_UPDATE )THEN
-  ALLOCATE( cDefinition(defIN)%release,STAT=ios )
-  IF( ios /= 0 )THEN
-    nError   = UK_ERROR
-    eRoutine = 'create_Definition'
-    eMessage = 'Error allocating scipuff release structure'
-    WRITE(eInform,'(A,I0)')'IOS = ',ios
-    GOTO 9999
-  END IF
-  cDefinition(defIN)%release = currentRelease
+cDefinition(defIN)%update = ( .NOT.IsReady(relSpec%release%relName,relSpec%release%status) ) .AND. .NOT.cDefinition(defIN)%isPool !Pools get updated only initially
+IF( cDefinition(defIN)%update )THEN
+  CALL copyReleaseSpec(relSpec,cDefinition(defIN)%relSpec)
+  cDefinition(defIN)%extraUpdate = (GetNextUpdtTime(cDefinition(defIN)) /= DEF_VAL_R)
 END IF
 
 wake  = .FALSE.
@@ -126,17 +158,17 @@ prise = .FALSE.
 IF( cDefinition(defIN)%isPool )THEN
   cDefinition(defIN)%loc%z = 0.0D0
   cDefinition(defIN)%end   = DEF_VAL_R
-  CALL build_contRel_pool( cDefinition(defIN),crmode )
+  CALL build_contRel_pool( cDefinition(defIN),relSpec,crmode )
 ELSE
-  CALL get_topog( SNGL(xrel),SNGL(yrel),h0,hx,hy )
-  cDefinition(defIN)%loc%z = DBLE(zrel+h0)
-  cDefinition(defIN)%end   = trel + tdur
+  CALL get_topog( SNGL(relSpec%release%xrel),SNGL(relSpec%release%yrel),h0,hx,hy )
+  cDefinition(defIN)%loc%z = DBLE(relSpec%release%zrel+h0)
+  cDefinition(defIN)%end   = ScaleReal( relSpec%release%trel,HCF_HOUR2SEC ) +  tdur
   IF( cDefinition(defIN)%isMoving )THEN
-    cDefinition(defIN)%dtr  = set_moving_step()
+    cDefinition(defIN)%dtr  = set_moving_step(vel,tdur,sigx,sigy,sigz)
   ELSE
     cDefinition(defIN)%dtr = tdur
   END IF
-  CALL build_contRel( cDefinition(defIN),crmode )
+  CALL build_contRel( cDefinition(defIN),relSpec,crmode )
 END IF
 
 IF( cDefinition(defIN)%time > t )THEN
@@ -170,75 +202,105 @@ END
 !*******************************************************************************
 ! build_contRel
 !*******************************************************************************
-SUBROUTINE build_contRel( def,crmode )
+SUBROUTINE build_contRel( def,relSpec,crmode )
 
 USE scipuff_fi
 USE cont_rel_fi
 USE cont_rel_functions
+USE sciprime_fi
 
 IMPLICIT NONE
 
 TYPE( cont_release_def ), INTENT( INOUT ) :: def         !cDefinition structure
+TYPE( releaseSpecT ),     INTENT( INOUT ) :: relSpec !Release Specification
 INTEGER,                  INTENT( IN    ) :: crmode      !CRMODE_START, CRMODE_RESTART or CRMODE_UPDATE
 
 INTEGER irel, nrels
-INTEGER num_puff_rel
 LOGICAL dyn_src
 INTEGER ios
-REAL plen
-REAL massfrac
+REAL    plen
+REAL    massfrac
+REAL    sigx, sigy, sigz, sigRxy, sigRxz, sigRyz, buoy, mmd, sigma, frac, cmass
+REAL, DIMENSION(3) :: mom
+INTEGER subgroup
+
+TYPE( ReleaseT ) release
+
 TYPE( cont_release_mass ) :: rmass
 TYPE( cont_release_met )  :: contMet     !Extra save values from call get_met
 
+REAL zrel,sz
+
 REAL,                      EXTERNAL :: init_plen
 TYPE( cont_release_mass ), EXTERNAL :: computeReleaseWeights
+TYPE( cont_release_mass ), EXTERNAL :: computeZeroReleaseWeights
 LOGICAL,                   EXTERNAL :: IsGas
 INTEGER,                   EXTERNAL :: deallocatePuffAux
+
+release = relSpec%release
+
+CALL getReleaseMass( release,cmass )
+CALL getReleaseDryFraction( release,frac )
+CALL getReleaseDistribution( release,subgroup,mmd,sigma )
+CALL getReleaseSigmas( release,sigx,sigy,sigz,sigRxy,sigRxz,sigRyz )
+
+IF( BTEST(release%type,HRB_POOL) )THEN
+  zrel = 0.0
+ELSE
+  zrel = release%zrel
+END IF
+IF( BTEST(release%type,HRB_STACK) .OR. BTEST(release%type,HRB_POOL) )THEN
+  sz = MAX(0.01*sigy,0.01*zrel)
+ELSE
+  sz = sigz
+END IF
 
 !==== get met required for initializing basePuffs
 
 contMet%init  = .TRUE.
 contMet%doSrf = .FALSE.
-CALL get_contMet( contMet )
+CALL get_contMet( contMet,release%xrel,release%yrel,zrel,sigx,sigy,sz )
+
+! Must be placed after get_contMet as requires background temperature for stack releases
+CALL getReleaseDynamics( release,buoy,mom )
 
 !Stack sources input stack exit speed and temperature. Need to convert this to momentum and buoyancy
 !Conversion of stack diameter to sigmas should have been done earlier.
 
-num_puff_rel = 1
-
-IF( reltyp(2:2) == 'S' )THEN
-  IF( reltyp(3:3) == 'P' )THEN
-    IF( INDEX(relDisplay,'.pri') > 0 )THEN
+IF( BTEST(release%type, HRB_STACK) )THEN
+  IF( release%type == HR_PRIME )THEN
+    IF( INDEX(release%relDisplay,'.pri') > 0 )THEN
       IF( cmass > 0. )THEN
-        CALL set_stack_rel_prime( massfrac )
+        CALL set_stack_rel_prime( release,massfrac )
       ELSE
         CALL set_stack_rel_prime_null()
       END IF
       IF( nError /= NO_ERROR )GOTO 9999
-      num_puff_rel = 2
       IF( .NOT.wake )THEN
         prise = .TRUE.
-        CALL set_stack_rel_prise()  !use plume rise formula
+        CALL set_stack_rel_prise( release )  !use plume rise formula
         IF( nError /= NO_ERROR )GOTO 9999
       END IF
     ELSE
       prise = .TRUE.
-      CALL set_stack_rel_prise()  !use plume rise formula
+      CALL set_stack_rel_prise( release )    !use plume rise formula
       IF( nError /= NO_ERROR )GOTO 9999
     END IF
-  ELSE
-    CALL set_stack_params()
-    IF( nError /= NO_ERROR )GOTO 9999
   END IF
 END IF
 
 !==== Set the number of releases
 
-rmass = computeReleaseWeights( contMet )
+IF( cmass == 0. .AND. (BTEST(release%type,HRB_FILE) ) )THEN
+  rmass = computeZeroReleaseWeights( release%xrel,release%yrel,contMet,relSpec%ityp,relSpec%distrib,cmass,frac,mmd,sigma )
+ELSE
+rmass = computeReleaseWeights( release%xrel,release%yrel,contMet,relSpec%ityp,relSpec%distrib,cmass,frac,mmd,sigma )
+END IF
 IF( rmass%num == 0 )THEN
   nError   = IV_ERROR
   eRoutine = 'build_contRel'
   eMessage = 'computeReleaseWeights returned 0 groups with mass > 0.0'
+  GOTO 9999
 END IF
 
 nrels = rmass%num
@@ -247,9 +309,21 @@ IF( wake )THEN
 
 END IF
 
+!------ Define plume length for zero-mass releases so it's defined
+!       if/when turned back on
+
+IF( crmode == CRMODE_UPDATE .AND. cmass == 0. )THEN
+    plen = init_plen( sigx,sigy,sigz )
+    IF( nrels > 0 )THEN
+      DO irel = 1,nrels
+        def%rSet%rels(irel)%plen = plen
+      END DO
+    END IF
+END IF
+
 SELECT CASE( crmode )
   CASE( CRMODE_START )
-    plen = init_plen()
+    plen = init_plen( sigx,sigy,sigz )
     IF( nrels > 0 )THEN
       def%rSet%nrel = nrels
       CALL allocate_contSet_rel( def%rSet )
@@ -308,7 +382,8 @@ IF( nError /= NO_ERROR )GOTO 9999
 
 !==== Determine if this is a dynamic definition
 
-dyn_src = (umom /= 0.0 .OR. vmom /= 0.0 .OR. wmom /= 0.0 .OR. buoy /= 0)
+dyn_src = (mom(1) /= 0.0 .OR. mom(2) /= 0.0 .OR. mom(3) /= 0.0 .OR. buoy /= 0)
+IF( .NOT.prise )dyn_src = dyn_src .OR. (ANY(wmom_prm(:) /= 0.) .OR. ANY(buoy_prm(:) /= 0.))
 def%isDynamic = .FALSE.
 IF( dynamic ) THEN
   DO irel = 1,rmass%num
@@ -320,7 +395,7 @@ END IF
 !==== initialize basePuffs
 
 IF( nrels > 0 )THEN
-  CALL build_contRel_base( def,def%rSet,rmass,contMet )
+  CALL build_contRel_base( def,relSpec,def%rSet,rmass,contMet )
   IF( nError /= NO_ERROR )GOTO 9999
 END IF
 
@@ -331,7 +406,7 @@ END
 !*******************************************************************************
 ! build_contRel_base
 !*******************************************************************************
-SUBROUTINE build_contRel_base( def,set,rmass,contMet )
+SUBROUTINE build_contRel_base( def,relSpec,set,rmass,contMet )
 
 USE scipuff_fi
 USE cont_rel_fi
@@ -341,19 +416,22 @@ USE cont_rel_functions
 IMPLICIT NONE
 
 TYPE( cont_release_def  ), INTENT( IN    ) :: def         !cDefinition structure
+TYPE( releaseSpecT  ),     INTENT( INOUT ) :: relSpec     !reelase specification (In cDefinition structure only on updates)
 TYPE( cont_release_set  ), INTENT( INOUT ) :: set         !cDefinition base structure
 TYPE( cont_release_mass ), INTENT( IN    ) :: rmass       !mass/iytp for each base
 TYPE( cont_release_met  ), INTENT( IN    ) :: contMet     !extra met data
 
 INTEGER irel, ios
 INTEGER iwake, jrel
+REAL    pmass
 
 INTEGER, EXTERNAL :: allocatePuffAux
 
 IF( wake .OR. prise )THEN
   IF( wake )THEN
     DO iwake = 1,2
-      CALL load_prime_rel( iwake,contMet%zbar )
+      relSpec%release%padding = iwake
+      CALL getReleaseMass( relSpec%release,pmass )
       DO jrel = 1,set%nrel,2
         irel = jrel + (iwake - 1)
         set%rels(irel)%time = def%time
@@ -367,11 +445,12 @@ IF( wake .OR. prise )THEN
           WRITE(eInform,'(A,I0,A,I0)')'Request=',set%rels(irel)%basePuff%naux,'  : Error = ',ios
           GOTO 9999
         END IF
-        CALL set_basePuff( set%rels(irel)%basePuff,cmass,rmass%ityp(jrel),contMet )
+        CALL set_basePuff( set%rels(irel)%basePuff,relSpec,pmass,rmass%ityp(jrel),contMet )
       END DO
     END DO
   ELSE
-    CALL load_prise_rel( 1,contMet%zbar )
+    relSpec%release%padding = 1
+    CALL getReleaseMass( relSpec%release,pmass )
     set%rels(1)%time = def%time
     set%rels(1)%loc = def%loc
     set%rels(1)%basePuff%naux = typeID(rmass%ityp(1))%npaux
@@ -383,7 +462,7 @@ IF( wake .OR. prise )THEN
       WRITE(eInform,'(A,I0,A,I0)')'Request=',set%rels(1)%basePuff%naux,'  : Error = ',ios
       GOTO 9999
     END IF
-    CALL set_basePuff( set%rels(1)%basePuff,cmass,rmass%ityp(1),contMet )
+    CALL set_basePuff( set%rels(1)%basePuff,relSpec,pmass,rmass%ityp(1),contMet )
   END IF
   GOTO 9999
 END IF
@@ -400,7 +479,7 @@ DO irel = 1,set%nrel
     WRITE(eInform,'(A,I0,A,I0)')'Request=',set%rels(irel)%basePuff%naux,'  : Error = ',ios
     GOTO 9999
   END IF
-  CALL set_basePuff( set%rels(irel)%basePuff,rmass%mass(irel),rmass%ityp(irel),contMet )
+  CALL set_basePuff( set%rels(irel)%basePuff,relSpec,rmass%mass(irel),rmass%ityp(irel),contMet )
 END DO
 
 9999 CONTINUE
@@ -410,7 +489,7 @@ END
 !*******************************************************************************
 ! computeReleaseWeights
 !*******************************************************************************
-FUNCTION computeReleaseWeights( contMet ) RESULT( relMass )
+FUNCTION computeReleaseWeights( xrel,yrel,contMet,ityp,distrib,cmass,frac,mmd,sigma ) RESULT( relMass )
 
 USE cont_rel_fd
 USE scipuff_fi
@@ -420,10 +499,18 @@ USE relparam_fd
 
 IMPLICIT NONE
 
-TYPE( cont_release_met  ), INTENT( IN ) :: contMet     !Extra save values from call get_met
-TYPE( cont_release_mass )               :: relMass
+REAL(8),                   INTENT( IN    ) :: xrel
+REAL(8),                   INTENT( IN    ) :: yrel
+TYPE( cont_release_met  ), INTENT( IN    ) :: contMet     !Extra save values from call get_met
+INTEGER,                   INTENT( INOUT ) :: ityp
+INTEGER,                   INTENT( IN    ) :: distrib
+REAL,                      INTENT( IN    ) :: cmass
+REAL,                      INTENT( IN    ) :: frac
+REAL,                      INTENT( IN    ) :: mmd
+REAL,                      INTENT( IN    ) :: sigma
+TYPE( cont_release_mass )                  :: relMass
 
-INTEGER ityp, jtyp, i, imat, nsg
+INTEGER jtyp, i, imat, nsg
 LOGICAL l2phase
 REAL    rxx, cmass_liq
 REAL    pbounds(MAXSGP+1)
@@ -437,28 +524,27 @@ relMass%ityp   = 0
 
 !-----  Set parameters for simple continuous release
 
-ityp = rel_ityp
 imat = typeID(ityp)%imat
 
 !-----  Check 2-phase liquid release
 
-CALL check_liquid_reltyp( ityp,contMet%zbar,l2phase )
+CALL check_liquid_reltyp( ityp,xrel,yrel,contMet%zbar,mmd,frac,l2phase )
 IF( nError /= NO_ERROR )GOTO 9999
 
 !-----  Check for wet particle release
 
-CALL check_wet_reltyp( ityp )
+CALL check_wet_reltyp( ityp,frac )
 IF( nError /= NO_ERROR )GOTO 9999
 
 !-----  Check distribution dist < 0 implies single bin
 
-IF( rel_dist <= 0 )THEN
+IF( distrib <= 0 )THEN
 
 !---------  Set single puff release
 
   IF( l2phase )THEN
 
-    cmass_liq = cmass*rel_param(REL_WMFRAC_INDX)
+    cmass_liq = cmass*frac
     relMass%num = relMass%num + 1
     relMass%mass(relMass%num) = cmass_liq                  !liquid
     relMass%ityp(relMass%num) = ityp
@@ -487,8 +573,8 @@ ELSE
     CALL CautionMessage()
   END IF
 
-  IF( IsWetParticle(typeID(ityp)%icls) )CALL set_wetbin( pbounds,nsg,imat,rel_param(REL_WMFRAC_INDX) )
-  CALL check_logn( pbounds(1),pbounds(nsg+1),rel_param(REL_MMD_INDX),rel_param(REL_SIGMA_INDX),rxx )
+  IF( IsWetParticle(typeID(ityp)%icls) )CALL set_wetbin( pbounds,nsg,imat,frac )
+  CALL check_logn( pbounds(1),pbounds(nsg+1),mmd,sigma,rxx )
   IF( rxx > 0.05 )THEN
     nError   = WN_ERROR
     eRoutine = 'computeReleaseWeights'
@@ -504,18 +590,18 @@ ELSE
     END IF
   END IF
 
-  CALL logn_bin( pbounds,nsg,rel_param(REL_MMD_INDX),rel_param(REL_SIGMA_INDX),weight )
+  CALL logn_bin( pbounds,nsg,mmd,sigma,weight )
 
 !---- Check for 2-phase liquid release; reset weights and release vapor puff
 
   IF( l2phase )THEN
 
     relMass%num = relMass%num + 1
-    relMass%mass(relMass%num) = cmass*(1.0-rel_param(REL_WMFRAC_INDX))  !vapor
+    relMass%mass(relMass%num) = cmass*(1.0-frac)  !vapor
     relMass%ityp(relMass%num) = material(imat)%ioffp + 1
 
     DO i = 1,nsg
-      weight(i) = weight(i)*rel_param(REL_WMFRAC_INDX)                  !liquid
+      weight(i) = weight(i)*frac                  !liquid
     END DO
 
   END IF
@@ -526,10 +612,144 @@ ELSE
       relMass%num = relMass%num + 1
       relMass%mass(relMass%num) = cmass*weight(i)
       relMass%ityp(relMass%num) = jtyp
-      opid = -ABS(opid)
     END IF
   END DO
-  opid = IABS(opid)
+END IF
+
+9999 CONTINUE
+
+RETURN
+END
+!*******************************************************************************
+! computeZeroReleaseWeights
+!*******************************************************************************
+FUNCTION computeZeroReleaseWeights( xrel,yrel,contMet,ityp,distrib,cmass,frac,mmd,sigma ) RESULT( relMass )
+
+!------ Special case of zero-mass continuous release defined from a file
+
+USE cont_rel_fd
+USE scipuff_fi
+USE error_fi
+USE param_fd
+USE relparam_fd
+
+IMPLICIT NONE
+
+REAL(8),                   INTENT( IN ) :: xrel
+REAL(8),                   INTENT( IN ) :: yrel
+TYPE( cont_release_met  ), INTENT( IN ) :: contMet     !Extra save values from call get_met
+INTEGER,                   INTENT( IN ) :: ityp
+INTEGER,                   INTENT( IN ) :: distrib
+REAL,                      INTENT( IN ) :: cmass
+REAL,                      INTENT( IN ) :: frac
+REAL,                      INTENT( IN ) :: mmd
+REAL,                      INTENT( IN ) :: sigma
+TYPE( cont_release_mass )               :: relMass
+
+INTEGER jtyp, i, imat, nsg
+LOGICAL l2phase
+REAL    rxx, cmass_liq
+REAL    pbounds(MAXSGP+1)
+REAL    weight(MAXSGP)
+
+LOGICAL, EXTERNAL :: IsWetParticle
+
+relMass%num  = 0
+relMass%mass = 0.0
+relMass%ityp = 0
+
+!-----  Set parameters for simple continuous release
+
+imat = typeID(ityp)%imat
+
+!-----  Check 2-phase liquid release
+
+CALL check_liquid_reltyp( ityp,xrel,yrel,contMet%zbar,mmd,frac,l2phase )
+IF( nError /= NO_ERROR )GOTO 9999
+
+!-----  Check for wet particle release
+
+CALL check_wet_reltyp( ityp,frac )
+IF( nError /= NO_ERROR )GOTO 9999
+
+!-----  Check distribution dist < 0 implies single bin
+
+IF( distrib <= 0 )THEN
+
+!---------  Set single puff release
+
+  IF( l2phase )THEN
+
+    cmass_liq = cmass*frac
+    relMass%num = relMass%num + 1
+    relMass%mass(relMass%num) = cmass_liq                  !liquid
+    relMass%ityp(relMass%num) = ityp
+
+    relMass%num = relMass%num + 1
+    relMass%mass(relMass%num) = cmass - cmass_liq          !vapor
+    relMass%ityp(relMass%num) = material(imat)%ioffp + 1
+
+  ELSE
+
+    relMass%num = relMass%num + 1
+    relMass%mass(relMass%num) = cmass
+    relMass%ityp(relMass%num) = ityp
+
+  END IF
+
+ELSE
+
+!---------  Set lognormal distribution for release
+
+  CALL get_bounds( material(imat),nsg,pbounds )
+  IF( nsg < 2 )THEN
+    eMessage = 'Request for a lognormal distribution of release mass but'
+    eInform  = TRIM(ADJUSTL(material(imat)%cmat))//' has only a single bin'
+    eAction  = 'It is more efficient to use a single bin release'
+    CALL CautionMessage()
+  END IF
+
+  IF( IsWetParticle(typeID(ityp)%icls) )CALL set_wetbin( pbounds,nsg,imat,frac )
+  CALL check_logn( pbounds(1),pbounds(nsg+1),mmd,sigma,rxx )
+  IF( rxx > 0.05 )THEN
+    nError   = WN_ERROR
+    eRoutine = 'computeReleaseWeights'
+    WRITE(eMessage,*) NINT(rxx*100.0)
+    eMessage = TRIM(ADJUSTL(eMessage))//'% of the mass is outside the bin range'
+    eInform  = 'This mass will be lumped into the first and last bins'
+    CALL WarningMessage( .TRUE. )
+    IF( nError /= NO_ERROR )THEN
+      eMessage = 'More than 5% of the mass is outside the bin range'
+      eInform  = 'Please adjust the MMD and/or sigma'
+      eAction  = '(or redefine the material size bins)'
+      GOTO 9999
+    END IF
+  END IF
+
+  CALL logn_bin( pbounds,nsg,mmd,sigma,weight )
+
+!---- Check for 2-phase liquid release; reset weights and release vapor puff
+
+  IF( l2phase )THEN
+
+    relMass%num = relMass%num + 1
+    relMass%mass(relMass%num) = cmass*(1.0-frac)  !vapor
+    relMass%ityp(relMass%num) = material(imat)%ioffp + 1
+
+    DO i = 1,nsg
+      weight(i) = weight(i)*frac                  !liquid
+    END DO
+
+  END IF
+
+  DO i = 1,nsg
+    jtyp = ityp + i - 1
+    IF( weight(i) > 0.0 )THEN
+      relMass%num = relMass%num + 1
+      relMass%mass(relMass%num) = 0.
+      relMass%ityp(relMass%num) = jtyp
+    END IF
+  END DO
 END IF
 
 9999 CONTINUE
@@ -539,7 +759,7 @@ END
 !*******************************************************************************
 ! build_contRel_pool
 !*******************************************************************************
-SUBROUTINE build_contRel_pool( def,crmode )
+SUBROUTINE build_contRel_pool( def,relSpec,crmode )
 
 USE scipuff_fi
 USE cont_rel_fi
@@ -549,21 +769,41 @@ USE cont_rel_functions
 IMPLICIT NONE
 
 TYPE( cont_release_def ), INTENT( INOUT ) :: def         !cDefinition structure
+TYPE( releaseSpecT ),     INTENT( INOUT ) :: relSpec     !Release Specification
 INTEGER,                  INTENT( IN    ) :: crmode      !CRMODE_START, CRMODE_RESTART or CRMODE_UPDATE
 
 INTEGER nrels, irel
-REAL plen
+REAL    plen, zrel, sz
+REAL    cmass, sigx, sigy, sigz, sigRxy, sigRxz, sigRyz
+
 TYPE( cont_release_met )  :: contMet     !Extra save values from call get_met
 TYPE( cont_release_mass ) :: rmass
 
+TYPE( ReleaseT ) release
+
 REAL,           EXTERNAL :: init_plen
 INTEGER,        EXTERNAL :: allocatePuffAux
+
+release = relSpec%release
+CALL getReleaseMass( release,cmass )
+CALL getReleaseSigmas( release,sigx,sigy,sigz,sigRxy,sigRxz,sigRyz )
+
+IF( BTEST(release%type, HRB_POOL) )THEN
+  zrel = 0.0
+ELSE
+  zrel = release%zrel
+END IF
+IF( BTEST(release%type,HRB_STACK) .OR. BTEST(release%type,HRB_POOL) )THEN
+  sz = MAX(0.01*sigy,0.01*zrel)
+ELSE
+  sz = sigz
+END IF
 
 !==== get met required for initializing basePuffs
 
 contMet%init  = .TRUE.
 contMet%doSrf = .TRUE.
-CALL get_contMet( contMet )
+CALL get_contMet( contMet,release%xrel,release%yrel,zrel,sigx,sigy,sz )
 
 !==== Set the number of releases
 !     For pool releases
@@ -571,17 +811,17 @@ nrels = 1
 
 rmass%num     = 1
 rmass%mass(1) = cmass
-rmass%ityp(1) = rel_ityp
+rmass%ityp(1) = relSpec%ityp
 
 SELECT CASE( crmode )
   CASE( CRMODE_START )
-    plen = init_plen()
+    plen = init_plen(sigx,sigy,sigz)
     IF( nrels > 0 )THEN
       def%rSet%nrel = nrels
       CALL allocate_contSet_rel( def%rSet )
       DO irel = 1,nrels
         def%rSet%rels(irel)%plen = plen
-          CALL init_poolAux( def,def%rSet%rels(irel) )
+          CALL init_poolAux( def,cmass,def%rSet%rels(irel) )
       END DO
     END IF
   CASE( CRMODE_RESTART )
@@ -612,7 +852,7 @@ def%isDynamic = .FALSE.
 !==== Set the basePuff
 
 IF( nrels > 0 )THEN
-  CALL build_contRel_base( def,def%rSet,rmass,contMet )
+  CALL build_contRel_base( def,relSpec,def%rSet,rmass,contMet )
   IF( nError /= NO_ERROR )GOTO 9999
   def%rSet%tlev = 0
   DO irel = 1,nrels
@@ -641,7 +881,7 @@ IMPLICIT NONE
 
 TYPE( puff_str ), INTENT( INOUT ) :: p
 
-REAL del, u2, v2
+REAL    del, u2, v2
 INTEGER ilev
 
 INTEGER, EXTERNAL :: time_level
@@ -684,7 +924,7 @@ END
 !*******************************************************************************
 ! set_basePuff
 !*******************************************************************************
-SUBROUTINE set_basePuff( p,rmass,ityp,contMet )
+SUBROUTINE set_basePuff( p,relSpec,rmass,ityp,contMet )
 
 USE scipuff_fi
 USE cont_rel_fi
@@ -693,14 +933,26 @@ USE relparam_fd
 IMPLICIT NONE
 
 TYPE( puff_str ),         INTENT( INOUT ) :: p
+TYPE( ReleaseSpecT ),     INTENT( IN    ) :: relSpec
 REAL,                     INTENT( IN    ) :: rmass
 INTEGER,                  INTENT( IN    ) :: ityp
 TYPE( cont_release_met ), INTENT( IN    ) :: contMet     !Extra save values
 
+REAL sigx, sigy, sigz, sigRxy, sigRxz, sigRyz, frac, tdur, zbar
+REAL(8) xbar, ybar
+REAL, DIMENSION(3) :: vel
+REAL kyprm, kzprm
+
+CALL getReleaseSigmas( relSpec%release,sigx,sigy,sigz,sigRxy,sigRxz,sigRyz )
+Call getReleaseActiveFraction( relSpec%release,frac )
+CALL getReleaseVelocity( relSpec%release,vel )
+CALL getReleaseDuration( relSpec%release,tdur )
+CALL getReleaseLocation( relSpec%release,contMet,xbar,ybar,zbar )
+
 p%c    = rmass
-p%xbar = SNGL(xrel)
-p%ybar = SNGL(yrel)
-p%zbar = contMet%zbar
+p%xbar = xbar
+p%ybar = ybar
+p%zbar = zbar
 IF( sigx /= DEF_VAL_R .AND. sigx /= NOT_SET_R )THEN
   p%sxx  = sigx*sigx
   p%syy  = sigy*sigy
@@ -719,21 +971,22 @@ IF( sigx /= DEF_VAL_R .AND. sigx /= NOT_SET_R )THEN
   END IF
 END IF
 IF( wake )THEN
+  CALL getReleasePrime( relSpec%release,kyprm,kzprm )
   p%yvsc = rmass*kyprm
   p%zwc  = rmass*kzprm
 END IF
-p%cfo = rel_param(REL_AFRAC_INDX)
+p%cfo = frac
 
 p%ityp = ityp
 
 CALL setPuffifld( p,contMet%ifld )
 CALL setPuffirel( p,0 )
 
-p%uo = urel
-p%vo = vrel
-p%wo = wrel
+p%uo = vel(1)
+p%vo = vel(2)
+p%wo = vel(3)
 
-CALL set_baseAux( p )
+CALL set_baseAux( p,relSpec )
 
 9999 CONTINUE
 
@@ -742,15 +995,17 @@ END
 !*******************************************************************************
 ! set_baseAux
 !*******************************************************************************
-SUBROUTINE set_baseAux( p )
+SUBROUTINE set_baseAux( p,relSpec )
 
 USE scipuff_fi
 USE relparam_fd
 USE UtilMtlAux
+USE convert_fd
 
 IMPLICIT NONE
 
-TYPE( puff_str ), INTENT( INOUT ) :: p
+TYPE( puff_str ),     INTENT( INOUT ) :: p
+TYPE( releaseSpecT ), INTENT( IN    ) :: relSpec
 
 TYPE( puff_liquid   ) pq
 TYPE( puff_aerosol  ) pa
@@ -762,11 +1017,14 @@ TYPE( liquid_material ) pmatliq
 
 INTEGER i, ityp, icls, imat
 REAL    rat
+REAL buoy, frac
+REAL, DIMENSION(3) :: mom
 
 LOGICAL, EXTERNAL :: IsMulti
 LOGICAL, EXTERNAL :: IsLiquid, IsWetParticle
 LOGICAL, EXTERNAL :: IsAerosol
 INTEGER, EXTERNAL :: allocatePuffAux
+REAL,    EXTERNAL :: ScaleReal
 
 !---- Initial checks and setup
 
@@ -787,15 +1045,17 @@ icls = typeID(ityp)%icls
 
 IF( dynamic )THEN
   CALL get_dynamics( p,pd )
-  pd%w = wmom
+  CALL getReleaseDynamics( relSpec%release,buoy,mom )
+  pd%w = mom(3)
   pd%t = buoy
-  pd%un = umom
-  pd%vn = vmom
+  pd%un = mom(1)
+  pd%vn = mom(2)
   CALL put_dynamics( p,pd )
 END IF
 
 !---- Liquid material specific aux
 
+CALL getReleaseDryFraction( relSpec%release,frac )
 IF( IsLiquid(icls) )THEN
 
   CALL get_liquid( p,pq )
@@ -820,7 +1080,7 @@ ELSE IF( IsWetParticle(icls) )THEN
   ELSE
     rat = pmatpart%rho/RHO_WATER
   END IF
-  rat = (1.0+rat*(1.0/rel_param(REL_WMFRAC_INDX)-1.0))**0.3333333
+  rat = (1.0+rat*(1.0/frac-1.0))**0.3333333
   pq%d    = pmatpart%dbar * rat
   pq%sigd = (pmatpart%dmax-pmatpart%dmin)/(2.*SQRT3) * rat
   pq%tevap = 0.0
@@ -831,7 +1091,7 @@ ELSE IF( IsWetParticle(icls) )THEN
 END IF
 
 IF( IsAerosol(icls) )THEN
-  pa%fl    = rel_param(REL_WMFRAC_INDX)
+  pa%fl    = frac
   pa%fw    = 1.0E-10
   pa%tevap = 0.0
   pa%co    = 0.0
@@ -841,7 +1101,7 @@ END IF
 !---- multicomponent aux
 
 IF( IsMulti(icls) )THEN
-  CALL InitMCinst( p )
+  CALL InitMCinst( relSpec,p )
   IF( nError /= NO_ERROR )GOTO 9999
 END IF
 
@@ -852,7 +1112,7 @@ END
 !*******************************************************************************
 ! init_poolAux
 !*******************************************************************************
-SUBROUTINE init_poolAux( def,rel )
+SUBROUTINE init_poolAux( def,cmass,rel )
 
 USE scipuff_fi
 USE cont_rel_fi
@@ -862,6 +1122,7 @@ USE cont_rel_functions
 IMPLICIT NONE
 
 TYPE( cont_release_def ), INTENT( INOUT ) :: def         !cDefinition structure
+REAL,                     INTENT( IN    ) :: cmass
 TYPE( cont_release_rel ), INTENT( INOUT ) :: rel         !contRel structure
 
 REAL age, offset
@@ -869,7 +1130,7 @@ REAL age, offset
 !---- Call InitPoolAux
 
 age    = 0.0     !Initial pool age
-offset = 0.0     !Initial pool tempreature offset
+offset = 0.0     !Initial pool temperature offset
 
 CALL InitPoolAux( def%mID,cmass,age,offset,rel )
 
@@ -933,7 +1194,7 @@ END
 !*******************************************************************************
 ! get_contMet
 !*******************************************************************************
-SUBROUTINE get_contMet( contMet )
+SUBROUTINE get_contMet( contMet,xrel,yrel,zrel,sigx,sigy,sigz )
 
 USE scipuff_fi
 USE error_fi
@@ -943,6 +1204,12 @@ USE met_fi        !For interface to get_met
 IMPLICIT NONE
 
 TYPE( cont_release_met ), INTENT( INOUT ) :: contMet
+REAL(8),                  INTENT( IN    ) :: xrel
+REAL(8),                  INTENT( IN    ) :: yrel
+REAL,                     INTENT( IN    ) :: zrel
+REAL,                     INTENT( IN    ) :: sigx
+REAL,                     INTENT( IN    ) :: sigy
+REAL,                     INTENT( IN    ) :: sigz
 
 REAL h, hx, hy, x, y
 
@@ -954,17 +1221,9 @@ IF( contMet%init )THEN
 
   CALL get_topogOut( x,y,h,hx,hy,contMet%shh,contMet%ifld )
 
-  IF( reltyp(2:2) == 'P' )THEN !Liquid Pool source
-    contMet%zbar = h
-  ELSE
-    contMet%zbar = zrel + h
-  END IF
+  contMet%zbar = zrel + h
 
-  IF( reltyp(2:2) == 'S' .OR. reltyp(2:2) == 'P' )THEN
-    contMet%szz = (MAX(0.01*sigy,0.01*zrel))**2
-  ELSE
-    contMet%szz = sigz*sigz
-  END IF
+  contMet%szz = sigz*sigz
 
   contMet%init = .FALSE.
 END IF
@@ -984,7 +1243,7 @@ END
 !*******************************************************************************
 ! still_active_rel
 !*******************************************************************************
-LOGICAL FUNCTION still_active_rel() RESULT( yes )
+LOGICAL FUNCTION still_active_rel(pool,trel,tdur) RESULT( yes )
 
 USE scipuff_fi
 USE error_fi
@@ -992,10 +1251,14 @@ USE default_fd
 
 IMPLICIT NONE
 
+LOGICAL, INTENT( IN ) :: pool
+REAL,    INTENT( IN ) :: trel
+REAL,    INTENT( IN ) :: tdur
+
 !Pool releases are always "active" becuase they do not have a predefined end time
 !Pool releases get checked later to see if they still have mass to release
 
-yes = reltyp(2:2) == 'P'
+yes = pool
 IF( .NOT.yes )yes = (trel+tdur > t)
 
 RETURN
@@ -1003,12 +1266,20 @@ END
 !*******************************************************************************
 ! in_domain_rel
 !*******************************************************************************
-LOGICAL FUNCTION in_domain_rel() RESULT( yes )
+LOGICAL FUNCTION in_domain_rel(moving,tdur,xrel,yrel,sigx,sigy,vel) RESULT( yes )
 
 USE scipuff_fi
 USE error_fi
 
 IMPLICIT NONE
+
+LOGICAL,            INTENT( IN ) :: moving
+REAL,               INTENT( IN ) :: tdur
+REAL(8),            INTENT( IN ) :: xrel
+REAL(8),            INTENT( IN ) :: yrel
+REAL,               INTENT( IN ) :: sigx
+REAL,               INTENT( IN ) :: sigy
+REAL, DIMENSION(3), INTENT( IN ) :: vel
 
 REAL    xmap, ymap, x, y
 REAL    xx, yy, rxx, ryy
@@ -1017,7 +1288,7 @@ INTEGER i, n
 
 LOGICAL, EXTERNAL :: chkgrd
 
-IF( reltyp(2:2) == 'M' )THEN
+IF( moving )THEN
   n = 11
   dtm = 0.1*tdur
 ELSE
@@ -1034,15 +1305,15 @@ DO i = 1,n
 
   xx   = (x-xmin)/dxg
   yy   = (y-ymin)/dyg
-  rxx  = (sigy*xmap/dxg)**2
+  rxx  = (sigx*xmap/dxg)**2
   ryy  = (sigy*ymap/dyg)**2
 
   yes = chkgrd(xx,yy,rxx,ryy)
 
   IF( yes )EXIT
 
-  x = x + dtm*urel*xmap
-  y = y + dtm*vrel*ymap
+  x = x + dtm*vel(1)*xmap
+  y = y + dtm*vel(2)*ymap
 
 END DO
 
@@ -1051,12 +1322,16 @@ END
 !*******************************************************************************
 ! init_plen
 !*******************************************************************************
-REAL FUNCTION init_plen() RESULT( plen )
+REAL FUNCTION init_plen(sigx,sigy,sigz) RESULT( plen )
 
 USE scipuff_fi
 USE cont_rel_fi
 
 IMPLICIT NONE
+
+REAL, INTENT( IN ) :: sigx
+REAL, INTENT( IN ) :: sigy
+REAL, INTENT( IN ) :: sigz
 
 IF( sigx == 0.0 )THEN
   plen = MIN(sigz,sigy)  !Standard continuous release
@@ -1069,20 +1344,26 @@ END
 !*******************************************************************************
 ! restart_moving_cont
 !*******************************************************************************
-SUBROUTINE restart_moving_cont()
+SUBROUTINE restart_moving_cont(xrel,yrel,zrel,trel,vel)
 
 USE scipuff_fi
 
 IMPLICIT NONE
+
+REAL(8),            INTENT( INOUT ) :: xrel
+REAL(8),            INTENT( INOUT ) :: yrel
+REAL,               INTENT( INOUT ) :: zrel
+REAL,               INTENT( IN    ) :: trel
+REAL, DIMENSION(3), INTENT( IN    ) :: vel
 
 REAL xmap, ymap, tmov
 
 IF( t > trel )THEN
   CALL mapfac( SNGL(xrel),SNGL(yrel),xmap,ymap )
   tmov = t - trel
-  xrel = xrel + tmov*urel*xmap
-  yrel = yrel + tmov*vrel*ymap
-  zrel = zrel + tmov*wrel
+  xrel = xrel + tmov*vel(1)*xmap
+  yrel = yrel + tmov*vel(1)*ymap
+  zrel = zrel + tmov*vel(3)
 END IF
 
 RETURN
@@ -1090,69 +1371,54 @@ END
 !*******************************************************************************
 ! set_moving_step
 !*******************************************************************************
-REAL FUNCTION set_moving_step() RESULT( dtr )
+REAL FUNCTION set_moving_step(vel,tdur,sigx,sigy,sigz) RESULT( dtr )
 
 USE scipuff_fi
 
 IMPLICIT NONE
 
+REAL, DIMENSION(3), INTENT( IN    ) :: vel
+REAL,               INTENT( IN    ) :: tdur
+REAL,               INTENT( INOUT ) :: sigx
+REAL,               INTENT( INOUT ) :: sigy
+REAL,               INTENT( INOUT ) :: sigz
+
 INTEGER, PARAMETER :: NMOVP = 10
 
-REAL    vel
+REAL    v
 INTEGER nstp
 
-vel = SQRT(urel*urel+vrel*vrel+wrel*wrel)
+v = SQRT(vel(1)*vel(1)+vel(2)*vel(2)+vel(3)*vel(3))
 
 IF( sigx == 0.0 )THEN
-  vel = vel/MIN(sigy,sigz)
+  v = v/MIN(sigy,sigz)
 ELSE IF( sigz == 0.0 )THEN
-  vel = vel/MIN(sigy,sigx)
+  v = v/MIN(sigy,sigx)
 ELSE
-  vel = vel/MIN(sigx,sigy,sigz)
+  v = v/MIN(sigx,sigy,sigz)
 END IF
 
-nstp = MIN(NMOVP,INT(vel*tdur)+1)
-nstp = MAX(nstp,INT(0.003*vel*tdur)+1)
+nstp = MIN(NMOVP,INT(v*tdur)+1)
+nstp = MAX(nstp,INT(0.003*v*tdur)+1)
 
 dtr = tdur/FLOAT(nstp)
 
 RETURN
 END
 !*******************************************************************************
-! set_stack_sig
-!*******************************************************************************
-SUBROUTINE set_stack_sig()
-
-USE scipuff_fi
-
-IMPLICIT NONE
-
-!  Set true release sigmas for STACK release
-!  STACK release contains EXIT DIAMETER (m) in size
-
-REAL rstack
-
-rstack = 0.5*size_rel
-sigx   = rstack
-sigy   = sigx
-IF( umom == DEF_VAL_R )THEN
-  sigz = 0.0
-ELSE
-  sigz = sigx
-END IF
-size_rel = 0.0
-
-RETURN
-END
-!*******************************************************************************
 ! set_stack_params
 !*******************************************************************************
-SUBROUTINE set_stack_params()
+SUBROUTINE set_stack_params(sigx,sigy,buoy,mom)
 
 USE scipuff_fi
 USE met_fi
 
 IMPLICIT NONE
+
+REAL,               INTENT( IN    ) :: sigx
+REAL,               INTENT( IN    ) :: sigy
+REAL,               INTENT( INOUT ) :: buoy
+REAL, DIMENSION(3), INTENT( INOUT ) :: mom
 
 !  Set true release parameters for STACK release. Requires met.
 !  STACK release contains EXIT TEMPERATURE (C) in buoy
@@ -1160,7 +1426,7 @@ IMPLICIT NONE
 !                         EXIT DIAMETER (m) converted to sigmas in set_stack_sig
 
 REAL tstack, wstack, astack, bfac
-REAL rstack, ustack, vstack, vel, mom
+REAL ustack, vstack, v, tmom
 
 IF( buoy == DEF_VAL_R )THEN
   tstack = tb
@@ -1168,36 +1434,48 @@ ELSE
   tstack = buoy - ABSZERO
 END IF
 
-rstack = 0.5*size_rel
 astack = PI*sigx*sigy
 bfac   = tb/MAX(tstack,tb)
-IF( umom == DEF_VAL_R )THEN
-  wstack = wmom
+IF( mom(1) == DEF_VAL_R )THEN
+  wstack = mom(3)
   buoy   = astack*wstack*(tstack-tb)*bfac
-  wmom   = astack*wstack*ABS(wstack)*bfac
-  umom   = 0.0
-  vmom   = 0.0
+  mom(3)   = astack*wstack*ABS(wstack)*bfac
+  mom(1)   = 0.0
+  mom(2)   = 0.0
 ELSE
-  wstack = wmom
-  vstack = vmom - vb
-  ustack = umom - ub
-  vel    = SQRT( ustack*ustack + vstack*vstack + wstack*wstack)
-  IF( vel == 0.0 )THEN
+  wstack = mom(3)
+  vstack = mom(2) - vb
+  ustack = mom(1) - ub
+  v    = SQRT( ustack*ustack + vstack*vstack + wstack*wstack)
+  IF( v == 0.0 )THEN
     buoy = 0.0
-    wmom = 0.0
-    umom = 0.0
-    vmom = 0.0
+    mom(3) = 0.0
+    mom(1) = 0.0
+    mom(2) = 0.0
   ELSE
-    buoy = astack*vel*(tstack-tb)*bfac
-    mom  = astack*vel*bfac
-    umom = mom*ustack
-    vmom = mom*vstack
-    wmom = mom*wstack
+    buoy = astack*v*(tstack-tb)*bfac
+    tmom  = astack*v*bfac
+    mom(1) = tmom*ustack
+    mom(2) = tmom*vstack
+    mom(3) = tmom*wstack
   END IF
 END IF
-size_rel = 0.0
 
 9999 CONTINUE
+
+RETURN
+END
+
+SUBROUTINE copyReleaseSpec( specIn,specOut )
+USE release_fd
+
+IMPLICIT NONE
+
+TYPE( releaseSpecT ), INTENT( IN    ) :: specIn
+TYPE( releaseSpecT ), INTENT( INOUT ) :: specOut
+
+specOut%release = specIN%release
+CALL CopyMCrelList( specIn%MClist,specOut%MClist )
 
 RETURN
 END

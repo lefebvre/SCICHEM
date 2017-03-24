@@ -167,7 +167,6 @@ MODULE SWIMmetField_fd
     REAL, DIMENSION(:), POINTER :: yevec, ysn, ycs, yeval
     REAL, DIMENSION(:), POINTER :: alphaU, alphaV
 
-
   END TYPE McWIFdata
 
 !==============================================================================
@@ -590,7 +589,6 @@ MODULE SWIMobs_fd
     TYPE( metv ), &
       DIMENSION(:), POINTER :: mzQcloud
 
-
   END TYPE ObsMet
 
 !==============================================================================
@@ -615,6 +613,12 @@ MODULE SWIMobs_fd
     REAL                                       :: Ymin, Ymax
     TYPE( ObsGridList ), DIMENSION(:), POINTER :: GridList
     INTEGER, DIMENSION(:), POINTER             :: NumObsCell
+    LOGICAL                                    :: lInterpVel, lInterpT, lInterpP, lInterpH
+    LOGICAL                                    :: lInterpQcld
+    LOGICAL                                    :: lInterpZi, lInterpHf, lInterpUs, lInterpL, lInterpCC, lInterpPr
+    INTEGER                                    :: nVel, nT, nP, nH
+    INTEGER                                    :: nQc
+    INTEGER                                    :: nZi, nHf, nUs, nL, nCC, nPr
 
   END TYPE FirstObsGridList
 

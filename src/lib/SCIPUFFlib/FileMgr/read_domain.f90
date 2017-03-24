@@ -109,6 +109,8 @@ CHARACTER(80) cmap
 
 INTEGER, EXTERNAL :: FindNML
 
+INTEGER, DIMENSION(DOMAIN_STATUS_ARRAY_SIZE)  :: domain_status   !Compatibility with OPVIEW
+
 NAMELIST / domain  / cmap,xmin,xmax,ymin,ymax,zmax,vres,hres &
                     ,utm_zone,xref,yref,lon0,lat0, domain_status
 
@@ -191,7 +193,7 @@ INTEGER ios
 CHARACTER(80) cmap
 
 NAMELIST / domain  / cmap,xmin,xmax,ymin,ymax,zmax,vres,hres &
-                    ,utm_zone,xref,yref,lon0,lat0 !, domain_status
+                    ,utm_zone,xref,yref,lon0,lat0
 
 SELECT CASE( lmap )
   CASE( I_LATLON )
@@ -220,33 +222,6 @@ IF( ios /= 0 )THEN
   nError   = RD_ERROR
   eRoutine ='WriteNamelistDomain'
   eMessage ='Error writing DOMAIN namelist'
-  GOTO 9999
-END IF
-
-9999 CONTINUE
-
-RETURN
-END
-!===============================================================================
-!     WriteNamelistDomain
-!===============================================================================
-SUBROUTINE WriteNamelistDomainStatus( iunit )
-
-USE scipuff_fi
-
-IMPLICIT NONE
-
-INTEGER, INTENT( IN ) :: iunit
-
-INTEGER ios
-
-NAMELIST / domain  / domain_status
-
-WRITE(UNIT=iunit,NML=domain,IOSTAT=ios)
-IF( ios /= 0 )THEN
-  nError   = RD_ERROR
-  eRoutine = 'WriteNamelistDomainStatus'
-  eMessage = 'Error writing DOMAIN(status) namelist'
   GOTO 9999
 END IF
 

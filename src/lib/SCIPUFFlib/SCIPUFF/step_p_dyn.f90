@@ -22,7 +22,7 @@ IMPLICIT NONE
 REAL,              INTENT( IN    ) :: dt       !Timestep (secs)
 TYPE ( puff_str ), INTENT( INOUT ) :: p        !Puff structure
 INTEGER,           INTENT( IN    ) :: ipuf     !Puff number
-INTEGER,           INTENT( IN    ) :: lev1     !Lowest time level steppedb
+INTEGER,           INTENT( IN    ) :: lev1     !Lowest time level stepped
 INTEGER,           INTENT( INOUT ) :: lev2     !Highest time level stepped
 REAL,              INTENT( IN    ) :: fac_srf  !Factor for surface integrals
 
@@ -32,7 +32,8 @@ TYPE( puff_totalcc  ) pt
 TYPE( puff_aerosol  ) pa
 TYPE( puff_static   ) ps
 
-REAL    znew, damp, prod, xpolar, ypolar, vtest, stest
+REAL    znew, damp, prod, vtest
+REAL    xpolar, ypolar
 INTEGER icls, jtyp
 LOGICAL lzinv_new
 
@@ -76,7 +77,9 @@ END IF
 
 !-----  Check gas density does not exceed pure value
 
-IF( IsGas(icls) .AND. TRIM(material(imat)%unit) == 'kg' )THEN
+IF( BTEST(run_mode,REVERSE_MODE) )THEN
+  rhogas = -1.0
+ELSE IF( IsGas(icls) .AND. TRIM(material(imat)%unit) == 'kg' )THEN
   rhogas  = getGasDensity( icls,pmatl )
   rhopuff = p%ccb/p%c
   IF( IsAerosol(icls) )rhopuff = rhopuff * (1.0-pa%fl)
@@ -136,7 +139,7 @@ vtest = vfall
 IF( lter )THEN
   stest = hx*hx*p%sxx + hy*hy*p%syy + p%szz + &
           2.0*hx*hy*p%sxy - 2.0*hx*p%sxz - 2.0*hy*p%syz
-  stest = SQRT(stest)
+  stest = SQRT(stest/(1.+hx*hx+hy*hy))
 ELSE
   stest = sz
 END IF
@@ -225,6 +228,7 @@ IF( p%c <= cmin )THEN
   GOTO 9998
 END IF
 
+
 !---- advance puff dynamics
 
 IF( dynamic )THEN
@@ -277,19 +281,19 @@ END IF
 !vb = vb + dddy
 
 IF( pole_transition )THEN  !Skip Adams-Bashforth when crossing polar cap boundary
-  p%xbar = p%xbar + (ub+udyn)*dt*xmap
-  p%ybar = p%ybar + (vb+vdyn)*dt*ymap
+  p%xbar = p%xbar + DBLE((ub+udyn)*dt*xmap)
+  p%ybar = p%ybar + DBLE((vb+vdyn)*dt*ymap)
 ELSE
-  p%xbar = p%xbar + (1.5*ub-0.5*p%uo+udyn)*dt*xmap
-  p%ybar = p%ybar + (1.5*vb-0.5*p%vo+vdyn)*dt*ymap
+  p%xbar = p%xbar + DBLE((1.5*ub-0.5*p%uo+udyn)*dt*xmap)
+  p%ybar = p%ybar + DBLE((1.5*vb-0.5*p%vo+vdyn)*dt*ymap)
 END IF
 
 IF( metField /= polefld_n .AND. metField /= polefld_s )THEN
-  IF( global_lon )CALL SetGlobalLon( p%xbar )
+  IF( global_lon )CALL SetGlobalLonD( p%xbar )
 END IF
 
 IF( lter )THEN
-  CALL get_topogIn( p%xbar,p%ybar,hp,hx,hy,metField )
+  CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),hp,hx,hy,metField )
 ELSE
   hp = 0.
 END IF
@@ -310,7 +314,7 @@ znew  = p%zbar + wpuff*dt
 
 !------ get new inversion height; check for capped boundary layer
 
-CALL SWIMgetZi( metField,p%xbar,p%ybar,zinv,wts )
+CALL SWIMgetZi( metField,SNGL(p%xbar),SNGL(p%ybar),zinv,wts )
 
 IF( wts > 0. )THEN
   dtdzs = 0.
@@ -319,7 +323,7 @@ ELSE
 END IF
 
 IF( dtdzs <= 0. .AND. lbl )THEN
-  gamma = SWIMgetGamma( metField,p%xbar,p%ybar,zinv )
+  gamma = SWIMgetGamma( metField,SNGL(p%xbar),SNGL(p%ybar),zinv )
   lblcap = gamma > 0.
 ELSE
   lblcap = .FALSE.
@@ -369,7 +373,7 @@ END IF
 
 !------ prevent puffs from penetrating the ground
 
-IF( lter )CALL get_topogIn( p%xbar,p%ybar,hp,hx,hy,metField )
+IF( lter )CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),hp,hx,hy,metField )
 
 p%zbar = MAX(p%zbar,hp)
 
@@ -431,14 +435,14 @@ IF( nError /= NO_ERROR )GOTO 9999
 
 IF( metField == polefld_n .OR. metField == polefld_s )THEN
 
-  CALL SWIMPolarCarttoLL( p%xbar,p%ybar,xpolar,ypolar )
+  CALL SWIMPolarCarttoLL( SNGL(p%xbar),SNGL(p%ybar),xpolar,ypolar )
 
-  p%xbar = xpolar
+  p%xbar = DBLE(xpolar)
 
   IF( metField == polefld_s )THEN
-    p%ybar = -ypolar
+    p%ybar = -DBLE(ypolar)
   ELSE
-    p%ybar = ypolar
+    p%ybar = DBLE(ypolar)
   END IF
 
   CALL polar_rot( p )
@@ -984,25 +988,29 @@ IF( lter )THEN
 
 END IF
 
+!------ Puff distortion factor
+
+det_fac = p%det/(p%sxx*p%syy*p%szz)
+
 !------ reduce sigma-z for puffs depositing on the ground through gravitational settling
 
-IF( vfall > 0.0 .AND. zp < 3.0*sz )THEN
+IF( vfall > 0.0 .AND. zp < 3.0*stest .AND. det_fac >= EPS_DET )THEN
+  IF( lter )CALL dense_rot_norm( hx,hy,0.,0.,p ) !Rotate into coord. aligned with terrain
 
-  zfac  = 1.0 - EXP(-0.5*zp*zp/p%szz) * (1.0-EXP(-1.8*vfall*dt/sz))  !90% of max rate
+  zfac  = 1.0 - EXP(-0.5*zp*zp/stest/stest) * (1.0-EXP(-1.8*vfall*dt/stest))  !90% of max rate
   zfac  = MAX(zfac,0.01)
+  zfac  = MIN(MAX(zfac,(cnew/csav)**2),1.)    !Limited based on mass reduction
   p%szz = p%szz * zfac
   zfac  = SQRT(zfac)
   p%sxz = p%sxz * zfac
   p%syz = p%syz * zfac
+  IF( lter )CALL dense_rot_norm( 0.,0.,hx,hy,p ) !Rotate back
 
 END IF
 
 !-----  check for extreme puff distortion
 
-det_fac = p%det/(p%sxx*p%syy*p%szz)
 IF( det_fac < EPS_DET .OR. p%cc <= cmin2 )THEN !If distorted, only diffuse puffs
-
-  CALL dense_rot_norm( hx0,hy0,0.,0.,p )
 
 !----- Reset zcap if necessary for terrain elevation changes
 
@@ -1030,8 +1038,6 @@ IF( det_fac < EPS_DET .OR. p%cc <= cmin2 )THEN !If distorted, only diffuse puffs
       p%syz = p%syz*szlim
     END IF
   END IF
-
-  CALL dense_rot_norm( 0.,0.,hx0,hy0,p )
 
   dts  = 1.E36
 
@@ -1198,8 +1204,8 @@ ELSE
       ry     = rlimit( p%syz/(sy*sz),-1.,1.)
       xfac   = rlimit( FAC*del*rx,-FAC_LIM,FAC_LIM )
       yfac   = rlimit( FAC*del*ry,-FAC_LIM,FAC_LIM )
-      p%xbar = p%xbar + xfac*sx*xmap
-      p%ybar = p%ybar + yfac*sy*ymap
+      p%xbar = p%xbar + DBLE(xfac*sx*xmap)
+      p%ybar = p%ybar + DBLE(yfac*sy*ymap)
       xfac   = 1. - xfac**2
       yfac   = 1. - yfac**2
       p%sxx  = p%sxx*xfac
@@ -1271,7 +1277,8 @@ IMPLICIT NONE
 TYPE( puff_str ), INTENT( INOUT ) :: p
 
 INTEGER inField
-REAL    Shh, Szz, dElev, xpolar, ypolar, xlat, xlon
+REAL    Shh, Szz, dElev, xlat, xlon
+REAL    xpolar, ypolar
 REAL    tgas, pgas, fac
 
 INTEGER, EXTERNAL :: getPuffifld
@@ -1292,9 +1299,11 @@ inField = getPuffifld( p )
 Shh = 0.5*(p%sxx+p%syy)
 Szz = MIN(p%szz,1./p%azz)
 
-IF( p%zbar > zmax )nPuffAboveTop = nPuffAboveTop + 1
+IF( p%zbar > zmax )THEN
+  nPuffAboveTop = nPuffAboveTop + 1
+END IF
 
-CALL get_met( p%xbar,p%ybar,p%zbar,Szz,p%zc,0, &
+CALL get_met( SNGL(p%xbar),SNGL(p%ybar),p%zbar,Szz,p%zc,0, &
                                  inField,Shh,metField,dElev )
 IF( nError /= NO_ERROR )GOTO 9999
 
@@ -1310,22 +1319,22 @@ pole_transition = .FALSE.
 
 IF( metField == polefld_n .OR. metField == polefld_s )THEN
 
-  CALL SWIMLLtoPolarCart( p%xbar,p%ybar,xpolar,ypolar )
+  CALL SWIMLLtoPolarCart( SNGL(p%xbar),SNGL(p%ybar),xpolar,ypolar )
 
   lonsav = p%xbar
 
-  xlat = TAN(PI180*(90.-p%ybar))
-  xlon = PI180*p%xbar
+  xlat = TAN(PI180*(90.-SNGL(p%ybar)))
+  xlon = PI180*SNGL(p%xbar)
   xmap = 1.0/SQRT(1.0 + (xlat*COS(xlon))**2)
   ymap = 1.0/SQRT(1.0 + (xlat*SIN(xlon))**2)
-  p%xbar = xpolar
-  p%ybar = ypolar
+  p%xbar = DBLE(xpolar)
+  p%ybar = DBLE(ypolar)
 
   IF( inField /= metField )pole_transition = .TRUE.
 
 ELSE
 
-  CALL mapfac( p%xbar,p%ybar,xmap,ymap )
+  CALL mapfac( SNGL(p%xbar),SNGL(p%ybar),xmap,ymap )
 
   IF( inField == polefld_n .OR. &
       inField == polefld_s )pole_transition = .TRUE.
@@ -1335,7 +1344,7 @@ END IF
 !-----  set terrain factors (height, slopes, and area fac)
 
 IF( lter )THEN
-  CALL get_topogIn( p%xbar,p%ybar,hp,hx,hy,metField )
+  CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),hp,hx,hy,metField )
   area_fac = 1./SQRT(1.+hx*hx+hy*hy)
 ELSE
   area_fac = 1.
@@ -1394,7 +1403,7 @@ p%zi  = zinv
 lzinv = (MAX(p%zbar,hp+sz) <= zinv) .AND. lbl
 
 IF( lzinv .AND. dtdzs <= 0. )THEN
-  gamma = SWIMgetGamma( metField,p%xbar,p%ybar,zinv )
+  gamma = SWIMgetGamma( metField,SNGL(p%xbar),SNGL(p%ybar),zinv )
   lcap = gamma > 0.
 ELSE
   lcap = .FALSE.
@@ -2132,7 +2141,7 @@ END IF
 
 IF( vel2 > SMALL )THEN
   IF( PrjCoord%type /= MetGrid(metField)%coord%type )THEN
-    irv = SWIMcnvCoord( p%xbar,p%ybar,PrjCoord,xp,yp,MetGrid(metField)%coord )
+    irv = SWIMcnvCoord( SNGL(p%xbar),SNGL(p%ybar),PrjCoord,xp,yp,MetGrid(metField)%coord )
     CALL SWIMmapfac( MetGrid(metField)%coord,xp,yp,xfac,yfac )
     delg = MIN( MetGrid(metField)%dx/xfac,MetGrid(metField)%dy/yfac )
   ELSE
@@ -2212,7 +2221,7 @@ IF( nError /= NO_ERROR )THEN
   WRITE(lun_log,*,ERR=9998)'DT(cc,w,a,k,s)=', &
                                  dtcc,dtw,dta,dtk,dts
   WRITE(lun_log,*,ERR=9998)'DELT=',delt
-  WRITE(lun_log,*,ERR=9998)'LEVEL=',il,MAXTLV
+  WRITE(lun_log,*,ERR=9998)'DTP,LEVEL=',dtp,il,MAXTLV
   WRITE(lun_log,*,ERR=9998)'DZG,HP,WPUFF=',dzg,hp,wpuff
   CALL dump_puff(0,p)
   GOTO 9999
@@ -2455,7 +2464,7 @@ pd%ucp = (qosi_cc*dt*pd%ucb + pd%ucp) / a11
 pd%vcp = (qosi_cc*dt*pd%vcb + pd%vcp) / a11
 
 IF( ldense )THEN
-  wdyn = wdyn*(1.0 + MAX(-0.5,ddyn*dt))  + udyn*hx + vdyn*hy
+  wdyn = wdyn*(1.0 + MAX(-0.5,MIN(0.0,ddyn*dt))) + udyn*hx + vdyn*hy
 ELSE
   wdyn = 0.5*(wdyn + pd%wcp/p%c)
 END IF
@@ -2569,7 +2578,7 @@ IF( lzinv .AND. sz > 0.5*(zinv-hp) )THEN
 END IF
 
 !-----  advance vertical velocity correlations
-
+!       N.B. tauc in definition of damp; and damp multiplies difb
 damp  = (aqoszt+tauc)*dt
 p%zwc = (p%zwc + damp*difb*p%c)/(1.0 + damp)
 p%wc  = (p%wc  + damp*dddz*p%c)/(1.0 + damp)
@@ -2594,9 +2603,9 @@ p%xuc  = (p%xuc + uub*p%c*dt) / damp
 p%xvc  = (p%xvc + uvb*p%c*dt) / damp
 p%yvc  = (p%yvc + vvb*p%c*dt) / damp
 
+!------ N.B. tauc is in definition of damp but it's not in the production term
 damp   = 1.0 + (aqsosyt+tauc)*dt
 p%yvsc = (p%yvsc + uubl*p%c*dt) / damp
-
 damp   = 1.0 + (aqbosyt+tauc)*dt
 p%yvbc = (p%yvbc + vvbl*p%c*dt) / damp
 
@@ -2758,7 +2767,7 @@ IF( zp > z_entrn )THEN
 
 !------ re-set diffusivities; get met background for new location
 
-  CALL get_met( p%xbar,p%ybar,p%zbar,0.0,0.0,0,inField=metField )
+  CALL get_met( SNGL(p%xbar),SNGL(p%ybar),p%zbar,0.0,0.0,0,inField=metField )
   IF( lsv_oper )CALL reset_lsv( si )
 
   IF( t_avg /= DEF_VAL_R )THEN
@@ -2853,7 +2862,7 @@ pd%t   = pd%t   + del_temp*p%c/p%cc
 p%zbar = znew
 lzinv  = .FALSE.
 
-CALL get_met( p%xbar,p%ybar,p%zbar,0.0,0.0,0,inField=metField )
+CALL get_met( SNGL(p%xbar),SNGL(p%ybar),p%zbar,0.0,0.0,0,inField=metField )
 IF( lsv_oper )CALL reset_lsv( si )
 
 IF( t_avg /= DEF_VAL_R )THEN
@@ -3101,7 +3110,7 @@ LOGICAL, EXTERNAL :: dense_effect
 INTEGER, EXTERNAL :: getPuffifld
 
 IF( lter )THEN
-  CALL get_topogIn( p%xbar,p%ybar,hp,hx,hy,getPuffifld(p) )
+  CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),hp,hx,hy,getPuffifld(p) )
 ELSE
   hp = 0.0
   hx = 0.0
@@ -3177,7 +3186,7 @@ dhy0 = DBLE(hy0)
 dhx1 = DBLE(hx1)
 dhy1 = DBLE(hy1)
 
-fac = 1.0D0/SQRT(1.0D0+dhx0*dhx0+dhy0*dhy0)
+fac = 1.0D0/DSQRT(1.0D0+dhx0*dhx0+dhy0*dhy0)
 xn0 = -fac*dhx0
 yn0 = -fac*dhy0
 zn0 =  fac
@@ -3193,7 +3202,7 @@ xt1 = (yn0*zn1 - zn0*yn1)
 yt1 = (zn0*xn1 - xn0*zn1)
 zt1 = (xn0*yn1 - yn0*xn1)
 
-sn = SQRT(xt1*xt1+yt1*yt1+zt1*zt1)
+sn = DSQRT(xt1*xt1+yt1*yt1+zt1*zt1)
 
 xt1 = xt1/sn
 yt1 = yt1/sn
@@ -3219,7 +3228,7 @@ bmat(3,1) = -sn
 bmat(3,2) = 0.
 bmat(3,3) = cs
 
-at = TRANSPOSE( amat )
+at   = TRANSPOSE( amat )
 cmat = MATMUL( bmat,amat )
 amat = MATMUL( at,cmat )
 
@@ -3233,7 +3242,7 @@ bmat(3,1) = DBLE(p%sxz)
 bmat(3,2) = DBLE(p%syz)
 bmat(3,3) = DBLE(p%szz)
 
-at = TRANSPOSE( amat )
+at   = TRANSPOSE( amat )
 cmat = MATMUL( amat,bmat )
 bmat = MATMUL( cmat,at )
 
@@ -3281,7 +3290,7 @@ IF( check_slope(hx0,hy0) )THEN
   bmat(3,3) = DBLE(p%szz)
 
   cmat = MATMUL( amat,bmat )
-  at = TRANSPOSE( amat )
+  at   = TRANSPOSE( amat )
   bmat = MATMUL( cmat,at )
 
   sxx = SNGL(bmat(1,1))
@@ -3348,7 +3357,6 @@ REAL,             INTENT( IN ) :: dt
 REAL, PARAMETER :: CLDMIN = 500.
 
 REAL    vr
-INTEGER ityppr
 
 !-----  Look up Raindrop Fall Velocity and Scavenging Coefficient
 !-----  Interpolate Precipitation Rate from Specified Index
@@ -3439,8 +3447,8 @@ ELSE
   dtr = 0.0
 END IF
 
-washPuff%xbar = p%xbar + p%uo*dtr*xmap
-washPuff%ybar = p%ybar + p%vo*dtr*ymap
+washPuff%xbar = p%xbar + DBLE(p%uo*dtr*xmap)
+washPuff%ybar = p%ybar + DBLE(p%vo*dtr*ymap)
 washPuff%zbar = 0.
 
 washPuff%axx = p%axx - p%axz*p%axz/p%azz
@@ -3451,7 +3459,7 @@ washPuff%ayz = 0.
 washPuff%azz = p%azz
 
 IF( lter )THEN
-  CALL get_topogIn( washPuff%xbar,washPuff%ybar,h1,hx1,hy1,metField )
+  CALL get_topogIn( SNGL(washPuff%xbar),SNGL(washPuff%ybar),h1,hx1,hy1,metField )
   CALL rot_norm( 0.0,0.0,hx1,hy1,washPuff )
 END IF
 
@@ -3562,7 +3570,7 @@ p%azz = SNGL(bmat(3,3))
 RETURN
 END
 
-!-----------------------------------------------------------------------
+!==============================================================================
 
 SUBROUTINE polar_rot( p )
 
@@ -3581,13 +3589,13 @@ REAL(8), DIMENSION(3,3) :: smat, stem, arot, atrot
 !----- Rotate puff moments to follow lat/lon change
 
 IF( p%ybar < 0.0 )THEN
-  del = DBLE(PI180*(p%xbar-lonsav))
+  del = DBLE(PI180)*(p%xbar-lonsav)
 ELSE
-  del = DBLE(PI180*(lonsav-p%xbar))
+  del = DBLE(PI180)*(lonsav-p%xbar)
 END IF
 
-sn  = SIN(del)
-cs  = COS(del)
+sn = DSIN(del)
+cs = DCOS(del)
 
 smat(:,1) = (/ DBLE(p%sxx), DBLE(p%sxy), DBLE(p%sxz) /)
 smat(:,2) = (/ DBLE(p%sxy), DBLE(p%syy), DBLE(p%syz) /)

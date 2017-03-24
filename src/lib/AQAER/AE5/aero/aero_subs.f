@@ -2746,18 +2746,18 @@ C *** Size-dependent portion of mass-transfer rate equation
       
 C *** ISORROPIA input variables
 
-      REAL( 8 ) :: WI( 5 )              ! species array
+      REAL( 8 ) :: WI( 8 )              ! species array
       REAL( 8 ) :: RHI                  ! relative humidity
       REAL( 8 ) :: TEMPI                ! temperature
       REAL( 8 ) :: CNTRL( 2 )           ! control parameters 
 
 C *** ISORROPIA output variables
       
-      REAL( 8 ) :: WT( 5 )              ! species output array
+      REAL( 8 ) :: WT( 8 )              ! species output array
       REAL( 8 ) :: GAS( 3 )             ! gas-phase   "     " 
-      REAL( 8 ) :: AERLIQ( 12 )         ! liq aerosol "     " 
-      REAL( 8 ) :: AERSLD( 9 )          ! solid "     "     " 
-      REAL( 8 ) :: OTHER( 6 )           ! supplmentary output array
+      REAL( 8 ) :: AERLIQ( 15 )         ! liq aerosol "     " 
+      REAL( 8 ) :: AERSLD( 19 )         ! solid "     "     " 
+      REAL( 8 ) :: OTHER( 9 )           ! supplementary output array
       CHARACTER( 15 ) :: SCASI          ! subcase number output
 
 C *** Variables to account for mass conservation violations in ISRP3F
@@ -3060,6 +3060,10 @@ C *** double precision vars for ISORROPIA (mole/m3)
                WI( 3 ) = CINORG(KNH4,IMODE) * FAERNH4R8 
                WI( 4 ) = CINORG(KNO3,IMODE) * FAERNO3R8 
                WI( 5 ) = CINORG(KCL, IMODE) * FAERCLR8  
+!temporary set Ca, K, Mg to zero
+               WI( 6 ) = 1.D-15 !Ca
+               WI( 7 ) = 1.D-15 !K
+               WI( 8 ) = 1.D-15 !Mg
 
                CNTRL( 1 ) = 1.0D0 ! reverse problem
                CNTRL( 2 ) = 1.0D0 ! aerosol in metastable state
@@ -3151,6 +3155,10 @@ C *** equilibrate aerosol LWC with CFINAL by calling CALC_H2O
             WI( 3 ) = CFINAL( KNH4,IMODE ) * FAERNH4R8 
             WI( 4 ) = CFINAL( KNO3,IMODE ) * FAERNO3R8 
             WI( 5 ) = CFINAL( KCL, IMODE ) * FAERCLR8  
+!temporary set Ca, K, Mg to zero
+            WI( 6 ) = 1.D-15 !Ca
+            WI( 7 ) = 1.D-15 !K
+            WI( 8 ) = 1.D-15 !Mg
 
             CALL CALC_H2O( WI, RHI, TEMPI, H2O_NEW ) 
 
@@ -3251,6 +3259,10 @@ C     modes; add in H2SO4 nucleated in model timestep
      &        + ( CBLK( VNO3AI ) + CBLK( VNO3AJ ) ) * FAERNO3R8 
       WI( 5 ) = CBLK( VHCL  ) * FAERHCLR8
      &        + ( CBLK( VCLI ) + CBLK( VCLJ ) ) * FAERCLR8  
+!temporary set Ca, K, Mg to zero
+      WI( 6 ) = 1.D-15 !Ca
+      WI( 7 ) = 1.D-15 !K
+      WI( 8 ) = 1.D-15 !Mg
 
       CNTRL( 1 ) = 0.0D0   ! forward problem
       CNTRL( 2 ) = 1.0D0   ! aerosol in metastable state
@@ -3418,6 +3430,10 @@ c *** double precision vars for ISORROPIA
          WI( 3 ) = CFINAL(KNH4,IMODE) * FAERNH4R8 
          WI( 4 ) = CFINAL(KNO3,IMODE) * FAERNO3R8 
          WI( 5 ) = CFINAL(KCL, IMODE) * FAERCLR8  
+!temporary set Ca, K, Mg to zero
+         WI( 6 ) = 1.D-15 !Ca
+         WI( 7 ) = 1.D-15 !K
+         WI( 8 ) = 1.D-15 !Mg
 
          CALL CALC_H2O( WI, RHI, TEMPI, H2O_NEW ) 
             
@@ -3537,145 +3553,328 @@ c     H2O_NEW : Water (mol/m^3) content at new time step
 c
 c-----------------------------------------------------------------------
 
-      SUBROUTINE CALC_H2O (WI, RH, T, H2O_NEW)
+      SUBROUTINE CALC_H2O ( WI, RH, T, H2O_NEW )
+
+C Description
+C   Calculate the water content of aerosol at the new time step.  Water
+C   calculations use the ZSR mixing rule with salts determined by the
+C   ISORROPIA approach.
+C   Routine called by VOLINORG.
+ 
+C Arguments
+C   Input
+C     WI      : Concentration of components [mol/m^3] at new step
+C     RH      : Relative humidity [0-1]
+C     T       : Temperature [K]
+ 
+C   Output
+C     H2O_NEW : Water [mol/m^3] content at new time step
+ 
+C-----------------------------------------------------------------------
 
       IMPLICIT NONE
 
-      INTEGER, PARAMETER :: NCMP = 5, NPAIR = 13
-      REAL*8,  PARAMETER :: SMALL = 1.d-20
-      REAL*8,  PARAMETER :: Mw = 0.018d0   ! molar mass H2O (kg/mol)
+C Parameters:
+      INTEGER, PARAMETER :: NCMP = 8, NPAIR = 23
+      REAL( 8 ),  PARAMETER :: SMALL = 1.0D-20
+      REAL( 8 ),  PARAMETER :: Mw = 0.018D0   ! molar mass H2O (kg/mol)
 
-c     ------------------------
-c     Input/Output Declaration
-c     ------------------------
-      REAL*8 :: WI(NCMP)
-      REAL*8 :: RH, T, H2O_NEW
+C Arguments:
+      REAL( 8 ), INTENT( IN )  :: WI( NCMP )
+      REAL( 8 ), INTENT( IN )  :: RH, T
+      REAL( 8 ), INTENT( OUT ) :: H2O_NEW
 
-c     -----------------
-c     Local Declaration
-c     -----------------
-      REAL*8  :: FSO4, FNH4, FNA, FNO3, FCL ! "free" ion amounts
-      REAL*8  :: WATER         ! kg of water for new time step 
-      REAL*8  :: X, Y
-      REAL*8  :: CONC(NCMP)    ! concentration (mol/m^3)
-      REAL*8  :: CONCR(NPAIR)  ! concentration (mol/m^3) ion "pairs" 
-      REAL*8  :: M0I(NPAIR)    ! single-solute molalities
+C Local Variables:
+      CHARACTER( 3 ) :: SC ! subcase for composition
+      REAL( 8 ) :: FSO4, FNH4, FNA, FNO3, FCL ! "free" ion amounts
+      REAL( 8 ) :: FCA, FK, FMG            
+      REAL( 8 ) :: CASO4         ! amount of calcium sulfate, does not participate in ZSR calc
+      REAL( 8 ) :: WATER         ! kg of water for new time step 
+      REAL( 8 ) :: X, Y
+      REAL( 8 ) :: CONC( NCMP )    ! concentration (mol/m^3)
+      REAL( 8 ) :: CONCR( NPAIR )  ! concentration (mol/m^3) ion "pairs" 
+      REAL( 8 ) :: M0I( NPAIR )    ! single-solute molalities
       INTEGER :: J
-      CHARACTER(len=2) :: SC   ! sub-case for composition
 
-c     ---------------
-c     Begin Execution
-c     ---------------
+#ifdef verbose_aero
+!     logical, save :: firstime = .true.
+!     integer, save :: logdev
+!     integer, external :: setup_logdev
+#endif
 
-c     Return if small concentration
-      IF (WI(1) + WI(2) + WI(3) + WI(4) + WI(5) <= SMALL) THEN
-        H2O_NEW = SMALL
-        RETURN
-      ENDIF
+C-----------------------------------------------------------------------
 
-c     Set component array (mol/m^3) for determining salts
-      CONC(:) = WI(:)
+#ifdef verbose_aero
+!     if ( firstime ) then
+!        firstime = .false.
+!        logdev = setup_logdev()
+!     end if
+#endif
 
-c     Get the sub-case to use in determining salts
-      CALL GETSC (CONC, RH, T, SC)
+C     Return if small concentration
+      IF ( WI( 1 ) + WI( 2 ) + WI( 3 ) + WI( 4 )
+     &   + WI( 5 ) + WI( 6 ) + WI( 7 ) + WI( 8 ) .LE. SMALL) THEN
+         H2O_NEW = SMALL
+         RETURN
+      END IF
 
-c     Initialize ion "pairs" (i.e., salts) used in ZSR
-      CONCR(:) = 0.d0
+C     Set component array (mol/m^3) for determining salts
+      CONC = WI   ! array assignment
 
-c     Depending on case, determine moles of salts in solution (i.e., CONCR)
-c     for ZSR calculation below
+C     Get the sub-case to use in determining salts
+      CALL GETSC ( CONC, RH, T, SC )
 
-      IF (SC .EQ. 'K2') THEN    ! sulfate poor (NH4-SO4 system)
-        CONCR(4)= MIN (CONC(2), 0.5d0*CONC(3))  ! (NH4)2SO4
+#ifdef verbose_aero
+!     write( logdev,* ) 'CALC_H2O -SC: ', sc
+#endif
 
-      ELSEIF (SC .EQ. 'L4' .OR. SC .EQ. 'O4') THEN  ! sulfate rich (no acid)
-        X = 2.d0 * CONC(2) - CONC(3)     ! 2SO4 - NH4
-        Y = CONC(3) - CONC(2)            ! NH4 - SO4
-        IF (X <= Y) THEN
-          CONCR(13) = X      ! (NH4)3H(SO4)2 is MIN (X,Y)
-          CONCR(4)  = Y - X  ! (NH4)2SO4
-        ELSE
-          CONCR(13) = Y      ! (NH4)3H(SO4)2 is MIN (X,Y)
-          CONCR(9)  = X - Y  ! NH4HSO4
-        ENDIF
+C     Initialize ion "pairs" (i.e., salts) used in ZSR
+      CONCR( : ) = 0.0D0
 
-      ELSEIF (SC .EQ. 'M2' .OR. SC .EQ. 'P2') THEN  ! sulfate rich (free acid)
-        CONCR(9) = CONC(3)                      ! NH4HSO4
-        CONCR(7) = MAX(CONC(2)-CONC(3), 0.d0)   ! H2SO4
+C     Depending on case, determine moles of salts in solution (i.e., CONCR)
+C     for ZSR calculation below
 
-      ELSEIF (SC .EQ. 'N3') THEN    ! sulfate poor (NH4-SO4-NO3 system)
-        CONCR(4) = MIN (CONC(2), 0.5d0*CONC(3))      ! (NH4)2SO4
-        FNH4     = MAX (CONC(3)-2.d0*CONCR(4), 0.d0) ! available NH4
-        CONCR(5) = MAX (MIN (FNH4, CONC(4)), 0.d0)   ! NH4NO3=MIN(NH4,NO3)
+      IF ( SC .EQ. 'S2' ) THEN    ! sulfate poor (NH4-SO4 system), old K2
+         CONCR( 4 )= MIN ( CONC( 2 ), 0.5D0 * CONC( 3 ) )  ! (NH4)2SO4
 
-      ELSEIF (SC .EQ. 'Q5') THEN    ! sulfate poor, sodium poor (NH4-SO4-NO3-Cl-Na)
-        CONCR(2) = 0.5d0*CONC(1)                          ! Na2SO4
-        FSO4     = MAX (CONC(2)-CONCR(2), 0.d0)           ! available SO4
-        CONCR(4) = MAX (MIN (FSO4, 0.5d0*CONC(3)), SMALL) ! NH42S4=MIN(NH4,S4)
-        FNH4     = MAX (CONC(3)-2.d0*CONCR(4), 0.d0)      ! available NH4
-        CONCR(5) = MIN (FNH4, CONC(4))                    ! NH4NO3=MIN(NH4,NO3)
-        FNH4     = MAX (FNH4-CONCR(5), 0.d0)              ! avaialable NH4
-        CONCR(6) = MIN (FNH4, CONC(5))                    ! NH4Cl=MIN(NH4,Cl)
+      ELSE IF ( SC .EQ. 'B4' ) THEN  ! sulfate rich (no acid), old L4, O4
+         X = 2.0D0 * CONC( 2 ) - CONC( 3 )     ! 2SO4 - NH4
+         Y = CONC( 3 ) - CONC( 2 )            ! NH4 - SO4
+         IF ( X .LE. Y ) THEN
+            CONCR( 13 ) = X      ! (NH4)3H(SO4)2 is MIN (X,Y)
+            CONCR(  4 ) = Y - X  ! (NH4)2SO4
+         ELSE
+            CONCR( 13 ) = Y      ! (NH4)3H(SO4)2 is MIN (X,Y)
+            CONCR(  9 ) = X - Y  ! NH4HSO4
+         END IF
 
-      ELSEIF (SC .EQ. 'R6') THEN   ! sulfate poor, sodium rich (NH4-SO4-NO3-Cl-Na)
-        CONCR(2) = CONC(2)                          ! Na2SO4
-        FNA      = MAX (CONC(1)-2.d0*CONCR(2), 0.d0)
+      ELSE IF ( SC .EQ. 'C2' ) THEN  ! sulfate rich (free acid), old M2, P2
+         CONCR( 9 ) = CONC( 3 )                      ! NH4HSO4
+         CONCR( 7 ) = MAX( CONC( 2 ) - CONC( 3 ), 0.0D0 )   ! H2SO4
 
-        CONCR(3) = MIN (FNA, CONC(4))               ! NaNO3
-        FNO3     = MAX (CONC(4)-CONCR(3), 0.d0)
-        FNA      = MAX (FNA-CONCR(3), 0.d0)
+      ELSE IF ( SC .EQ. 'N3' ) THEN    ! sulfate poor (NH4-SO4-NO3 system)
+         CONCR( 4 ) = MIN ( CONC( 2 ), 0.5D0 * CONC( 3 ) )           ! (NH4)2SO4
+         FNH4       = MAX ( CONC( 3 ) - 2.0D0 * CONCR( 4 ), 0.0D0 )  ! available NH4
+         CONCR( 5 ) = MAX ( MIN ( FNH4, CONC( 4 ) ), 0.0D0 )         ! NH4NO3=MIN(NH4,NO3)
 
-        CONCR(1) = MIN (FNA, CONC(5))               ! NaCl
-        FCL      = MAX (CONC(5)-CONCR(1), 0.d0)
-        FNA      = MAX (FNA-CONCR(1), 0.d0)
+      ELSE IF ( SC .EQ. 'Q5' ) THEN    ! sulfate poor, sodium poor (NH4-SO4-NO3-Cl-Na)
+         CONCR( 2 ) = 0.5D0 * CONC( 1 )                              ! Na2SO4
+         FSO4       = MAX ( CONC( 2 ) - CONCR( 2 ), 0.0D0 )          ! available SO4
+         CONCR( 4 ) = MAX ( MIN ( FSO4, 0.5D0 * CONC( 3 ) ), SMALL ) ! NH42S4=MIN(NH4,S4)
+         FNH4       = MAX ( CONC( 3 ) - 2.0D0 * CONCR( 4 ), 0.0D0 )  ! available NH4
+         CONCR( 5 ) = MIN ( FNH4, CONC( 4 ) )                        ! NH4NO3=MIN(NH4,NO3)
+         FNH4       = MAX ( FNH4 - CONCR( 5 ), 0.0D0 )               ! avaialable NH4
+         CONCR( 6 ) = MIN ( FNH4, CONC( 5 ) )                        ! NH4Cl=MIN(NH4,Cl)
 
-        CONCR(5) = MIN (FNO3, CONC(3))              ! NH4NO3
-        FNO3     = MAX (FNO3-CONCR(5), 0.d0)
-        FNH4     = MAX (CONC(3)-CONCR(5), 0.d0)
+      ELSE IF ( SC .EQ. 'R6' ) THEN   ! sulfate poor, sodium rich (NH4-SO4-NO3-Cl-Na)
+         CONCR( 2 ) = CONC( 2 )                            ! Na2SO4
+         FNA        = MAX ( CONC( 1 ) - 2.0D0 * CONCR( 2 ), 0.0D0 )
 
-        CONCR(6) = MIN (FCL, FNH4)                  ! NH4Cl
+         CONCR( 3 ) = MIN ( FNA, CONC( 4 ) )               ! NaNO3
+         FNO3       = MAX ( CONC( 4 ) - CONCR( 3 ), 0.0D0 )
+         FNA        = MAX ( FNA - CONCR( 3 ), 0.0D0 )
 
-      ELSEIF (SC .EQ. 'S6') THEN   ! sulfate rich (no acid) (NH4-SO4-NO3-Cl-Na)
-        CONCR(2)  = 0.5d0 * CONC(1)                       ! Na2SO4
-        FSO4      = MAX (CONC(2)-CONCR(2), 0.d0)
-        CONCR(13) = MIN (CONC(3)/3.d0, FSO4/2.d0)         ! (NH4)3H(SO4)2
-        FSO4      = MAX (FSO4-2.d0*CONCR(13), 0.d0)
-        FNH4      = MAX (CONC(3)-3.d0*CONCR(13),  0.d0)
+         CONCR( 1 ) = MIN ( FNA, CONC( 5 ) )               ! NaCl
+         FCL        = MAX ( CONC( 5 ) - CONCR( 1 ), 0.0D0 )
+         FNA        = MAX ( FNA - CONCR( 1 ), 0.0D0 )
 
-        IF (FSO4 <= SMALL) THEN  ! reduce (NH4)3H(SO4)2, add (NH4)2SO4
-          CONCR(13) = MAX (CONCR(13)-FNH4, 0.d0)   ! (NH4)3H(SO4)2
-          CONCR(4)  = 2.d0 * FNH4                  ! (NH4)2SO4
-        ELSEIF (FNH4 <= SMALL) THEN ! reduce (NH4)3H(SO4)2, add NH4HSO4
-          CONCR(9)  = 3.d0 * MIN (FSO4, CONCR(13)) ! NH4HSO4
-          CONCR(13) = MAX (CONCR(13)-FSO4, 0.d0)
-          IF (CONCR(2) > SMALL) THEN ! reduce Na2SO4, add NaHSO4
-            FSO4      = MAX (FSO4-CONCR(9)/3.d0, 0.d0)
-            CONCR(12) = 2.d0 * FSO4                ! NaHSO4
-            CONCR(2)  = MAX (CONCR(2)-FSO4, 0.d0)  ! Na2SO4
-          ENDIF
-        ENDIF
+         CONCR( 5 ) = MIN ( FNO3, CONC( 3 ) )              ! NH4NO3
+         FNO3       = MAX ( FNO3 - CONCR( 5 ), 0.0D0 )
+         FNH4       = MAX ( CONC( 3 ) - CONCR( 5 ), 0.0D0 )
 
-      ELSEIF (SC .EQ. 'T3') THEN   ! sulfate rich (free acid) (NH4-SO4-NO3-Cl-Na)
-        CONCR(9)  = CONC(3)                             ! NH4HSO4
-        CONCR(12) = CONC(1)                             ! NAHSO4
-        CONCR(7)  = MAX (CONC(2)-CONC(3)-CONC(1), 0.d0) ! H2SO4
+         CONCR( 6 ) = MIN (FCL, FNH4 )                     ! NH4Cl
+
+      ELSE IF ( SC .EQ. 'I6' ) THEN   ! sulfate rich (no acid) (NH4-SO4-NO3-Cl-Na)
+         CONCR(  2 ) = 0.5D0 * CONC( 1 )                          ! Na2SO4
+         FSO4        = MAX ( CONC( 2 ) - CONCR( 2 ), 0.0D0 )
+         CONCR( 13 ) = MIN ( CONC( 3 ) / 3.0D0, FSO4 / 2.0D0 )    ! (NH4)3H(SO4)2
+         FSO4        = MAX ( FSO4 - 2.0D0 * CONCR( 13 ), 0.0D0 )
+         FNH4        = MAX ( CONC( 3 ) - 3.0D0 * CONCR( 13 ), 0.0D0 )
+
+         IF ( FSO4 .LE. SMALL ) THEN    ! reduce (NH4)3H(SO4)2, add (NH4)2SO4
+            CONCR( 13 ) = MAX ( CONCR( 13 ) - FNH4, 0.0D0 )   ! (NH4)3H(SO4)2
+            CONCR(  4 ) = 2.0D0 * FNH4                  ! (NH4)2SO4
+         ELSE IF ( FNH4 .LE. SMALL ) THEN ! reduce (NH4)3H(SO4)2, add NH4HSO4
+            CONCR(  9 ) = 3.0D0 * MIN ( FSO4, CONCR( 13 ) ) ! NH4HSO4
+            CONCR( 13 ) = MAX ( CONCR( 13 ) - FSO4, 0.0D0 )
+            IF ( CONCR( 2 ) .GT. SMALL ) THEN ! reduce Na2SO4, add NaHSO4
+               FSO4        = MAX ( FSO4 - CONCR( 9 ) / 3.0D0, 0.0D0 )
+               CONCR( 12 ) = 2.0D0 * FSO4                ! NaHSO4
+               CONCR(  2 ) = MAX ( CONCR( 2 ) - FSO4, 0.0D0 )  ! Na2SO4
+             END IF
+         END IF
+
+      ELSE IF ( SC .EQ. 'J3' ) THEN   ! sulfate rich (free acid) (NH4-SO4-NO3-Cl-Na)
+         CONCR(  9 ) = CONC( 3 )                             ! NH4HSO4
+         CONCR( 12 ) = CONC( 1 )                             ! NAHSO4
+         CONCR(  7 ) = MAX ( CONC( 2 ) - CONC( 3 ) - CONC( 1 ), 0.0D0 ) ! H2SO4
+
+      ! Crustal cases
+      ELSE IF ( SC .EQ. 'V7' ) THEN  ! sulfate poor, sodium+crustal poor
+         CASO4     = MIN ( CONC( 6 ), CONC( 2 ) )            ! CCASO4
+         FSO4      = MAX ( CONC( 2 ) - CASO4, 0.0D0 )
+         FCA       = MAX ( CONC( 6 ) - CASO4, 0.0D0 )
+
+         CONCR( 17 ) = MIN ( 0.5D0 * CONC( 7 ), FSO4 )       ! CK2SO4
+         FK          = MAX ( CONC( 7 ) - 2.D0 * CONCR( 17 ), 0.0D0 )
+         FSO4        = MAX ( FSO4 - CONCR( 17 ), 0.0D0 )
+
+         CONCR( 2 )  = MIN ( 0.5D0 * CONC( 1 ), FSO4 )       ! CNA2SO4
+         FNA         = MAX ( CONC( 1 ) - 2.0D0 * CONCR( 2 ), 0.0D0 )
+         FSO4        = MAX ( FSO4 - CONCR( 2 ), 0.0D0 )
+
+         CONCR( 21 ) = MIN ( CONC( 8 ), FSO4 )               ! CMGSO4
+         FMG         = MAX ( CONC( 8 ) - CONCR( 21 ), 0.0D0 )
+         FSO4        = MAX ( FSO4 - CONCR( 21 ), 0.0D0 )
+
+         CONCR( 4 )  = MAX ( MIN ( FSO4 , 0.5D0 * CONC( 3 ) ) , SMALL ) ! CNH42S4
+         FNH4        = MAX ( CONC( 3 ) - 2.0D0 * CONCR( 4 ), 0.0D0 )
+
+         CONCR( 5 )  = MIN ( FNH4, CONC( 4 ) )               ! CNH4NO3
+         FNH4        = MAX ( FNH4 - CONCR( 5 ), 0.0D0 )
+
+         CONCR( 6 )  = MIN ( FNH4, CONC( 5 ) )               ! CNH4CL
+
+      ELSE IF ( SC .EQ. 'U8' ) THEN  ! sulfate poor, crustal+sodium rich, crustal poor
+         CASO4       = MIN ( CONC( 6 ), CONC( 2 ) )          ! CCASO4
+         FSO4        = MAX ( CONC( 2 ) - CASO4, 0.0D0 )
+         FCA         = MAX ( CONC( 6 ) - CASO4, 0.0D0 )
+
+         CONCR( 17 ) = MIN ( 0.5D0 * CONC( 7 ), FSO4 )       ! CK2SO4
+         FK          = MAX ( CONC( 7 ) - 2.0D0 * CONCR( 17 ), 0.0D0 )
+         FSO4        = MAX ( FSO4 - CONCR( 17 ), 0.0D0 )
+
+         CONCR( 21 ) = MIN ( CONC( 8 ), FSO4 )               ! CMGSO4
+         FMG         = MAX ( CONC( 8 ) - CONCR( 21 ), 0.0D0 )
+         FSO4        = MAX ( FSO4 - CONCR( 21 ), 0.0D0 )
+
+         CONCR( 2 )  = MAX ( FSO4, 0.0D0 )                   ! CNA2SO4
+         FNA         = MAX ( CONC( 1 ) - 2.0D0 * CONCR( 2 ), 0.0D0 )
+
+         CONCR( 3 )  = MIN ( FNA, CONC( 4 ) )                ! NaNO3
+         FNO3        = MAX ( CONC( 4 ) - CONCR( 3 ), 0.0D0 )
+         FNA         = MAX ( FNA - CONCR( 3 ), 0.0D0 )
+
+         CONCR( 1 )  = MIN ( FNA, CONC( 5 ) )                ! NaCl
+         FCL         = MAX ( CONC( 5 ) - CONCR( 1 ), 0.0D0 )
+         FNA         = MAX ( FNA - CONCR( 1 ), 0.0D0 )
+
+         CONCR( 5 )  = MIN ( FNO3, CONC( 3 ) )               ! NH4NO3
+         FNO3        = MAX ( FNO3 - CONCR( 5 ), 0.0D0 )
+         FNH4        = MAX ( CONC( 3 ) - CONCR( 5 ), 0.0D0 )
+
+         CONCR( 6 )  = MIN ( FCL, FNH4 )                     ! NH4Cl
+         FCL         = MAX ( FCL - CONCR( 6 ), 0.0D0 )
+         FNH4        = MAX ( FNH4 - CONCR( 6 ), 0.0D0 )
+
+      ELSE IF ( SC .EQ. 'W13' ) THEN  ! sulfate poor, crustal+sodium rich
+         CASO4       = MIN ( CONC( 2 ), CONC( 6 ) )          ! CASO4
+         FCA         = MAX ( CONC( 6 ) - CASO4, 0.0D0 )
+         FSO4        = MAX ( CONC( 2 ) - CASO4, 0.0D0 )
+
+         CONCR( 17 ) = MIN ( FSO4, 0.5D0 * CONC( 7 ) )       ! K2SO4
+         FK          = MAX ( CONC( 7 ) - 2.0D0 * CONCR( 17 ), 0.0D0 )
+         FSO4        = MAX ( FSO4 - CONCR( 17 ), 0.0D0 )
+
+         CONCR( 21 ) = FSO4                                  ! MGSO4
+         FMG         = MAX ( CONC( 8 ) - CONCR( 21 ), 0.0D0 )
+
+         CONCR( 1 )  = MIN ( CONC( 1 ), CONC( 5 ) )          ! NACL
+         FNA         = MAX ( CONC( 1 ) - CONCR( 1 ), 0.0D0 )
+         FCL         = MAX ( CONC( 5 ) - CONCR( 1 ), 0.0D0 )
+
+         CONCR( 16 ) = MIN ( FCA, 0.5D0 * FCL )              ! CACL2
+         FCA         = MAX ( FCA - CONCR( 16 ), 0.0D0 )
+         FCL         = MAX ( CONC( 5 ) - 2.0D0 * CONCR( 16 ), 0.0D0 )
+
+         CONCR( 15 ) = MIN ( FCA, 0.5D0 * CONC( 4 ) )        ! CA(NO3)2
+         FCA         = MAX ( FCA - CONCR( 15 ), 0.0D0 )
+         FNO3        = MAX ( CONC( 4 ) - 2.0D0 * CONCR( 15 ), 0.0D0 )
+
+         CONCR( 23 ) = MIN ( FMG, 0.5D0 * FCL )              ! MGCL2
+         FMG         = MAX ( FMG - CONCR( 23 ), 0.0D0 )
+         FCL         = MAX ( FCL - 2.0D0 * CONCR( 23 ), 0.0D0 )
+
+         CONCR( 22 ) = MIN ( FMG, 0.5D0 * FNO3 )             ! MG(NO3)2
+         FMG         = MAX ( FMG - CONCR( 22 ), 0.0D0 )
+         FNO3        = MAX ( FNO3 - 2.0D0 * CONCR( 22 ), 0.0D0 )
+
+         CONCR( 3 )  = MIN ( FNA, FNO3 )                     ! NANO3
+         FNA         = MAX ( FNA - CONCR( 3 ), 0.0D0 )
+         FNO3        = MAX ( FNO3 - CONCR( 3 ), 0.0D0 )
+
+         CONCR( 20 ) = MIN ( FK, FCL )                       ! KCL
+         FK          = MAX ( FK - CONCR( 20 ), 0.0D0 )
+         FCL         = MAX ( FCL - CONCR( 20 ), 0.0D0 )
+
+         CONCR( 19 ) = MIN ( FK, FNO3 )                      ! KNO3
+         FK          = MAX ( FK - CONCR( 19 ), 0.0D0 )
+         FNO3        = MAX ( FNO3 - CONCR( 19 ), 0.0D0 )
+
+      ELSE IF ( SC .EQ. 'L9' ) THEN  ! sulfate rich, no free acid
+         CASO4       = MIN ( CONC( 6 ), CONC( 2 ) )          ! CCASO4
+         FSO4        = MAX ( CONC( 2 ) - CASO4, 0.0D0 )
+         FCA         = MAX ( CONC( 6 ) - CASO4, 0.0D0 )
+
+         CONCR( 17 ) = MIN ( 0.5D0 * CONC( 7 ), FSO4 )       ! CK2SO4
+         FK          = MAX ( CONC( 7 ) - 2.0D0 * CONCR( 17 ), 0.0D0 )
+         FSO4        = MAX ( FSO4 - CONCR( 17 ), 0.0D0 )
+
+         CONCR( 2 )  = MIN ( 0.5D0 * CONC( 1 ), FSO4 )       ! CNA2SO4
+         FNA         = MAX ( CONC( 1 ) - 2.0D0 * CONCR( 2 ), 0.0D0 )
+         FSO4        = MAX ( FSO4 - CONCR( 2 ), 0.0D0 )
+
+         CONCR( 21 ) = MIN ( CONC( 8 ), FSO4 )               ! CMGSO4
+         FMG         = MAX ( CONC( 8 ) - CONCR( 21 ), 0.0D0 )
+         FSO4        = MAX ( FSO4 - CONCR( 21 ), 0.0D0 )
+
+         CONCR( 13 ) = MIN ( CONC( 3 ) / 3.0D0, FSO4 / 2.0D0 ) ! CLC
+         FSO4        = MAX ( FSO4 - 2.0D0 * CONCR( 13 ), 0.0D0 )
+         FNH4        = MAX ( CONC( 3 )- 3.0D0 * CONCR( 13 ),  0.0D0 )
+
+         IF ( FSO4 .LE. SMALL ) THEN                           ! convert (NH4)3H(SO4)2 to (NH4)2SO4
+            CONCR( 13 ) = MAX( CONCR( 13 ) - FNH4, 0.0D0 )
+            CONCR(  4 ) = 2.0D0 * FNH4                         ! CNH42S4 
+
+         ELSE IF ( FNH4 .LE. SMALL ) THEN                      ! convert (NH4)3H(SO4)2 to NH4HSO4
+            CONCR(  9 ) = 3.0D0 * MIN( FSO4, CONCR( 13 ) )     ! CNH4HS4
+            CONCR( 13 ) = MAX( CONCR( 13 ) - FSO4, 0.0D0 )     ! CLC, (NH4)3H(SO4)2
+            IF ( CONCR( 2 ) .GT. SMALL ) THEN                  ! convert Na2SO4 to NaHSO4
+               FSO4        = MAX( FSO4 - CONCR( 9 ) / 3.0D0, 0.0D0 )
+               CONCR( 12 ) = 2.0D0 * FSO4                      ! CNAHSO4
+               CONCR(  2 ) = MAX( CONCR( 2 ) - FSO4, 0.0D0 )   ! CNA2SO4
+            END IF
+            IF ( CONCR( 17 ) .GT. SMALL ) THEN                 ! convert K2SO4 to KHSO4
+               FSO4        = MAX( FSO4 - CONCR( 9 ) / 3.0D0, 0.0D0 )
+               CONCR( 18 ) = 2.0D0 * FSO4                      ! CKHSO4
+               CONCR( 17 ) = MAX( CONCR( 17 ) - FSO4, 0.0D0 )  ! CK2SO4
+            END IF
+         END IF
+         
+      ELSE IF ( SC .EQ. 'K4' ) THEN ! sulfate super rich, free acid
+         CONCR(  9 ) = CONC( 3 )                               ! NH4HSO4 = NH3
+         CONCR( 12 ) = CONC( 1 )                               ! NaHSO4  = Na
+         CONCR( 18 ) = CONC( 7 )                               ! KHSO4   = K
+         CONCR( 21 ) = CONC( 8 )                               ! MgSO4   = Mg
+         CONCR(  7 ) = MAX( CONC( 2 ) - CONC( 3 ) - CONC( 1 )
+     &                    - CONC( 6 ) - CONC( 7 ) - CONC( 8 ), 0.0D0 ) ! H2SO4 = SO4 - NH4 - Na - Ca - K - Mg
 
       ELSE
-        PRINT*, 'aero_subs.f: case not supported ',
+         PRINT*, 'aero_subs.f: case not supported ',
      &          '(metastable reverse only)'
-c        STOP
-      ENDIF
+!        STOP
+      END IF
 
-c     Get single-solute molalities for ZSR calculation
-      CALL GETM0I (M0I)
+C     Get single-solute molalities for ZSR calculation
+      CALL GETM0I ( M0I )
 
-c     Calculate H2O with ZSR and determine delta water
-      WATER = 0.d0
+C     Calculate H2O with ZSR and determine delta water
+      WATER = 0.0D0
       DO J = 1, NPAIR
-        WATER = WATER + CONCR(J) / M0I(J)
-      ENDDO
+         WATER = WATER + CONCR( J ) / M0I( J )
+      END DO
 
-      WATER = MAX (WATER, SMALL)
+      WATER = MAX ( WATER, SMALL )
       H2O_NEW = WATER / Mw
 
       END SUBROUTINE CALC_H2O
@@ -3742,129 +3941,159 @@ c-----------------------------------------------------------------------
 
       IMPLICIT NONE
 
-      INTEGER, PARAMETER :: NCMP  = 5    ! number of aerosol components
-      REAL*8, PARAMETER  :: SMALL = 1.d-20
+      INTEGER, PARAMETER :: NCMP = 8    ! was NCMP  = 5    ! number of aerosol components
+      REAL( 8 ), PARAMETER :: SMALL = 1.0D-20
 
-c     ------------------------
-c     Input/Output Declaration
-c     ------------------------
-      REAL*8  :: CONC(NCMP)
-      REAL*8  :: RH, T
-      CHARACTER(len=2) :: SC
+C Arguments:
+!     REAL( 8 ), INTENT( IN )    :: CONC(  NCMP )
+      REAL( 8 ), INTENT( INOUT ) :: CONC(  NCMP )
+      REAL( 8 ), INTENT( IN )    :: RH, T
+      CHARACTER( 3 ), INTENT( OUT ) :: SC
+            
+C Local Variables:
+      REAL( 8 ) :: T0, TCF                     ! DRH(T) factor
+      REAL( 8 ) :: S4RAT, S4RATW, NaRAT, SRI   ! sulfate & sodium ratios
+      REAL( 8 ) :: CRAT                        ! crustals ratio
+      REAL( 8 ) :: FSO4                        ! "free" sulfate
+      REAL( 8 ) :: DNACL, DNH4CL, DNANO3, DNH4NO3, DNH42S4 ! DRH values
 
-c     -----------------
-c     Local Declaration
-c     -----------------
-      REAL*8  :: T0, TCF                     ! DRH(T) factor
-      REAL*8  :: S4RAT, S4RATW, NaRAT, SRI   ! sulfate & sodium ratios
-      REAL*8  :: FSO4                        ! "free" sulfate
-      REAL*8  :: DNACL, DNH4CL, DNANO3, DNH4NO3, DNH42S4 ! DRH values
+      REAL( 8 ) :: GETASR    ! ISORROPIA function for sulfate ratio
 
-      REAL*8  :: GETASR    ! ISORROPIA function for sulfate ratio
+      LOGICAL :: SCP1R, SCP2R, SCP3R, SCP4R ! concentration regime
 
-      LOGICAL :: NH4S4, NH4S4N3, ALLSP  ! concentration regime
+C-----------------------------------------------------------------------
 
-c     ---------------
-c     Begin Execution
-c     ---------------
+      SCP1R = .FALSE.
+      SCP2R = .FALSE.
+      SCP3R = .FALSE.
+      SCP4R = .FALSE.
 
-      NH4S4   = .FALSE.  ! NH4-SO4
-      NH4S4N3 = .FALSE.  ! NH4-SO4-NO3
-      ALLSP   = .FALSE.  ! all species
+C     See if any components are negligible (see isocom.for)
+      IF ( CONC( 1 ) + CONC( 4 ) + CONC( 5 ) + 
+     &     CONC( 6 ) + CONC( 7 ) + CONC( 8 ) .LE. SMALL ) THEN       ! Ca,K,Mg,Na,Cl,NO3=0
+         SCP1R = .TRUE.                                    
+      ELSE IF ( CONC( 1 ) +        CONC( 5 ) +
+     &          CONC( 6 ) + CONC( 7 ) + CONC( 8 ) .LE. SMALL ) THEN  ! Ca,K,Mg,Na,Cl=0
+         SCP2R = .TRUE.                                     
+      ELSE IF ( CONC( 6 ) + CONC( 7 ) + CONC( 8 ) .LE. SMALL ) THEN  ! Ca,K,Mg=0
+         SCP3R = .TRUE.                                     
+      ELSE                                                           ! all species
+         SCP4R = .TRUE.
+      END IF
 
-c     See if any components are negligible
-      IF (CONC(1) + CONC(4) + CONC(5) <= SMALL) THEN   ! Na,Cl,NO3=0
-        NH4S4 = .TRUE.
-      ELSE IF (CONC(1) + CONC(5) <= SMALL) THEN        ! Na,Cl=0
-        NH4S4N3 = .TRUE.
-      ELSE
-        ALLSP = .TRUE.
-      ENDIF
+      CONC( : ) = MAX ( CONC( : ), SMALL )
 
-      CONC(:) = MAX (CONC(:), SMALL)
+C     Deliquescence RH calculations
+      DNH42S4 = 0.7997D0
+      DNH4NO3 = 0.6183D0
+      IF ( INT( T ) .NE. 298 ) THEN
+         T0      = 298.15D0
+         TCF     = 1.0D0 / T - 1.0D0 / T0
+         DNH4NO3 = DNH4NO3 * EXP( 852.0D0 * TCF )
+         DNH42S4 = DNH42S4 * EXP(  80.0D0 * TCF )
+         DNH4NO3 = MIN ( DNH4NO3, DNH42S4 ) ! adjust for curves crossing T<271K
+      END IF
 
-c     Deliquescence RH calculations
-      DNH42S4 = 0.7997d0
-      DNH4NO3 = 0.6183d0
-      IF (INT(T) .NE. 298) THEN
-         T0      = 298.15d0
-         TCF     = 1.d0 / T - 1.d0 / T0
-         DNH4NO3 = DNH4NO3 * EXP(852.d0 * TCF)
-         DNH42S4 = DNH42S4 * EXP( 80.d0 * TCF)
-         DNH4NO3 = MIN (DNH4NO3,DNH42S4) ! adjust for curves crossing T<271K
-      ENDIF
+C     Find sub-case "SC"
+      IF ( SCP1R ) THEN ! NH4-S04 system
 
-c     Find sub-case "SC"
-      IF ( NH4S4 ) THEN ! NH4-S04 system
+         IF ( RH .GE. DNH42S4 ) THEN
+            S4RATW = GETASR( CONC( 2 ), RH ) ! aerosol sulfate ratio
+         ELSE
+            S4RATW = 2.0D0                ! dry aerosol sulfate ratio
+         END IF
+         S4RAT  = CONC( 3 ) / CONC( 2 )     ! sulfate ratio (NH4/SO4)
 
-        IF (RH >= DNH42S4) THEN
-          S4RATW = GETASR(CONC(2), RH) ! aerosol sulfate ratio
-        ELSE
-          S4RATW = 2.d0                ! dry aerosol sulfate ratio
-        ENDIF
-        S4RAT  = CONC(3) / CONC(2)     ! sulfate ratio (NH4/SO4)
+         IF ( S4RATW .LE. S4RAT ) THEN      ! sulfate poor
+            SC = 'S2'
+         ELSE IF ( 1.0D0 .LE. S4RAT .AND. S4RAT .LT. S4RATW ) THEN ! sulfate rich (no acid)
+            SC = 'B4'
+         ELSE IF ( S4RAT .LT. 1.0D0 ) THEN   ! sulfate rich (free acid)
+            SC = 'C2'
+         END IF
 
-        IF (S4RATW <= S4RAT) THEN      ! sulfate poor
-          SC = 'K2'
-        ELSEIF (1.d0 <= S4RAT .AND. S4RAT < S4RATW) THEN ! sulfate rich (no acid)
-          SC = 'L4'
-        ELSEIF (S4RAT < 1.d0) THEN   ! sulfate rich (free acid)
-          SC = 'M2'
-        ENDIF
+      ELSE IF ( SCP2R ) THEN ! NH4-SO4-NO3 system
 
-      ELSEIF ( NH4S4N3 ) THEN ! NH4-SO4-NO3 system
+         IF ( RH .GE. DNH4NO3 ) THEN
+            S4RATW = GETASR( CONC( 2 ), RH )
+         ELSE
+            S4RATW = 2.0D0               ! dry aerosol ratio
+         END IF
+         S4RAT = CONC( 3 ) / CONC( 2 )
 
-        IF (RH >= DNH4NO3) THEN
-          S4RATW = GETASR(CONC(2), RH)
-        ELSE
-          S4RATW = 2.d0               ! dry aerosol ratio
-        ENDIF
-        S4RAT = CONC(3) / CONC(2)
+         IF ( S4RATW .LE. S4RAT ) THEN     ! sulfate poor
+            SC = 'N3'
+         ELSE IF ( 1.0D0 .LE. S4RAT .AND. S4RAT .LT. S4RATW ) THEN  ! sulfate rich (no acid)
+            SC = 'B4'
+         ELSE IF ( S4RAT .LT. 1.0D0 ) THEN    ! sulfate rich (free acid)
+            SC = 'C2'
+         END IF
 
-10      IF (S4RATW <= S4RAT) THEN     ! sulfate poor
-          SC = 'N3'
-        ELSEIF (1.d0 <= S4RAT .AND. S4RAT < S4RATW) THEN  ! sulfate rich (no acid)
-          SC = 'O4'
-        ELSEIF (S4RAT < 1.d0) THEN    ! sulfate rich (free acid)
-          SC = 'P2'
-        ENDIF
+      ELSE IF ( SCP3R )  THEN ! NH4-SO4-NO3-Na-Cl system
 
-      ELSEIF ( ALLSP )  THEN ! all species
+C        Adjust DRH of NH4NO3 for low temperature
+         DNACL  = 0.7528D0
+         DNANO3 = 0.7379D0
+         DNH4CL = 0.7710D0
+         IF ( INT( T ) .NE. 298 ) THEN
+            DNACL   = DNACL  * EXP(  25.0D0 * TCF )
+            DNANO3  = DNANO3 * EXP( 304.0D0 * TCF )
+            DNH4CL  = DNH4Cl * EXP( 239.0D0 * TCF )
+            DNH4NO3 = MIN ( DNH4NO3, DNH4CL, DNANO3, DNACL )
+         END IF
 
-c       Adjust DRH of NH4NO3 for low temperature
-        DNACL   = 0.7528d0
-        DNANO3  = 0.7379d0
-        DNH4CL  = 0.7710d0
-        IF (INT(T) .NE. 298) THEN
-          DNACL   = DNACL  * EXP( 25.d0 * TCF)
-          DNANO3  = DNANO3 * EXP(304.d0 * TCF)
-          DNH4CL  = DNH4Cl * EXP(239.d0 * TCF)
-          DNH4NO3 = MIN (DNH4NO3, DNH4CL, DNANO3, DNACL)
-        ENDIF
+         IF ( RH .GE. DNH4NO3 ) THEN
+            FSO4   = CONC( 2 ) - CONC( 1 ) / 2.0D0   ! sulfate unbound by Na+
+            FSO4   = MAX ( FSO4, SMALL )
+            SRI    = GETASR ( FSO4, RH )
+            S4RATW = ( CONC( 1 ) + FSO4 * SRI ) / CONC( 2 )
+            S4RATW = MIN ( S4RATW, 2.0D0 )
+         ELSE
+            S4RATW = 2.0D0                       ! ratio for dry aerosol
+         END IF
+         S4RAT = ( CONC( 1 ) + CONC( 3 ) ) / CONC( 2 )
+         NaRAT = CONC( 1 ) / CONC( 2 )
 
-        IF (RH >= DNH4NO3) THEN
-          FSO4   = CONC(2) - CONC(1) / 2.d0   ! sulfate unbound by Na+
-          FSO4   = MAX (FSO4, SMALL)
-          SRI    = GETASR(FSO4, RH)
-          S4RATW = (CONC(1) + FSO4 * SRI) / CONC(2)
-          S4RATW = MIN (S4RATW, 2.d0)
-        ELSE
-          S4RATW = 2.d0                       ! ratio for dry aerosol
-        ENDIF
-        S4RAT = (CONC(1) + CONC(3)) / CONC(2)
-        NaRAT = CONC(1) / CONC(2)
+         IF ( S4RATW .LE. S4RAT .AND. NaRAT .LT. 2.0D0 ) THEN ! sulfate poor, sodium poor
+            SC = 'Q5'
+         ELSE IF ( S4RAT .GE. S4RATW .AND. NaRAT .GE. 2.0D0 ) THEN ! SO4 poor, Na rich
+            SC = 'R6'
+         ELSE IF ( 1.0D0 .LE. S4RAT .AND. S4RAT .LT. S4RATW ) THEN ! SO4 rich, no acid
+            SC = 'I6'
+         ELSE IF ( S4RAT .LT. 1.0D0 ) THEN ! sulfate rich, free acid
+            SC = 'J3'
+         END IF
 
-        IF (S4RATW <= S4RAT .AND. NaRAT < 2.d0) THEN ! sulfate poor, sodium poor
-          SC = 'Q5'
-        ELSE IF (S4RAT >= S4RATW .AND. NaRAT >= 2.d0) THEN ! SO4 poor, Na rich
-          SC = 'R6'
-        ELSEIF (1.d0 <= S4RAT .AND. S4RAT < S4RATW) THEN ! SO4 rich, no acid
-          SC = 'S6'
-        ELSEIF (S4RAT < 1.d0) THEN ! sulfate rich, free acid
-          SC = 'T3'
-        ENDIF
+      ELSE IF ( SCP4R ) THEN ! NH4-SO4-Na-Cl-Ca-K-Mg system
 
-      ENDIF
+         ! Do I need an RH if check here????
+         FSO4   = CONC( 2 ) - CONC( 1 ) / 2.0D0
+     &          - CONC( 6 ) - CONC( 7 ) / 2.0D0 - CONC( 8 )  ! sulfate unbound by sodium,calcium,pottasium,magnesium
+         FSO4   = MAX ( FSO4, SMALL )
+         SRI    = GETASR( FSO4, RH )                         ! sulfate ratio for NH4+
+         S4RATW = ( CONC( 1 ) + FSO4 * SRI + CONC( 6 )
+     &            + CONC( 7 ) + CONC( 8 ) ) / CONC( 2 )      ! limiting sulfate ratio
+         S4RATW = MIN ( S4RATW, 2.0D0 )
+         S4RAT = ( CONC( 1 ) + CONC( 3 ) + CONC( 6 ) + CONC( 7 ) + CONC( 8 ) ) / CONC( 2 ) ! sulfate ratio
+         NaRAT = ( CONC( 1 ) + CONC( 6 ) + CONC( 7 ) + CONC( 8 ) ) / CONC( 2 ) ! crustals+sodium ratio
+         CRAT  = ( CONC( 6 ) + CONC( 7 ) + CONC( 8 ) ) / CONC( 2 )             ! crustals ratio
+
+         IF ( S4RATW .LE. S4RAT .AND. NaRAT .LT. 2.0D0 ) THEN ! sulfate, sodium, crustal poor
+            SC = 'V7'
+         ELSE IF ( S4RAT .GE. S4RATW .AND. NaRAT .GE. 2.0D0 ) THEN
+            IF ( CRAT .LE. 2.0D0 ) THEN       ! sulfate poor, dust+sodium rich, dust poor
+               SC = 'U8'
+            ELSE                              ! sulfate poor, dust+sodium rich, dust rich
+               SC = 'W13'
+            END IF
+         ELSE IF ( 1.0D0 .LE. S4RAT .AND. S4RAT .LT. S4RATW ) THEN ! sulfate rich, no acid
+            SC = 'L9'
+         ELSE IF ( S4RAT .LT. 1.0D0 ) THEN     ! sulfate rich, free acid
+            SC = 'K4'
+         END IF
+      END IF
+
+      !print*,'SUBCASE identified in calc_h2o', SC
 
       END SUBROUTINE GETSC
 

@@ -1037,6 +1037,7 @@ end do
 fpn = 1. - fpc
 do i = 1, naqueous
   scav(i) = ( fpn + fcc * fpc ) * scav(i)
+  scav(i) = MIN(scav(i),1.00E-3) ! cap based on Loosmore and Cederwall (2004)
 end do
 
 9999  return

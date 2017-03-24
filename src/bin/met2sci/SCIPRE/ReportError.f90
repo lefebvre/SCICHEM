@@ -33,3 +33,20 @@ CLOSE(lunErr,IOSTAT=ios)
 
 RETURN
 END
+
+!==============================================================================
+
+SUBROUTINE ClearError()
+
+USE met2sci_fi
+
+IMPLICIT NONE
+
+error%Routine = ''
+error%Number  = NO_ERROR
+error%aString = ''
+error%bString = ''
+error%cString = ''
+
+RETURN
+END

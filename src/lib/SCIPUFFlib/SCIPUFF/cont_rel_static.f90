@@ -21,7 +21,7 @@ USE cont_rel_functions
 
 IMPLICIT NONE
 
-TYPE( cont_release_def ), INTENT( INOUT ) :: def        !defintion
+TYPE( cont_release_def ), INTENT( INOUT ) :: def        !definition
 INTEGER,                  INTENT( IN    ) :: irel       !release index - needed for static ID
 TYPE( cont_release_rel ), INTENT( INOUT ) :: rel        !release
 INTEGER,                  INTENT( IN    ) :: ipuf
@@ -498,6 +498,7 @@ REAL    vel, velmax, cpuff
 REAL    h, hx, hy, ur, vr, wr, dtx, diffTime, firstTime, diffT
 LOGICAL lsrf, lsrfm
 LOGICAL ldyn
+LOGICAL lextraUpdate
 
 TYPE( cont_release_def ),    POINTER :: def
 TYPE( cont_release_set ),    POINTER :: set
@@ -530,6 +531,7 @@ IF( stat%doStatics )THEN
   lsrf  = .FALSE.
   lsrfm = .FALSE.
   ldyn  = .FALSE.
+  lextraUpdate = .FALSE.
   def => col%firstDef
   DO WHILE( ASSOCIATED(def) )
     IF( def%state /= CR_EMPTY )THEN
@@ -541,52 +543,55 @@ IF( stat%doStatics )THEN
       END IF
     END IF
     IF( def%state == CR_ACTIVE )THEN
-      set => def%rSet
-      IF( set%nrel > 0 )THEN
-        stat%tstat = MIN(stat%tstat,0.1*def%dur)
-        DO irel = 1,set%nrel
-          p => set%rels(irel)%basePuff
-          ityp = p%ityp
-          icls = typeID(ityp)%icls
-          lsrf = lsrf .OR. srf_puff(ityp,1)%nblocks > 0 .OR. srf_puff(ityp,2)%nblocks > 0
+      lextraUpdate = lextraUpdate .OR. def%extraUpdate
+      IF( .NOT. lextraUpdate )THEN
+        set => def%rSet
+        IF( set%nrel > 0 )THEN
+          stat%tstat = MIN(stat%tstat,0.1*def%dur)
+          DO irel = 1,set%nrel
+            p => set%rels(irel)%basePuff
+            ityp = p%ityp
+            icls = typeID(ityp)%icls
+            lsrf = lsrf .OR. srf_puff(ityp,1)%nblocks > 0 .OR. srf_puff(ityp,2)%nblocks > 0
 
-          stat%step = MIN(stat%step,tstep-set%rels(irel)%time)
-          stat%dur  = MIN(stat%dur,def%end-set%rels(irel)%time)
+            stat%step = MIN(stat%step,tstep-set%rels(irel)%time)
+            stat%dur  = MIN(stat%dur,def%end-set%rels(irel)%time)
 
-          ifld = getPuffifld( set%rels(irel)%basePuff )
-          IF( lter )THEN
-            CALL get_topogIn( p%xbar,p%ybar,h,hx,hy,ifld )
-            IF( nError /= NO_ERROR )GOTO 9999
-          ELSE
-            h = 0.
-          END IF
+            ifld = getPuffifld( set%rels(irel)%basePuff )
+            IF( lter )THEN
+              CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),h,hx,hy,ifld )
+              IF( nError /= NO_ERROR )GOTO 9999
+            ELSE
+              h = 0.
+            END IF
 
-          IF( def%isMoving )lsrfm = lsrfm .OR. p%zbar-h < 3.*SQRT(p%szz)
+            IF( def%isMoving )lsrfm = lsrfm .OR. p%zbar-h < 3.*SQRT(p%szz)
 
-          CALL get_met( p%xbar,p%ybar,p%zbar,p%szz,0.0,0,inField=ifld )
-          IF( lsv_oper )CALL reset_lsv( p%si )
-          ur  = ub - def%vel%x
-          vr  = vb - def%vel%y
-          wr  = wb - def%vel%z
-          qqb = uub + vvb + 2.*(uubl+vvbl) + wwbh + 1.E-6
-          vel = SQRT(ur*ur + vr*vr + wr*wr + qqb)
-          velmax = MAX(velmax,vel)
+            CALL get_met( SNGL(p%xbar),SNGL(p%ybar),p%zbar,p%szz,0.0,0,inField=ifld )
+            IF( lsv_oper )CALL reset_lsv( p%si )
+            ur  = ub - def%vel%x
+            vr  = vb - def%vel%y
+            wr  = wb - def%vel%z
+            qqb = uub + vvb + 2.*(uubl+vvbl) + wwbh + 1.E-6
+            vel = SQRT(ur*ur + vr*vr + wr*wr + qqb)
+            velmax = MAX(velmax,vel)
 
 !------ No statics if dynamic jet velocity is near to reversal
 
-          IF( dynamic )THEN
-            CALL get_dynamics( set%rels(irel)%basePuff,pd )
-            cpuff = set%rels(irel)%basePuff%c
-            IF( cpuff > SMALL )THEN
-            IF( ub*(ub+pd%ucb/cpuff)+vb*(vb+pd%vcb/cpuff) < 0.0 )THEN
-              ldyn = ldyn .OR. ((ub+pd%ucb/cpuff)**2+(vb+pd%vcb/cpuff)**2 < 0.5*(ub*ub+vb*vb))
+            IF( dynamic )THEN
+              CALL get_dynamics( set%rels(irel)%basePuff,pd )
+              cpuff = set%rels(irel)%basePuff%c
+             IF( cpuff > SMALL )THEN
+              IF( ub*(ub+pd%ucb/cpuff)+vb*(vb+pd%vcb/cpuff) < 0.0 )THEN
+                ldyn = ldyn .OR. ((ub+pd%ucb/cpuff)**2+(vb+pd%vcb/cpuff)**2 < 0.5*(ub*ub+vb*vb))
+              END IF
+             END IF
             END IF
-            END IF
-          END IF
-          NULLIFY( p )
-        END DO
+            NULLIFY( p )
+          END DO
+        END IF
+        NULLIFY( set )
       END IF
-      NULLIFY( set )
     END IF
     def => def%nextDef
   END DO
@@ -597,6 +602,7 @@ IF( stat%doStatics )THEN
   IF( diffTime /= DEF_VAL_R .AND. diffTime > 0.0 )stat%tstat = MIN(stat%tstat,0.5*diffTime)
   stat%doStatics = (dtx <= 0.1*stat%tstat) .AND. .NOT.(lsrf .AND. lsrfm)
   IF( ldyn )stat%doStatics = .FALSE.
+  IF( lextraUpdate )stat%doStatics = .FALSE.
 
 !------ create vapor puffs for definitions of liquid materials that will do statics
 
@@ -1145,8 +1151,8 @@ StaticCreate: DO WHILE( tr <= stat%tstat .AND. .NOT.lsplit .AND. lrealizable )
 
         isprv = ps%isprv
         DO WHILE( isprv > 0 )
-          puff(isprv)%xbar = puff(isprv)%xbar + um*dt*xmap
-          puff(isprv)%ybar = puff(isprv)%ybar + vm*dt*ymap
+          puff(isprv)%xbar = puff(isprv)%xbar + DBLE(um*dt*xmap)
+          puff(isprv)%ybar = puff(isprv)%ybar + DBLE(vm*dt*ymap)
           puff(isprv)%zbar = puff(isprv)%zbar + wm*dt
           CALL get_static( puff(isprv),pso )
           isprv = pso%isprv
@@ -1351,9 +1357,10 @@ DO ipuf = minPuff,maxPuff
 
   IF( typeID(ityp)%ltot )CALL get_totalcc( puff(ipuf),pti )
 
+  IF( lmc )CALL GetInterMC1(  puff(ipuf) )
 !---  Set interaction parameters for ipuf
 
-  CALL mapfac( puff(ipuf)%xbar,puff(ipuf)%ybar,xmap_i,ymap_i )
+  CALL mapfac( SNGL(puff(ipuf)%xbar),SNGL(puff(ipuf)%ybar),xmap_i,ymap_i )
 
   CALL test_refl( puff(ipuf),lrfl_ipuf,zp,h,hx,hy )
 
@@ -1581,6 +1588,7 @@ IF( IsMulti(icls) )THEN
   IF( nError /= NO_ERROR )GOTO 9999
 END IF
 
+
 9999 CONTINUE
 
 RETURN
@@ -1600,11 +1608,12 @@ TYPE( puff_str ),              INTENT( INOUT ) :: pvap
 TYPE( cont_release_triad_R4 ), INTENT( IN    ) :: v
 TYPE( cont_release_triad_R4 ), INTENT( INOUT ) :: vvap
 
-REAL tot, r1, r2, xbar, ybar, zbar, xmap, ymap
-REAL ddx1, ddx2, ddy1, ddy2, ddz1, ddz2
-REAL pzc, vzc
+REAL(8) xbar, ybar
+REAL    tot, r1, r2, zbar, xmap, ymap
+REAL    ddx1, ddx2, ddy1, ddy2, ddz1, ddz2
+REAL    pzc, vzc
 
-CALL mapfac( p%xbar,p%ybar,xmap,ymap )
+CALL mapfac( SNGL(p%xbar),SNGL(p%ybar),xmap,ymap )
 
 tot = p%c + pvap%c
 IF( tot > SMALL )THEN
@@ -1619,14 +1628,14 @@ vvap%x = r1*v%x + r2*vvap%x
 vvap%y = r1*v%y + r2*vvap%y
 vvap%z = r1*v%z + r2*vvap%z
 
-xbar = r1*p%xbar + r2*pvap%xbar
-ybar = r1*p%ybar + r2*pvap%ybar
+xbar = DBLE(r1)*p%xbar + DBLE(r2*pvap%xbar)
+ybar = DBLE(r1)*p%ybar + DBLE(r2*pvap%ybar)
 zbar = r1*p%zbar + r2*pvap%zbar
 
-ddx1 = (p%xbar    - xbar)/xmap
-ddx2 = (pvap%xbar - xbar)/xmap
-ddy1 = (p%ybar    - ybar)/ymap
-ddy2 = (pvap%ybar - ybar)/ymap
+ddx1 = SNGL(p%xbar    - xbar)/xmap
+ddx2 = SNGL(pvap%xbar - xbar)/xmap
+ddy1 = SNGL(p%ybar    - ybar)/ymap
+ddy2 = SNGL(pvap%ybar - ybar)/ymap
 ddz1 =  p%zbar    - zbar
 ddz2 =  pvap%zbar - zbar
 
@@ -1772,7 +1781,7 @@ dtx = 0.25*(dtr*dtr-dt*dt)
 ilev = MAX(ilev,prel%idtl)
 
 ifld = getPuffifld( prel )
-CALL get_met( prel%xbar,prel%ybar,prel%zbar,prel%szz,0.0,0,inField=ifld )
+CALL get_met( SNGL(prel%xbar),SNGL(prel%ybar),prel%zbar,prel%szz,0.0,0,inField=ifld )
 
 !------ Pass release timestep back
 

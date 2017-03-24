@@ -21,7 +21,7 @@ MODULE error_fi
 
   ! Caution counters
 
-  INTEGER nRelOutsideDomain
+  INTEGER nRelOutsideDomain, nCRelOutsideDomain
   INTEGER nRelBeforeStart
   INTEGER nStopSplit
   INTEGER nDezoneSrf

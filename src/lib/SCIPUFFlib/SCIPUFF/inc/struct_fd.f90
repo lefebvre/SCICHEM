@@ -12,7 +12,8 @@ MODULE puffstruct_fd
 
   TYPE  puff_str !Basic puff structure - by variable name
     SEQUENCE
-    REAL    xbar,ybar,zbar
+    REAL(8) xbar,ybar
+    REAL    zbar
     REAL    sxx,sxy,sxz,syy,syz,szz
     REAL    axx,axy,axz,ayy,ayz,azz,det
     REAL    c,cc,xuc,xvc,yvc,yvsc,yvbc,zwc,wc,ccb
@@ -26,7 +27,8 @@ MODULE puffstruct_fd
 
   TYPE  puff_str_xc !Basic puff structure - by array name
     SEQUENCE
-    REAL,    DIMENSION(3)       :: xcent
+    REAL(8), DIMENSION(2)       :: xcent
+    REAL                        :: zbar
     REAL,    DIMENSION(6)       :: sig
     REAL,    DIMENSION(7)       :: asig
     REAL,    DIMENSION(NP_SUM)  :: psum
@@ -37,6 +39,7 @@ MODULE puffstruct_fd
 
   TYPE  puff_str_ri !Basic puff structure - by variable TYPE
     SEQUENCE
+    REAL(8), DIMENSION(NP_DBLE) :: p_dble
     REAL,    DIMENSION(NP_REAL) :: p_real
     INTEGER, DIMENSION(NP_INT)  :: p_int
     REAL, DIMENSION(:), POINTER :: aux
@@ -44,9 +47,16 @@ MODULE puffstruct_fd
 
   TYPE  puff_str_ri_NOaux !Basic puff structure - by variable TYPE - w/o aux. Used in reading old puff files
     SEQUENCE
+    REAL(8), DIMENSION(NP_DBLE) :: p_dble
     REAL,    DIMENSION(NP_REAL) :: p_real
     INTEGER, DIMENSION(NP_INT)  :: p_int
   END TYPE  puff_str_ri_NOaux
+
+  TYPE  puff_str_ri_NOaux_old !Basic puff structure - by variable TYPE - w/o aux. Used in reading old puff files
+    SEQUENCE
+    REAL,    DIMENSION(NP_REAL+2) :: p_real
+    INTEGER, DIMENSION(NP_INT)    :: p_int
+  END TYPE  puff_str_ri_NOaux_old
 
 END MODULE puffstruct_fd
 !=======================================================================

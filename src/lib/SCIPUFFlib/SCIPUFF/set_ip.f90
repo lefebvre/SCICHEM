@@ -24,7 +24,7 @@ DO ipuf = n1,n2
 
 !------ find appropriate ipgrd location
 
-  CALL mapfac( puff(ipuf)%xbar,puff(ipuf)%ybar,xmap,ymap )
+  CALL mapfac( SNGL(puff(ipuf)%xbar),SNGL(puff(ipuf)%ybar),xmap,ymap )
 
   igrd = PuffGridLevel( puff(ipuf)%sxx,puff(ipuf)%syy,xmap,ymap )
   IF( nError /= NO_ERROR )THEN

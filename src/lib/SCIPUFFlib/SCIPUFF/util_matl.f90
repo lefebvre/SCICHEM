@@ -45,7 +45,6 @@ INTEGER NumDenseAux
 
 LOGICAL, EXTERNAL :: IsGas,IsParticle
 LOGICAL, EXTERNAL :: IsWetParticle,IsLiquid
-LOGICAL, EXTERNAL :: IsAerosol
 
 NumMaterialAux = 0
 
@@ -92,8 +91,6 @@ IF( IsLiquid(icls) .AND. igrp > 1 )THEN
 ELSE IF( IsWetParticle(icls) )THEN
   NumMaterialAux = NumMaterialAux + NAUX_LIQUID
 END IF
-
-IF( IsAerosol(icls) )NumMaterialAux = NumMaterialAux + NAUX_AEROSOL
 
 RETURN
 END
@@ -158,18 +155,25 @@ INTEGER,      INTENT( OUT   ) :: idist
 
 INTEGER i, nsg, grp
 
-LOGICAL, EXTERNAL :: IsParticle, IsWetParticle
-LOGICAL, EXTERNAL :: IsLiquid
+LOGICAL, EXTERNAL :: IsParticle
+LOGICAL, EXTERNAL :: IsLiquid, IsWetParticle
 
 idist = 0
 ityp  = 0
 CALL cupper( rmat )
 
 DO i = 1,ntypm
-  IF( rmat == material(i)%cmat )ityp = i
+  IF( TRIM(rmat) == TRIM(material(i)%cmat) )ityp = i
 END DO
 
 IF( ityp == 0 )THEN
+  DO i = 1,16
+    ityp = ICHAR(rmat(i:i))
+    IF( ityp == 0 )THEN
+      rmat(i:i) = ' '
+      CONTINUE
+    END IF
+  END DO
   nError   = IV_ERROR
   eMessage = 'Unknown release material in scenario'
   eRoutine = 'set_rel_material'
@@ -351,8 +355,8 @@ DO imtl = 1,ntypm
           IOSTAT=ios )
     IF( ios /= 0 )THEN
       nError   = OP_ERROR
-      eRoutine = 'InitMaterialMC'
-      eMessage = 'Error opening multicomponent file'
+      eRoutine = 'SetTypeID'
+      eMessage = 'Error opening auxiliary material file'
       CALL ReportFileName( eInform,'File=',fname )
       eAction  = 'Make sure file exists'
       GOTO 9999

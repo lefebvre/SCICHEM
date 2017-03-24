@@ -134,9 +134,9 @@ IMPLICIT NONE
 
 !DEC# ATTRIBUTES DLLEXPORT :: SCIPWriteMaterialF
 
-INTEGER,                          INTENT( IN ) :: UserID
-TYPE( pmaterialT ),               INTENT( IN ) :: materialIO
-TYPE( materialT  ), DIMENSION(*), INTENT( IN ) :: mtlListIO
+INTEGER,                          INTENT( IN    ) :: UserID
+TYPE( pmaterialT ),               INTENT( INOUT ) :: materialIO
+TYPE( materialT  ), DIMENSION(*), INTENT( INOUT ) :: mtlListIO
 
 INTEGER, EXTERNAL :: WriteMaterialF
 
@@ -164,6 +164,29 @@ INTEGER, EXTERNAL :: WriteReleaseF
 SCIPWriteReleaseF = WriteReleaseF( UserID,releaseIO,relListIO )
 
 RETURN
+  END
+!*******************************************************************************
+!            Write Project ReleaseMC
+!*******************************************************************************
+INTEGER FUNCTION SCIPWriteReleaseMCF( UserID,releaseIO,relListIO,nMC,relMCList )
+
+USE relstruct_fd
+
+IMPLICIT NONE
+
+!DEC# ATTRIBUTES DLLEXPORT :: SCIPWriteReleaseMCF
+
+INTEGER,                          INTENT( IN ) :: UserID
+TYPE( preleaseT ),                INTENT( IN ) :: releaseIO
+TYPE( releaseT  ), DIMENSION(*),  INTENT( IN ) :: relListIO
+INTEGER,                          INTENT( IN ) :: nMC
+TYPE( releaseMCT ), DIMENSION(*), INTENT( IN ) :: relMCList
+
+INTEGER, EXTERNAL :: WriteReleaseMCF
+
+SCIPWriteReleaseMCF = WriteReleaseMCF( UserID,releaseIO,relListIO,nMC,relMCList )
+
+RETURN
 END
 !*******************************************************************************
 !            Write Project Weather
@@ -182,27 +205,6 @@ TYPE( pweatherT ), INTENT( IN ) :: weatherIO
 INTEGER, EXTERNAL :: WriteWeatherF
 
 SCIPWriteWeatherF = WriteWeatherF( UserID,weatherIO )
-
-RETURN
-END
-!*******************************************************************************
-!            Write Project Status
-!*******************************************************************************
-INTEGER FUNCTION SCIPWriteStatusF( UserID,statusIO,statListIO )
-
-USE statstruct_fd
-
-IMPLICIT NONE
-
-!DEC# ATTRIBUTES DLLEXPORT :: SCIPWriteStatusF
-
-INTEGER,               INTENT( IN ) :: UserID
-TYPE( pstatusT ),      INTENT( IN ) :: statusIO
-INTEGER, DIMENSION(*), INTENT( IN ) :: statListIO
-
-INTEGER, EXTERNAL :: WriteStatusF
-
-SCIPWriteStatusF = WriteStatusF( UserID,statusIO,statListIO )
 
 RETURN
 END
@@ -311,7 +313,7 @@ TYPE( SCIPPlotFieldT ),                                     INTENT( IN ) :: Fiel
 TYPE( SCIPPlotTypeT ),                                      INTENT( IN ) :: PlotType    !Plot definition
 TYPE( SCIPContourHeaderT ),                                 INTENT( IN ) :: contourHead !Contour array header
 TYPE( SCIPContourElementT ), DIMENSION(contourHead%number), TARGET, &
-                                                            INTENT( IN ) :: contourList !Contour array
+                                                         INTENT( INOUT ) :: contourList !Contour array
 TYPE( ARAPWriteT ),                                         INTENT( IN ) :: GUIWrite    !Draw instructions
 INTEGER,                                                    INTENT( IN ) :: nComment    !User supplied comments
 TYPE( char128T ),            DIMENSION(nComment),           INTENT( IN ) :: Comment     !User supplied comments
@@ -326,7 +328,7 @@ INTERFACE
     TYPE( SCIPPlotTypeT ),                     INTENT( IN ) :: PlotType     !Plot definition
     TYPE( SCIPContourHeaderT ),                INTENT( IN ) :: contourHead  !Contour array header
     TYPE( SCIPContourElementT ), DIMENSION(contourHead%number), TARGET, &
-                                               INTENT( IN ) :: contourList  !Contour array
+                                            INTENT( INOUT ) :: contourList  !Contour array
     TYPE( ARAPWriteT ),                        INTENT( IN ) :: GUIWrite     !Draw instructions
     INTEGER,                                   INTENT( IN ) :: nComment     !Number of User supplied comments
     TYPE( char128T ),     DIMENSION(nComment), INTENT( IN ) :: Comment      !User supplied comments

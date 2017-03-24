@@ -16,6 +16,7 @@ IMPLICIT NONE
 
 REAL    delt_old
 INTEGER i, j, ilev
+INTEGER is
 INTEGER ndos_blocks, irv
 
 CHARACTER(PATH_MAXLENGTH) :: file_dosAdj
@@ -209,10 +210,6 @@ USE cont_rel_fi
 IMPLICIT NONE
 
 INTEGER ios
-
-!------ initialize operational status flags
-
-CALL init_status_flags()
 
 !------ read project file
 
