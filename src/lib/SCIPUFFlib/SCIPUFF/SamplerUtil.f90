@@ -31,6 +31,7 @@ CHARACTER(*), INTENT( IN ) :: stitle
 INTEGER, PARAMETER :: NUMB_OFFSET = 48
 INTEGER, PARAMETER :: ALPH_OFFSET = 55
 
+CHARACTER(1) c, q
 CHARACTER(3) stmp
 CHARACTER(3) sbgrp
 INTEGER      is, ngrp, nvar
@@ -46,6 +47,9 @@ CHARACTER(MAXC) string, btem
 
 CHARACTER(8), DIMENSION(:), ALLOCATABLE :: xnam
 CHARACTER(8), DIMENSION(:), ALLOCATABLE :: anam
+
+q = CHAR(34)  !Double quote
+c = CHAR(44)  !Comma
 
 !------ Open sampler output file
 
@@ -97,8 +101,7 @@ ELSE !- Single-point Sensors
     GOTO 9999
   END IF
 
-!------ Write EPA sampler file header section
-
+!------ Write EPRI sampler file header section
   WRITE(lun_smp,'(A,F6.1)',IOSTAT=ios) '# Version: ',FLOAT(SamplerFileVersion)/10.
   IF( multicomp .AND. ios == 0 )WRITE(lun_asmp,'(A,F6.1)',IOSTAT=ios) '# Version: ',FLOAT(SamplerFileVersion)/10.
   IF( ios /= 0 )THEN
@@ -784,7 +787,6 @@ SUBROUTINE SetSamplerListTime()
 IF( .NOT.lSmpOutList )THEN
 
   dtSmpOut   = 0.
-  tStartSamp = 0.
 
 ELSE
 
@@ -797,7 +799,6 @@ ELSE
   END DO
   tStartSamp = SampTimeList%tStart
   dtSmpOut   = SampTimeList%dtSamp
-
 END IF
 
 RETURN
@@ -817,7 +818,7 @@ REAL    ts
 
 CHARACTER(64) string
 
-IF( lBinOut .OR. t > tEndSamp )RETURN
+IF( lBinOut )RETURN
 
 IF( lGridOut )THEN
 
@@ -1058,7 +1059,7 @@ END IF
 IF( nsmp > MAXSMP )THEN
   nError   = IV_ERROR
   eRoutine = 'AllocateSensor'
-  WRITE(eMessage,'("Number of samplers ",I0," exceed the maximum allowed value of ",I0)')nsmp,MAXSMP
+  WRITE(eMessage,'("Number of samplers exceed the maximum allowed value of ",I3)')MAXSMP
   eInform = "Use postprocessor to sample the integrated concentration output field"
   GOTO  9999
 END IF

@@ -494,8 +494,8 @@ IF( ios > 0 )THEN
   GOTO 9999
 END IF
 
-laqueous  =  aqueous
-laerosol  =  aerosol
+laerosol = aerosol
+laqueous = aqueous
 
 ! if aqueous is selected, then aerosol needs to be selected too.
 IF( laqueous )THEN

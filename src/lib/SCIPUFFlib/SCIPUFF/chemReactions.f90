@@ -33,10 +33,6 @@ MODULE chemReactions_fd
   INTEGER, PARAMETER :: ID_K_FALLOFF6  = 20  !Falloff (type 6)
   INTEGER, PARAMETER :: ID_K_H2        = 21  !H2 dependent
   INTEGER, PARAMETER :: ID_K_TEMPB     = 22  !Temperature dependent (type B)
-  !--- Reaction types for cb6r2
-  INTEGER, PARAMETER :: ID_K_FALLOFF7  = 23  !Falloff (type 7)
-  INTEGER, PARAMETER :: ID_K_M2        = 24  !M dependent
-
 END MODULE chemReactions_fd
 
 !-------------------------------------------------------------------------
@@ -68,9 +64,9 @@ INTEGER ios, i, nP, iP, ik, nreact, irv, alloc_stat, ndat
 REAL    fac, facB
 
 CHARACTER(4)   string
-CHARACTER(512) kstring, rstring
-CHARACTER(512) line, original
-CHARACTER(512), DIMENSION(:),POINTER ::  rline
+CHARACTER(256) kstring, rstring
+CHARACTER(256) line, original
+CHARACTER(256), DIMENSION(:),POINTER ::  rline
 
 LOGICAL lerr
 
@@ -84,8 +80,8 @@ INTERFACE
     USE error_fi
     IMPLICIT NONE
     INTEGER, INTENT( IN )                 :: nreact
-    CHARACTER(512), INTENT( IN )          :: line
-    CHARACTER(512), DIMENSION(:), POINTER :: rline
+    CHARACTER(256), INTENT( IN )          :: line
+    CHARACTER(256), DIMENSION(:), POINTER :: rline
   END SUBROUTINE ReallocateChemReactions
 
 END INTERFACE
@@ -273,7 +269,7 @@ DO ireact = 1,nreact
       ndat = 6
 
     !--- CB05 reaction types
-   CASE( ID_K_O2_M,ID_K_M2,ID_K_H2OSQ,ID_K_H2,ID_K_TEMPB )
+    CASE( ID_K_O2_M,ID_K_H2OSQ,ID_K_H2,ID_K_TEMPB )
       ndat = 3
 
     CASE( ID_K_FALLOFF5,ID_K_FALLOFF6 )
@@ -281,9 +277,6 @@ DO ireact = 1,nreact
 
     CASE( ID_K_FALLOFF4)
        ndat = 7
-
-    CASE( ID_K_FALLOFF7)
-       ndat = 8
 
     CASE DEFAULT
       eMessage = 'Error reading Multi-component equation.'//&
@@ -446,6 +439,7 @@ USE met_fi
 USE chemReactions_fd
 USE constants_fd
 USE default_fd
+USE AqAer_fi, ONLY: laerosol
 
 IMPLICIT NONE
 
@@ -538,9 +532,6 @@ DO i = 1,chem%nReactions
     CASE( ID_K_M )        !====== M dependent rates
       r%k = SNGL(r%data(1)*(DBLE(temp)**(-r%data(3)))*EXP(r%data(2)/DBLE(temp))*DBLE(mm))
 
-    CASE( ID_K_M2 )     !====== M dependent rates with general temp. dependence
-      r%k = SNGL(r%data(1)*((DBLE(temp*TI300))**(r%data(3)))*EXP(r%data(2)/DBLE(temp))*DBLE(mm))
-
     CASE( ID_K_O2 )       !====== O2 dependent rates
       r%k = SNGL(r%data(1)*(DBLE(temp)**(-r%data(3)))*EXP(r%data(2)/DBLE(temp))*DBLE(o2))
 
@@ -580,21 +571,12 @@ DO i = 1,chem%nReactions
     CASE( ID_K_H2OSQ )    !====== Water (2 molecules) dependent rates
       r%k = SNGL(r%data(1)*(DBLE(temp)**(-r%data(3)))*EXP(r%data(2)/DBLE(temp))*DBLE((ambH2O*ks_conv)**2))
 
-    CASE( ID_K_FALLOFF4,ID_K_FALLOFF7 )   !====== Falloff reaction rates
+    CASE( ID_K_FALLOFF4 )   !====== Falloff reaction rates
       f    = r%data(7)
       k0   = DBLE(mm)*r%data(1)*((DBLE(temp*TI300))**r%data(2))*EXP(r%data(3)/DBLE(temp))
       kinf = r%data(4)*((DBLE(temp*TI300))**r%data(5))*EXP(r%data(6)/DBLE(temp))
       b1   = k0/kinf
-
-      IF ( r%type == ID_K_FALLOFF4 ) THEN
-        z = 1.D0/(1.D0 + (LOG10(b1))**2)
-      ELSE
-        IF( r%data(8) == 0 ) THEN
-          z = 1.D0/(1.D0 + (LOG10(b1))**2)
-        ELSE
-          z = 1.D0/(1.D0 + (LOG10(b1)/r%data(8))**2)
-        END IF
-      END IF
+      z    = 1.D0/(1.D0 + (LOG10(b1))**2)
       r%k = SNGL((k0/(1.D0 + b1))*(f**z))
 
     CASE( ID_K_FALLOFF5,ID_K_FALLOFF6 )   !====== Falloff reaction rates
@@ -611,12 +593,9 @@ DO i = 1,chem%nReactions
       r%k = SNGL(r%data(1)*((DBLE(temp*TI300))**(r%data(3)))*EXP(r%data(2)/DBLE(temp)))
 
   END SELECT
-END DO
+
 !====== Add conversion factors to reaction rates constants
 
-DO i = 1,chem%nReactions
-
-  r => chem%reaction(i)
   IF( r%type /= ID_K_LWC .AND. r%type /= ID_K_RAD )THEN
     r%k = r%k*kt_conv
     IF( .NOT.BTEST(r%class,ID_REACT_LINEAR) )THEN

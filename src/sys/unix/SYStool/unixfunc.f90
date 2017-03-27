@@ -9,14 +9,13 @@
 INTEGER FUNCTION GetCurrentDirectory ( nBufferLength ,lpBuffer )
 
 USE winAPI_fd
-USE MaxLength_fd
 IMPLICIT NONE
 
 INTEGER, INTENT(IN)                   :: nBufferLength
 CHARACTER(nBufferLength), INTENT(OUT) :: lpBuffer
 
 INTEGER(4)     irv, getcwd, nch
-CHARACTER(MAX_PATHF) DirName
+CHARACTER(256) DirName
 
 irv = -1
 GetCurrentDirectory = NULL
@@ -44,16 +43,15 @@ END
 INTEGER FUNCTION SetCurrentDirectory( path_tmp )
 
 USE winAPI_fd
-USE MaxLength_fd
 IMPLICIT NONE
 
 CHARACTER*(*)  path_tmp
 
-CHARACTER(MAX_PATHF) path
+CHARACTER*128 path
 
 INTEGER  irv, chdir
 
-CHARACTER(MAX_FILEF), EXTERNAL :: STRIPNULL
+CHARACTER*128, EXTERNAL :: STRIPNULL
 
 path = STRIPNULL(path_tmp)
 
@@ -76,19 +74,17 @@ END
 INTEGER FUNCTION CreateDirectory (path_tmp,sa)
 
 USE winAPI_fd
-USE MaxLength_fd
 IMPLICIT NONE
 
 CHARACTER*(*)  path_tmp
 
-CHARACTER(MAX_FILEF) path
-CHARACTER(MAX_LARGEF) cmd
+CHARACTER*128 path,cmd
 
 INTEGER  ios, SYSTEM
 
 TYPE ( T_SECURITY_ATTRIBUTES ) sa
 
-CHARACTER(MAX_PATHF), EXTERNAL :: STRIPNULL
+CHARACTER*128, EXTERNAL :: STRIPNULL
 
 path = STRIPNULL(path_tmp)
 cmd = 'mkdir  '//TRIM(path)
@@ -109,16 +105,14 @@ END
 INTEGER FUNCTION RemoveDirectory (path_tmp)
 
 USE winAPI_fd
-USE MaxLength_fd
 IMPLICIT NONE
 
 CHARACTER*(*) path_tmp
-CHARACTER(MAX_FILEF) path
-CHARACTER(MAX_LARGEF) cmd
+CHARACTER*128 path,cmd
 
 INTEGER  ios, SYSTEM
 
-CHARACTER(MAX_FILEF), EXTERNAL :: STRIPNULL
+CHARACTER*128, EXTERNAL :: STRIPNULL
 
 path = STRIPNULL(path_tmp)
 
@@ -227,17 +221,16 @@ END
 INTEGER FUNCTION DeleteFile ( lpFileName )
 
 USE winAPI_fd
-USE MaxLength_fd
 IMPLICIT NONE
 
 CHARACTER*(*)   lpFileName
 
-CHARACTER(MAX_FILEF) FileName
-CHARACTER(MAX_LARGEF) cmd
+CHARACTER*256   FileName
+CHARACTER*128   cmd
 
 INTEGER  ios, SYSTEM
 
-CHARACTER(MAX_FILEF), EXTERNAL :: STRIPNULL
+CHARACTER*128, EXTERNAL :: STRIPNULL
 
 FileName = STRIPNULL(lpFileName)
 
@@ -258,20 +251,18 @@ END
 !==============================================================================
 INTEGER FUNCTION CopyFile (lpExistingFileName ,lpNewFileName ,bFailIfExists )
 
-USE MaxLength_fd
 USE winAPI_fd
-
 IMPLICIT NONE
 
 CHARACTER(*)      lpExistingFileName
 CHARACTER(*)      lpNewFileName
 INTEGER           bFailIfExists
 
-CHARACTER(MAX_FILEF) ExistingFileName,NewFileName
-CHARACTER(MAX_LARGEF) cmd
+CHARACTER*256     ExistingFileName,NewFileName
+CHARACTER(128)    cmd
 INTEGER           ios, SYSTEM
 
-CHARACTER(MAX_FILEF), EXTERNAL :: STRIPNULL
+CHARACTER*128, EXTERNAL :: STRIPNULL
 
 ExistingFileName = STRIPNULL(lpExistingFileName)
 NewFileName      = STRIPNULL(lpNewFileName)
@@ -339,11 +330,10 @@ END
 !==============================================================================
 SUBROUTINE Sleep (Msec)
 
-USE MaxLength_fd
 IMPLICIT NONE
 
-INTEGER Msec
-CHARACTER(MAX_LARGEF) :: cmd
+INTEGER           Msec
+CHARACTER(128) :: cmd
 INTEGER :: ios, SYSTEM
 
 WRITE(cmd,*)'sleep ',Msec*1.e-3
@@ -360,7 +350,6 @@ END
 !==============================================================================
 INTEGER FUNCTION get_private_profile_string ( lpAppName ,lpKeyName ,lpDefault ,&
                                              lpReturnedString ,nSize ,lpFileName )
-USE MaxLength_fd
 USE winAPI_fd
 IMPLICIT NONE
 
@@ -369,13 +358,14 @@ INTEGER                 :: nSize
 CHARACTER(*)            :: lpReturnedString,lpFileName
 
 INTEGER, PARAMETER      :: LUIN = 77
-CHARACTER(MAX_FILEF)    :: AppName, KeyName, FileName
-CHARACTER(MAX_FILEF)    :: Line,Buffer,SectionName
+CHARACTER(128)          :: AppName, KeyName, FileName
+CHARACTER(128)          :: Line,Buffer,SectionName
 INTEGER                 :: ios,nstart,nend,ncomment
 LOGICAL                 :: InSection,lrv
 LOGICAL,EXTERNAL        :: IS_Section
 
-CHARACTER(MAX_FILEF), EXTERNAL :: ADDNULL, STRIPNULL
+CHARACTER*128, EXTERNAL :: ADDNULL, STRIPNULL
+
 
 get_private_profile_string = nSize-1
 lpReturnedString = lpDefault
@@ -440,90 +430,10 @@ RETURN
 END
 
 !==============================================================================
-! get_private_profile_string_c
-!==============================================================================
-CHARACTER(*) FUNCTION get_private_profile_string_c ( lpAppName ,lpKeyName ,lpDefault ,&
-                                             nSize ,lpFileName )
-USE MaxLength_fd
-USE winAPI_fd
-IMPLICIT NONE
-
-CHARACTER(*)            :: lpAppName,lpKeyName,lpDefault
-INTEGER                 :: nSize
-CHARACTER(*)            :: lpFileName
-
-INTEGER, PARAMETER      :: LUIN = 77
-CHARACTER(MAX_FILEF)    :: AppName,KeyName,FileName
-CHARACTER(MAX_FILEF)    :: Line,Buffer,SectionName
-INTEGER                 :: ios,nstart,nend,ncomment
-LOGICAL                 :: InSection,lrv
-LOGICAL,EXTERNAL        :: IS_Section
-
-CHARACTER(MAX_FILEF), EXTERNAL :: ADDNULL, STRIPNULL
-
-get_private_profile_string_c = lpDefault
-
-FileName = STRIPNULL(lpFileName)
-AppName  = STRIPNULL(lpAppName)
-KeyName  = STRIPNULL(lpKeyName)
-
-CALL cupper( AppName )
-CALL cupper( KeyName )
-
-OPEN(UNIT=LUIN,FILE=TRIM(FileName),STATUS='OLD',ACTION='READ',IOSTAT=ios)
-IF( ios /= 0 )THEN
-  WRITE(6,*)'Error opening '//TRIM(FileName)
-  RETURN
-END IF
-
-ios         = 0
-InSection   = .false.
-SectionName = ' '
-DO WHILE ( ios == 0 )
-  !==============================================================================
-  ! Read a line
-  !==============================================================================
-  READ(UNIT=LUIN,IOSTAT=ios,FMT='(A)')Line
-  IF( ios /= 0 )EXIT
-  Buffer = Line
-  CALL cupper( Buffer )
-  lrv = Is_Section(Buffer, SectionName)
-  IF (lrv) THEN
-    IF (TRIM(SectionName) == TRIM(AppName)) THEN
-      InSection = .true.
-    ELSE
-      InSection = .false.
-    END IF
-  END IF
-  IF (InSection) THEN
-    ncomment = INDEX(Buffer,';')
-    IF (ncomment /=1) THEN
-      nstart = INDEX(Buffer,'=')
-      IF ((nstart > 1).and.(nstart>ncomment)) THEN
-        IF (Buffer(1:nstart-1) == TRIM(KeyName)) THEN
-          nend = LEN_TRIM(Buffer)
-          IF ( nend > nstart) THEN
-            get_private_profile_string_c = ADDNULL(TRIM(Line(nstart+1:nend)))
-            GO TO 999
-          END IF
-        END IF
-      END IF
-    END IF ! ncomment
-  END IF ! InSection
-END DO
-
-get_private_profile_string_c = lpDefault
-
-999   CLOSE(LUIN)
-
-RETURN
-END
-!==============================================================================
 LOGICAL FUNCTION Is_Section (Buffer, SectionName)
 
-USE MaxLength_fd
-CHARACTER(MAX_FILEF) :: Buffer, SectionName
-INTEGER              :: nstart, nend, ncomment
+CHARACTER(128)    :: Buffer, SectionName
+INTEGER           :: nstart, nend, ncomment
 
 Is_Section = .false.
 ncomment = INDEX(Buffer,';')
@@ -545,21 +455,19 @@ END
 INTEGER FUNCTION get_private_profile_int ( lpAppName ,lpKeyName ,nDefault ,lpFileName )
 
 USE winAPI_fd
-USE MaxLength_fd
-
 IMPLICIT NONE
 
-CHARACTER(*)         :: lpAppName
-CHARACTER(*)         :: lpKeyName
-INTEGER              :: nDefault
-CHARACTER(*)         :: lpFileName
-CHARACTER(MAX_FILEF) :: lpDefault
-CHARACTER(MAX_FILEF) :: lpReturnedString
-INTEGER              :: nSize
-INTEGER              :: i
-INTEGER, EXTERNAL    :: get_private_profile_string
-CHARACTER(MAX_FILEF) :: StripNull, AddNull
-EXTERNAL             :: StripNull, AddNull
+CHARACTER(*)      :: lpAppName
+CHARACTER(*)      :: lpKeyName
+INTEGER           :: nDefault
+CHARACTER(*)      :: lpFileName
+CHARACTER*(128)   :: lpDefault
+CHARACTER*(128)   :: lpReturnedString
+INTEGER           :: nSize
+INTEGER           :: i
+INTEGER, EXTERNAL :: get_private_profile_string
+CHARACTER(128)    :: StripNull, AddNull
+EXTERNAL          :: StripNull, AddNull
 
 WRITE(lpDefault,*) nDefault
 lpDefault = AddNull( TRIM(lpDefault) )

@@ -13,25 +13,14 @@ IMPLICIT NONE
 
 !DEC# ATTRIBUTES DLLEXPORT :: SCIPAdjointReleaseFilter
 
-INTEGER,                                INTENT( IN    ) :: CallerID
-INTEGER,                                INTENT( INOUT ) :: nRel
-TYPE( releaseT  ),DIMENSION(*), TARGET, INTENT( INOUT ) :: relList
-INTEGER,                        TARGET, INTENT( INOUT ) :: nMat
-TYPE( materialT ),DIMENSION(*),         INTENT( INOUT ) :: matList
-INTEGER,                                INTENT( IN    ) :: maxHit
+INTEGER,                        INTENT( IN    ) :: CallerID
+INTEGER,                        INTENT( INOUT ) :: nRel
+TYPE( releaseT  ),DIMENSION(*), INTENT( INOUT ) :: relList
+INTEGER,                        INTENT( INOUT ) :: nMat
+TYPE( materialT ),DIMENSION(*), INTENT( INOUT ) :: matList
+INTEGER,                        INTENT( IN    ) :: maxHit
 
-INTERFACE
-  INTEGER FUNCTION AdjointReleaseFilterF( userID,nRel,relList,nMat,matList )
-    USE release_fd
-    USE material_fd
-
-    INTEGER,                                INTENT( IN    ) :: userID
-    INTEGER,                                INTENT( INOUT ) :: nRel
-    TYPE( releaseT  ),DIMENSION(*), TARGET, INTENT( INOUT ) :: relList
-    INTEGER,                        TARGET, INTENT( INOUT ) :: nMat
-    TYPE( materialT ),DIMENSION(*),         INTENT( INOUT ) :: matList
-  END FUNCTION AdjointReleaseFilterF
-END INTERFACE
+INTEGER, EXTERNAL  :: AdjointReleaseFilterF
 
 nhit_target = maxHit
 
@@ -39,3 +28,4 @@ SCIPAdjointReleaseFilter = AdjointReleaseFilterF( CallerID,nRel,relList,nMat,mat
 
 RETURN
 END
+

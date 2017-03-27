@@ -876,7 +876,6 @@ USE sagdef_fd
 USE sagcel_fd
 USE PlotFunc_fi
 USE PlotAux_fi
-USE error_fi
 USE abort
 
 IMPLICIT NONE
@@ -935,7 +934,6 @@ IF( AuxType == 0 )THEN
                        PlotFunc_data,  & !Function input
                        PlotFunc_small, & !Small values
                        PlotFunc_spv    ) !Special value
-      IF( nError /= NO_ERROR )GOTO 9999
     ELSE
       dat(io) = xfun( dat(im),        & !Mean
                       dat(iv),        & !Variance
@@ -973,7 +971,6 @@ USE sagdef_fd
 USE cellstr_fd
 USE PlotFunc_fi
 USE PlotAux_fi
-USE error_fi
 
 IMPLICIT NONE
 
@@ -1030,7 +1027,6 @@ IF( AuxType == 0 )THEN
                        PlotFunc_data,  & !Function input
                        PlotFunc_small, & !Small values
                        PlotFunc_spv    ) !Special value
-      IF( nError /= NO_ERROR )GOTO 9999
     ELSE
       dat(io) = xfun( dat(im),        & !Mean
                       dat(iv),        & !Variance
@@ -1053,8 +1049,6 @@ END IF
 !==============================================================================
 p0%f(3) = dat(io)
 PlotFunctionPointValue = SAG_OK
-
-9999 CONTINUE
 
 RETURN
 END
@@ -1283,8 +1277,8 @@ USE error_fi
 
 IMPLICIT NONE
 
-REAL,   PARAMETER :: GAMMA_MIN     = 1.E-4
-REAL,   PARAMETER :: SQR2          = 1.4142136
+REAL,   PARAMETER :: GAMMA_MIN = 1.E-4
+REAL,   PARAMETER :: SQR2      = 1.4142136
 LOGICAL,PARAMETER :: INVERT        = .TRUE.
 LOGICAL,PARAMETER :: NO_INVERT     = .FALSE.
 LOGICAL,PARAMETER :: CONDITIONAL   = .TRUE.
@@ -1293,12 +1287,12 @@ LOGICAL,PARAMETER :: NOT_CONDITION = .FALSE.
 !==============================================================================
 ! Function Arguments
 !==============================================================================
-REAL,    INTENT( IN    ) :: m1, m2     !mean
-REAL,    INTENT( IN    ) :: v1, v2     !variance
-INTEGER, INTENT( IN    ) :: ifun       !function id
-REAL,    INTENT( INOUT ) :: val        !numerical input value
-REAL,    INTENT( IN    ) :: small      !small number
-REAL,    INTENT( IN    ) :: spv        !special value
+REAL,    INTENT( IN ) :: m1,m2     !mean
+REAL,    INTENT( IN ) :: v1,v2     !variance
+INTEGER, INTENT( IN ) :: ifun   !function id
+REAL,    INTENT( IN ) :: val    !numerical input value
+REAL,    INTENT( IN ) :: small  !small number
+REAL,    INTENT( IN ) :: spv    !special value
 
 !==============================================================================
 ! Local variables
@@ -1310,11 +1304,6 @@ LOGICAL PDF1, PDF2
 REAL, DIMENSION(2) :: xmean, xsig, qq
 
 REAL, EXTERNAL :: erfc, erfci, ProbExceed2
-
-!==============================================================================
-! Initialize return value in case of error
-!==============================================================================
-xfun2 = 0.0
 
 !==============================================================================
 ! Check for Special Values
@@ -1337,7 +1326,7 @@ ELSE
 
     CASE( PLOT_FUNCTION_NULL )
 
-      xfun2 = MAX( x1,small )
+      xfun2 = MAX(x1,small)
 
 !------ Add
 
@@ -1368,14 +1357,14 @@ ELSE
       IF( x1 <= small )THEN
         xfun2 = spv
       ELSE
-        xfun2 = MAX( 1.0/x1,small )
+        xfun2 = MAX( 1./x1,small )
       END IF
 
 !------ Square root
 
     CASE( PLOT_FUNCTION_SQRT )
 
-      IF( x1 >= 0.0 )THEN
+      IF( x1 >= 0. )THEN
         xfun2 = MAX( SQRT(x1),small )
       ELSE
         xfun2 = spv
@@ -1403,9 +1392,9 @@ ELSE
         sigg = SQRT(-2.*gbar)
         arg = (LOG(val/x1) - gbar)/sigg
         IF( arg > 1.E6 )THEN
-          prb = 0.0
+          prb = 0.
         ELSE IF( arg < -1.E6 )THEN
-          prb = 1.0
+          prb = 1.
         ELSE
           prb = 0.5*erfc( arg/SQR2 )
         END IF
@@ -1445,9 +1434,9 @@ ELSE
           CALL clnpar( soc,gbar,sigg )
           arg = (val/x1 - gbar)/sigg
           IF( arg > 1.E6 )THEN
-            p1 = 0.0
+            p1 = 0.
           ELSE IF( arg < -1.E6 )THEN
-            p1 = 1.0
+            p1 = 1.
           ELSE
             p1 = 0.5*erfc( arg/SQR2 )
           END IF
@@ -1478,9 +1467,8 @@ ELSE
       xmean(2) = m2
       xsig(2)  = SQRT(v2)
       qq(2)    = 1.0
-      exv      = val
 
-      CALL ptClipNormSet( 2,xmean,xsig,qq,NO_INVERT,CONDITIONAL,2,exv,prb )
+      CALL ptClipNormSet( 2,xmean,xsig,qq,NO_INVERT,CONDITIONAL,2,val,prb )
       IF( nError /= NO_ERROR )GOTO 9999
       xfun2 = 100.*MAX( prb,small )
 
@@ -1521,7 +1509,7 @@ ELSE
 
     CASE( PLOT_FUNCTION_SWITCH )
 
-      xfun2 = MAX( x2,small )
+      xfun2 = MAX(x2,small)
 
 !------ Switch function
 

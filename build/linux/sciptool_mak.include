@@ -1,0 +1,3 @@
+# Include file for makefile using dynamic libraries
+LIBS=-L./ -lsystool -lmessages -lfdatums -lswim -lscipuff -llanduse -lsag -larap -lodepack -lprime -laqaer -llocalMPI
+LIBDEPENDS=libfdatums.a libsag.a libarap.a libscipuff.a libodepack.a libprime.a libaqaer.a liblocalMPI.a

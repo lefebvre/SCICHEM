@@ -21,6 +21,8 @@ USE scipuff_fi, ONLY : mat_mc
 
 IMPLICIT NONE
 
+INTEGER nTimerad
+
 !--- Initialize
 
 callerID = USER_ID
@@ -207,7 +209,6 @@ USE GetTimes_fi
 IMPLICIT NONE
 
 INTEGER irv
-INTEGER nch
 INTEGER request
 INTEGER(LEN_ADDRESS) CallBackAddress
 INTEGER idefault
@@ -242,24 +243,11 @@ IF( LEN_TRIM(ini_file) <= 0 )THEN
       ini_file = 'DEFAULT'
     END IF
   ELSE
-    ini_file = TRIM(string2)
-    nch      = LEN_TRIM(ini_file)
-    WRITE(*,*)'User specified ini file/path = ',ini_file(nch-3:nch)
-    ! Check if argument is the ini file with full path
-    IF( ini_file(nch-3:nch) == '.ini' )THEN
-      INQUIRE( file=TRIM(ini_file),EXIST=lexist )
-      IF( .NOT.lexist )THEN
-        WRITE(6,*)'Cannot find ini file ',TRIM(ini_file)
-        ini_file = 'DEFAULT'
-      ENDIF
-    ELSE
-      ! Try adding scipuff.ini to full path
-      ini_file = TRIM(ADJUSTL(string2))//'/scipuff.ini'
-      INQUIRE( file=ini_file,EXIST=lexist )
-      IF( .NOT.lexist )THEN
-        WRITE(6,*)'Cannot find scipuff.ini file in directory ',TRIM(string2)
-        ini_file = 'DEFAULT'
-      END IF
+    ini_file = TRIM(ADJUSTL(string2))//'/scipuff.ini'
+    INQUIRE( file=ini_file,EXIST=lexist )
+    IF( .NOT.lexist )THEN
+      WRITE(6,*)'Cannot find ',TRIM(ini_file)
+      ini_file = 'DEFAULT'
     END IF
   END IF
 ELSE

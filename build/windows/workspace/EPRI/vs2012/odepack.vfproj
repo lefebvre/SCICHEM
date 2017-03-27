@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectType="typeStaticLibrary" ProjectCreator="Intel Fortran" Keyword="Static Library - Converted from CVF" Version="11.0" ProjectIdGuid="{9ADA7FAF-7BF9-4C9A-9A3F-CA4795D2F7A3}">
+	<Platforms>
+		<Platform Name="Win32"/>
+		<Platform Name="x64"/></Platforms>
+	<Configurations>
+		<Configuration Name="Debug|Win32" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\lib\odepack" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" EnableRecursion="true" FloatingPointModel="strict" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" RuntimeChecks="rtChecksNone"/>
+				<Tool Name="VFLibrarianTool" LinkLibraryDependencies="true"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|Win32" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\lib\odepack" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" EnableRecursion="true" Diagnostics="diagnosticsDisableAll" FloatingPointModel="strict" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" RuntimeChecks="rtChecksNone"/>
+				<Tool Name="VFLibrarianTool" LinkLibraryDependencies="true"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Debug|x64" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\lib\odepack" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" EnableRecursion="true" DebugParameter="debugParameterAll" ByteRECL="true" FloatingPointModel="source" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(IntDir)\$(InputName).pdb" AssemblerListingLocation="$(INTDIR)/" EmitSourceListing="true" Traceback="true" RuntimeChecks="rtChecksNone"/>
+				<Tool Name="VFLibrarianTool" LinkLibraryDependencies="true"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|x64" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\lib\odepack" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" ConfigurationType="typeStaticLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DNEW_MCWIF /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" EnableRecursion="true" ByteRECL="true" FloatingPointModel="source" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/"/>
+				<Tool Name="VFLibrarianTool" LinkLibraryDependencies="true"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration></Configurations>
+	<Files>
+		<Filter Name="Header Files" Filter="h;hpp;hxx;hm;inl;fi;fd"/>
+		<Filter Name="Source Files" Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;f90;for;f;fpp">
+		<File RelativePath="..\..\..\src\lib\util\odepack\adjlr.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\aigbt.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\ainvg.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\bnorm.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\cdrv.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\cfode.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\cntnzu.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\decbt.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\ewset.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\fnorm.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\intdy.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\iprep.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\isamax.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\jgroup.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\lsoda.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\lsodar.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\lsode_bd.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\lsode_sl.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\lsodes.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\lsodi.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\lsoibt.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\md.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\mdi.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\mdm.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\mdp.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\mdu.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\nnfc.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\nnsc.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\nntc.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\nroc.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\nsfc.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\odrv.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\pjibt.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\prep.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\prepj.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\prepji.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\prja.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\prjs.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\r1mach.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\rchek.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\roots.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\saxpy.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\scopy.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\sdot.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\sgbfa.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\sgbsl.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\sgefa.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\sgesl.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\slsbt.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\slss.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\solbt.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\solsy.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\srcar.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\srcma.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\srcms.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\srcom.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\sro.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\sscal.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\stoda.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\stode.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\stodi.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\vmnorm.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\vnorm.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\xerrwv.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\xsetf.f"/>
+		<File RelativePath="..\..\..\src\lib\util\odepack\xsetun.f"/></Filter></Files>
+	<Globals/></VisualStudioProject>

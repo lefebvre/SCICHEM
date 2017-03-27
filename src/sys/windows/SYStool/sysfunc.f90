@@ -551,6 +551,7 @@ USE MaxLength_fd
 
 IMPLICIT NONE
 
+CHARACTER(1),PARAMETER :: BACK_SLASH ='/'
 CHARACTER(1),PARAMETER :: DOT        ='.'
 
 CHARACTER(*), INTENT (IN) :: filex
@@ -558,9 +559,6 @@ CHARACTER(*), INTENT (IN) :: filex
 INTEGER np, ns, i
 
 CHARACTER(MAX_FILEF) tempString
-CHARACTER(1) PATH_SEP
-
-PATH_SEP = CHAR(47) ! forward slash "/"
 
 tempString = filex
 
@@ -568,7 +566,7 @@ ns = LEN_TRIM(tempString)
 
 np = ns
 DO i = ns,1,-1
-  IF( tempString(i:i) == PATH_SEP )THEN
+  IF( tempString(i:i) == BACK_SLASH )THEN
     EXIT
   ELSE IF( tempString(i:i) == DOT )THEN
     np = i-1
@@ -593,7 +591,7 @@ USE MaxLength_fd
 
 IMPLICIT NONE
 
-CHARACTER(1) PATH_SEP
+CHARACTER(1),PARAMETER :: BACK_SLASH ='/'
 
 CHARACTER(*), INTENT ( INOUT ) :: file
 CHARACTER(*), INTENT ( IN )    :: path
@@ -601,8 +599,6 @@ CHARACTER(*), INTENT ( IN )    :: path
 CHARACTER(MAX_FILEF) string
 
 INTEGER np, ns
-
-PATH_SEP = CHAR(47) ! forward slash "/"
 
 np = LEN_TRIM(path)
 IF( np <= 0 )RETURN
@@ -613,8 +609,8 @@ IF( np <= 0 )RETURN
 string(1:) = path(1:np)
 ns = np
 
-IF( string(ns:ns) /= PATH_SEP )THEN
-  IF( ns < LEN(string) )string(ns+1:ns+1) = PATH_SEP
+IF( string(ns:ns) /= BACK_SLASH )THEN
+  IF( ns < LEN(string) )string(ns+1:ns+1) = BACK_SLASH
   ns = ns + 1
 END IF
 
@@ -636,35 +632,6 @@ file = ADJUSTL(file)
 RETURN
 END
 !*******************************************************************************
-!                SUBPATHSEP
-!*******************************************************************************
-SUBROUTINE SUBPATHSEP( name )
-
-!--- Replace  PATH_SEP_SUB with PATH_SEP character
-
-!DEC# ATTRIBUTES DLLEXPORT :: SUBPATHSEP
-
-IMPLICIT NONE
-
-CHARACTER(*), INTENT ( INOUT ) :: name
-
-CHARACTER(1) PATH_SEP, PATH_SEP_SUB
-INTEGER i,np
-
-PATH_SEP     = CHAR(47) ! forward slash "/"
-PATH_SEP_SUB = CHAR(92) ! back slash "\"
-
-np = LEN_TRIM(name)
-IF( ICHAR(name(np:np)) == 0 )np = np - 1
-IF( np == 0 )RETURN
-
-DO i = 1,np
-  IF( name(i:i) == PATH_SEP_SUB )name(i:i) = PATH_SEP
-END DO
-
-RETURN
-END
-!*******************************************************************************
 !                SplitName
 !*******************************************************************************
 SUBROUTINE SPLITNAME( name,file,path )
@@ -673,14 +640,13 @@ SUBROUTINE SPLITNAME( name,file,path )
 
 IMPLICIT NONE
 
+CHARACTER(1),PARAMETER :: BACK_SLASH ='/'
+
 CHARACTER(*), INTENT ( IN  ) :: name
 CHARACTER(*), INTENT ( OUT ) :: file
 CHARACTER(*), INTENT ( OUT ) :: path
 
-CHARACTER(1) PATH_SEP
 INTEGER np
-
-PATH_SEP = CHAR(47) ! forward slash "/"
 
 np = LEN_TRIM(name)
 IF( np == 0 )THEN
@@ -691,13 +657,13 @@ END IF
 
 IF( ICHAR(name(np:np)) == 0 )np = np - 1
 
-DO WHILE( name(np:np)/=PATH_SEP .AND. np > 1 )
+DO WHILE( name(np:np)/=BACK_SLASH .AND. np > 1 )
   np = np - 1
 END DO
 
 IF( np <= 1 )THEN
   IF( LEN_TRIM(name) > 1 )THEN
-    IF( name(1:1) == PATH_SEP )THEN
+    IF( name(1:1) == BACK_SLASH )THEN
       file = TRIM(name(2:))
     ELSE
       file = TRIM(name)
@@ -741,7 +707,7 @@ SUBROUTINE BACKUPPATH( path,nlevel )
 
 IMPLICIT NONE
 
-CHARACTER(1) PATH_SEP
+CHARACTER(1),PARAMETER :: BACK_SLASH ='/'
 
 CHARACTER(*), INTENT( INOUT ) :: path
 INTEGER,      INTENT( IN    ) :: nlevel
@@ -750,8 +716,6 @@ INTEGER nlo, nc, i, nl, np
 LOGICAL trail, term
 
 !==== initialize
-
-PATH_SEP = CHAR(47) ! forward slash "/"
 
 nc = LEN_TRIM(path)
 
@@ -764,14 +728,14 @@ IF( term )nc = nc - 1
 
 !==== Check for trailing slash
 
-trail = path(nc:nc) == PATH_SEP
+trail = path(nc:nc) == BACK_SLASH
 IF( trail )nc = nc - 1
 
 !==== count current levels
 
 nlo = 0
 DO i = 1,nc
-  IF( path(i:i) == PATH_SEP )nlo = nlo+1
+  IF( path(i:i) == BACK_SLASH )nlo = nlo+1
 END DO
 
 IF( nlo <= 0 )RETURN
@@ -786,7 +750,7 @@ i   = 0
 nlo = 0
 DO WHILE( i < nc .and. nlo <= nl )
   i = i + 1
-  IF( path(i:i) == PATH_SEP )THEN
+  IF( path(i:i) == BACK_SLASH )THEN
     nlo = nlo+1
     np = i
   END IF
@@ -800,7 +764,7 @@ IF( .NOT.trail )np = np - 1
 
 nlo = 0
 DO i = 1,np-1
-  IF( path(i:i) == PATH_SEP )nlo = nlo+1
+  IF( path(i:i) == BACK_SLASH )nlo = nlo+1
 END DO
 IF( nlo /= nl )GOTO 9999
 
@@ -871,9 +835,9 @@ CHARACTER(*), INTENT ( OUT ) :: OutString
 CHARACTER(*), INTENT ( IN  ) :: IntroString
 CHARACTER(*), INTENT ( IN  ) :: filename
 
+CHARACTER(1),PARAMETER :: BACK_SLASH ='/'
 INTEGER nlen, n1, n2, n, nf, np, i
 
-CHARACTER(1) PATH_SEP
 CHARACTER(PATH_MAXLENGTH) :: path, fname
 
 nlen = LEN(OutString)
@@ -913,7 +877,7 @@ ELSE
   IF( nf >= i )THEN                              !Partial file name if too long
 
     IF( np > 1 )THEN
-      OutString(n1+1:) = '~'//PATH_SEP//fname(1:i-1)//'~'
+      OutString(n1+1:) = '~'//BACK_SLASH//fname(1:i-1)//'~'
     ELSE
       OutString(n1+1:) = fname(1:i-1)//'~'
     END IF
@@ -924,13 +888,13 @@ ELSE
     i  = n-nf-2                                  !Number of characters available for path
     path = path(np-i+1:np)
 
-    i = INDEX( path,PATH_SEP )
+    i = INDEX( path,BACK_SLASH )
     IF( i > 0 )THEN                              !Truncate path
       path = '~'//path(i:)
     ELSE
       path = '~'
     END IF
-    path = TRIM(path)//PATH_SEP
+    path = TRIM(path)//BACK_SLASH
 
     OutString(n1+1:) = TRIM(path)//TRIM(fname)   !Partial path + file name
 

@@ -544,10 +544,9 @@ species => chem%species
 
 IF( chem%nReactions == 0 )RETURN
 
-fast    => chem%fast
-slow    => chem%slow
-gaseous => chem%gaseous
-equil   => chem%equil
+fast  => chem%fast
+slow  => chem%slow
+equil => chem%equil
 
 nsolve_eq = chem%nSolveEq
 nlin_eq   = chem%nLinearEq
@@ -564,7 +563,7 @@ ResetEq = .FALSE.
 
 !====   set ambient concentrations
 
-CALL SetChemAmbient( SNGL(p%xbar),SNGL(p%ybar),p%zbar,t,.TRUE.,.TRUE. )
+CALL SetChemAmbient( p%xbar,p%ybar,p%zbar,t,.TRUE.,.TRUE. )
 IF( nError /= NO_ERROR )GOTO 9999
 
 iStepMC = iStepMC + 1
@@ -606,7 +605,7 @@ pStepMCdat%pm%tb    = tb
 pStepMCdat%pm%pb    = pb
 pStepMCdat%pm%hb    = hb
 pStepMCdat%pm%cw    = cw
-pStepMCdat%pm%cc    = cldcvr
+pStepMCdat%pm%cc    = cc
 pStepMCdat%pm%sfac  = sun_fac
 pStepMCdat%pm%prate = prate
 pStepMCdat%pm%prbl  = prbl
@@ -689,7 +688,7 @@ tb        = pStepMCdat%pm%tb
 pb        = pStepMCdat%pm%pb
 hb        = pStepMCdat%pm%hb
 cw        = pStepMCdat%pm%cw
-cldcvr    = pStepMCdat%pm%cc
+cc        = pStepMCdat%pm%cc
 sun_fac   = pStepMCdat%pm%sfac
 prate     = pStepMCdat%pm%prate
 prbl      = pStepMCdat%pm%prbl

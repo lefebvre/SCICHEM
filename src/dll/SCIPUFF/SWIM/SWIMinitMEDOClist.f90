@@ -26,6 +26,7 @@ TYPE ( messageT ) caution
 
 CHARACTER(PATH_MAXLENGTH) :: NestSrc
 
+INTEGER, EXTERNAL :: RemoveCF
 INTEGER, EXTERNAL :: SWIMreallocMetField, SWIMaddLogMessage, PostProgressMessage
 INTEGER, EXTERNAL :: SetGriddedType, SWIMinitMEDOC
 INTEGER, EXTERNAL :: PostCautionMessage
@@ -77,6 +78,7 @@ IF( irv /= 0 )THEN
   error%Message = 'Error reading first line in MEDOC list file'
   GOTO 9999
 END IF
+irv = RemoveCF(string)
 
 IF( TRIM(string) /= 'MEDOC' )THEN
   error%Message = 'First line in MEDOC list file must be "MEDOC"'
@@ -90,6 +92,7 @@ IF( irv /= 0 )THEN
   error%Message = 'Error reading first line in MEDOC list file'
   GOTO 9999
 END IF
+irv = RemoveCF(root)
 
 string = root !Copy and make case insensitive
 CALL cupper( string )
@@ -103,6 +106,7 @@ IF( i > 0 )THEN
     error%Message = 'Error reading file name in MEDOC list file'
     GOTO 9999
   END IF
+  irv = RemoveCF(root)
 
 END IF
 
@@ -135,6 +139,7 @@ DO
   ELSE
     nrd = nrd + 1
   END IF
+  irv = RemoveCF(string)
 END DO
 
 REWIND(lun,IOSTAT=irv)
@@ -161,6 +166,7 @@ DO J = 1,nrd
     error%Message = 'Error reading MEDOC list file'
     GOTO 9999
   END IF
+  irv = RemoveCF(string)
   CALL ADDPATH( root,path )
   INQUIRE( FILE=TRIM(root),EXIST=lexist )
   IF( lexist )THEN

@@ -2090,6 +2090,10 @@ IF(  Prj%BL%zruf   == NOT_SET_R .OR. &
     GOTO 9999
   END IF
 
+ELSE
+
+  GOTO 9999 !All values are set; just return
+
 END IF
 
 !------ Initialize landuse dll

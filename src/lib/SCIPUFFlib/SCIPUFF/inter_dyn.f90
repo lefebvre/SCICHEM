@@ -216,8 +216,8 @@ ELSE
 
 !----- puff separation
 
-  delx = SNGL(puff(jpuf)%xbar - puff(ipuf)%xbar)/xmap_i
-  dely = SNGL(puff(jpuf)%ybar - puff(ipuf)%ybar)/ymap_i
+  delx = (puff(jpuf)%xbar - puff(ipuf)%xbar)/xmap_i
+  dely = (puff(jpuf)%ybar - puff(ipuf)%ybar)/ymap_i
   delz =  puff(jpuf)%zbar - puff(ipuf)%zbar
 
 !------ check ground proximity for jpuf
@@ -560,7 +560,7 @@ IF( dynamic )CALL get_dynamics( puff(ipuf),pdi )
 IF( ltot    )CALL get_totalcc( puff(ipuf),pti )
 IF( lmc     )CALL GetInterMC1( puff(ipuf) )
 
-CALL mapfac( SNGL(puff(ipuf)%xbar),SNGL(puff(ipuf)%ybar),xmap_i,ymap_i )
+CALL mapfac( puff(ipuf)%xbar,puff(ipuf)%ybar,xmap_i,ymap_i )
 
 CALL puff_grid( puff(ipuf),xp,yp,k0 )
 

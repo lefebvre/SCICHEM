@@ -449,7 +449,7 @@ SELECT CASE( met_type )
 
           END IF
 
-        CASE( 'VERTGRID','VRTGRID','VGRID','VGRD' )
+        CASE( 'VERTGRID','VRTGRID','VGRID' )
           initSWIM%type(i)   = SWIMvrtGrid
           initSWIM%MetSrc(i) = TRIM(BuildFileName( c_arg(2),string,''))
 
@@ -579,7 +579,6 @@ SELECT CASE( met_type )
           END IF
 
         CASE DEFAULT
-          initSWIM%type(i) = -1  !Set to skip in SWIMinitRun
           CYCLE
 
       END SELECT
@@ -860,7 +859,7 @@ IF( irv /= SWIMsuccess )THEN
 
     initSWIM%nMetSrc   = 1
     initSWIM%MetSrc(1) = TRIM(initSWIM%prj%OutFile)
-    initSWIM%type(1)   = SWIMgrid
+    initSWIM%type(1)   = SWIMMEDOC
 
     initSWIM%prj%BL%type = BLP_MET
     initSWIM%prj%lOut3d  = .FALSE.

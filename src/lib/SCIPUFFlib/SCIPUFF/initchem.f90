@@ -720,15 +720,15 @@ IF( ambient_file /= NOT_SET_C )THEN
   chem%ambFile  = TRIM(ambient_file)
   chem%lAmbFile = .TRUE.
   chem%lunAmb   = 300 + ID
-  chem%lstepAmb = .FALSE. ! Always set to False(not step_ambient) for SCICHEM 3.x
+  chem%lstepAmb = .FALSE. ! Always set to False(not step_ambient) for for SCICHEM 3.0(Beta 2)
 ELSE
   chem%ambFile  = ' '
   chem%lAmbFile = .FALSE.
   chem%lunAmb   = 0
-  chem%lstepAmb = .FALSE. ! ! Always set to False(not step_ambient) for SCICHEM 3.x
+  chem%lstepAmb = .FALSE. ! ! Always set to False(not step_ambient) for for SCICHEM 3.0(Beta 2)
 END IF
 
-chem%lAddAmb  = .TRUE. ! Default set to True for SCICHEM 3.x
+chem%lAddAmb  = .TRUE. ! Default set to True for SCICHEM 3.0(Beta 3)
 IF( sfcflux_file /= NOT_SET_C )THEN
   IF( .NOT. chem%lAmbFile )THEN
     nError   = IV_ERROR
@@ -784,16 +784,9 @@ CHARACTER(16)  namex, ctype, dtype
 
 INTEGER ios, nch, ncc, nspec
 LOGICAL lerr, ldep, ldos, lamb
-INTEGER irv, i, j
-LOGICAL ldrydep
-REAL    Henry0, TpFac, RxFac, SrfRFac
 REAL    amb, tol_ode, vdep, scav, mw
 
 TYPE( ChemSpecies_str ), POINTER :: spec
-
-TYPE( landuse_init )file_landuse
-
-INTEGER, EXTERNAL :: InitLandUseDep
 
 
 INTEGER, EXTERNAL  :: RemoveCF
@@ -835,7 +828,7 @@ DO
     GOTO 9999
   END IF
 
-!====   Read type - Fast,Slow,Equilibrium or Particle (EPA)
+!====   Read type - Fast,Slow,Equilibrium or Particle (EPRI)
 
   CALL get_c( line,nch,BLANK,ctype,ncc,lerr )
   IF( lerr )THEN
@@ -853,54 +846,7 @@ DO
   IF( lerr )GOTO 9998
   line = ADJUSTL( line )
   nch = LEN_TRIM( line )
-
-!--- Ensure parentheses contain spaces for get_r
-
-  DO WHILE( INDEX(line,')') /= 0 .AND. INDEX(line,' )') == 0 )
-    i = INDEX(line,')')
-    DO j = nch,i,-1
-      line(j+1:j+1) = line(j:j)
-    END DO
-    line(i:i) = ' '
-    nch = nch + 1
-  END DO
-
-  IF( line(1:1) == '(' )THEN
-    line = line(2:)
-    nch = nch - 1
-    CALL get_r( line,nch,Henry0, lerr )
-    CALL get_r( line,nch,TpFac,lerr )
-    CALL get_r( line,nch,RxFac,lerr )
-    CALL get_r( line,nch,SrfRFac,lerr )
-    IF( Henry0 < 0. )THEN
-      Henry0  = 0.
-      ldrydep = .FALSE.
-    ELSE
-      ldrydep = .TRUE.
-    END IF
-    IF( lerr )GOTO 9998
-    line = ADJUSTL( line )
-    IF( line(1:1) /= ')' )THEN
-      nError   = RD_ERROR
-      eRoutine = 'ReadChemSpecies'
-      eMessage = 'Non-constant deposition velocity must end with close parenthesis'
-      eInform  = 'Line='//TRIM(namex)//'   '//TRIM(line)
-      GOTO 9999
-    END IF
-    line = line(2:)
-    nch  = nch - 1
-    vdep = NOT_SET_R
-  ELSE
-    CALL get_r( line,nch,vdep,lerr )
-    Henry0  = NOT_SET_R
-    TpFac   = NOT_SET_R
-    RxFac   = NOT_SET_R
-    SrfRFac = NOT_SET_R
-    lDryDep = .FALSE.
-  END IF
-
-  line = ADJUSTL( line )
-  nch = LEN_TRIM( line )
+  CALL get_r( line,nch,vdep,lerr )
   CALL get_r( line,nch,scav,lerr )
   CALL get_r( line,nch,mw,  lerr )
   IF( lerr )GOTO 9998
@@ -948,13 +894,6 @@ DO
   spec%scav = scav
   spec%mw   = mw
 
-  spec%Henry0  = Henry0
-  spec%TpFac   = TpFac
-  spec%RxFac   = RxFac
-  spec%SrfRFac = SrfRFac
-  spec%ldrydep = ldrydep
-
-
   SELECT CASE( ctype(1:1) )
     CASE( 'A','a' )
 
@@ -976,7 +915,7 @@ DO
 
       SELECT CASE( ctype(1:1) )
         CASE( 'E','e' )
-          ! Change equlibrium species to fast for SCICHEM 3.x
+          ! Change equlibrium species to fast for SCICHEM Beta2
           spec%class = ID_SPECIES_FAST
         CASE( 'S','s' )
           spec%class = ID_SPECIES_SLOW
@@ -1067,11 +1006,11 @@ USE error_fi
 IMPLICIT NONE
 
 INTEGER, INTENT( IN )                 :: nreact
-CHARACTER(512), INTENT( IN )          :: line
-CHARACTER(512), DIMENSION(:), POINTER :: rline
+CHARACTER(256), INTENT( IN )          :: line
+CHARACTER(256), DIMENSION(:), POINTER :: rline
 
 INTEGER                               :: i, n, alloc_stat
-CHARACTER(512), DIMENSION(:),POINTER  :: tmp
+CHARACTER(256), DIMENSION(:),POINTER  :: tmp
 
 IF( nreact == 1 )THEN
   ALLOCATE( rline(1),STAT=alloc_stat )
@@ -1171,7 +1110,7 @@ END IF
 
 ioff = 0
 DO i = 1,chem%nSpecies
-  IF( TRIM(string(2:ncc-1)) == TRIM(chem%species(i)%name) )ispec = i + ioff
+  IF( string(2:ncc-1) == TRIM(chem%species(i)%name) )ispec = i + ioff
 END DO
 
 IF( ispec == 0 )THEN
@@ -2326,7 +2265,7 @@ chem%pTypeN     = 0
 NULLIFY( chem%IndexEq,chem%TypeEq,chem%RowEq )
 NULLIFY( chem%species,chem%reaction,chem%zenith )
 NULLIFY( chem%fast,chem%slow,chem%equil,chem%star )
-NULLIFY( chem%gaseous,chem%particle,chem%pTypes,chem%pUnits )
+NULLIFY( chem%particle,chem%pTypes,chem%pUnits )
 NULLIFY( chem_aqaer%species )
 NULLIFY( chem%fReact,chem%sReact,chem%eReact,chem%pReact )
 NULLIFY( chem%cmax )
@@ -2389,7 +2328,6 @@ IF( ALLOCATED(chemMC) )THEN
     IF( ASSOCIATED(chem%fast)    )DEALLOCATE( chem%fast    ,STAT=alloc_stat )
     IF( ASSOCIATED(chem%slow)    )DEALLOCATE( chem%slow    ,STAT=alloc_stat )
     IF( ASSOCIATED(chem_aqaer%species)   )DEALLOCATE( chem_aqaer%species,STAT=alloc_stat )
-    IF( ASSOCIATED(chem%gaseous)         )DEALLOCATE( chem%gaseous      ,STAT=alloc_stat )
     IF( ASSOCIATED(chem%particle)        )DEALLOCATE( chem%particle     ,STAT=alloc_stat )
     IF( ASSOCIATED(chem%pTypes)          )DEALLOCATE( chem%pTypes       ,STAT=alloc_stat )
     IF( ASSOCIATED(chem%pUnits)          )DEALLOCATE( chem%pUnits       ,STAT=alloc_stat )

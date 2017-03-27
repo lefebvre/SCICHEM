@@ -97,9 +97,9 @@ Obs%tFcst = NOT_SET_R
 Prj%localMet = Obs%local !*****
 
 !------ Set fixed number of variables
-!       First check number of variables in file and AERMET version
+!       First check number of variables in file and AERMET vertion
 
-CALL get_next_data( lun,line,nch,kwrd,n_arg,c_arg,-MAXN,lerr )
+CALL get_next_data( lun,line,nch,kwrd,n_arg,c_arg,MAXN,lerr )
 IF( lerr )GOTO 9999
 
 iAERMETver = NOT_SET_I
@@ -127,7 +127,7 @@ ELSE IF( iAERMETver == NOT_SET_I )THEN
   irv = PostCautionMessage( caution )
 END IF
 
-CALL get_next_data( lun,line,nch,kwrd,n_arg,c_arg,-MAXN,lerr )
+CALL get_next_data( lun,line,nch,kwrd,n_arg,c_arg,MAXN,lerr )
 IF( lerr )GOTO 9999
 
 REWIND(lun,IOSTAT=ios)
@@ -160,7 +160,7 @@ END IF
 
 !------ Read fixed variable names and units from first record
 
-CALL get_next_data( lun,line,nch,kwrd,n_arg,c_arg,-MAXN,lerr )
+CALL get_next_data( lun,line,nch,kwrd,n_arg,c_arg,MAXN,lerr )
 
 var_name(1) = 'ID'
 var_unit(1) = ' '

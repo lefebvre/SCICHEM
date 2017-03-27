@@ -6,7 +6,7 @@
 !*******************************************************************************
 !            Create a Project
 !*******************************************************************************
-INTEGER FUNCTION NewProject( UserID,createNew,mtlList,relList,nMC,relMCList,lWrite )
+INTEGER FUNCTION NewProject( UserID,createNew,mtlList,relList,lWrite )
 
 USE files_fi
 USE error_fi
@@ -23,8 +23,6 @@ INTEGER,                                    INTENT( IN ) :: UserID    !USER ID T
 TYPE( createNewT ),                 TARGET, INTENT( INOUT ) :: createNew !Project ID
 TYPE( materialT ),  DIMENSION(*),   TARGET, INTENT( INOUT ) :: mtlList   !Material list
 TYPE( releaseT ),   DIMENSION(*),   TARGET, INTENT( INOUT ) :: relList   !Release list
-INTEGER,                          OPTIONAL, INTENT( IN ) :: nMC       !Size of relMCList
-TYPE( releaseMCT ), DIMENSION(*), OPTIONAL, INTENT( IN ) :: relMCList !Release multicomponent list
 LOGICAL,                          OPTIONAL, INTENT( IN ) :: lWrite    !Write input files
 
 INTEGER irv
@@ -52,7 +50,6 @@ INTEGER,              EXTERNAL :: Write_Inp, Write_Release, Write_Weather
 INTEGER,              EXTERNAL :: Check_Inp, Check_Weather, Check_Release
 INTEGER(LEN_ADDRESS), EXTERNAL :: GetMessageHandler
 INTEGER,              EXTERNAL :: Check_StackReleases
-INTEGER,              EXTERNAL :: Write_ReleaseMC
 INTEGER,              EXTERNAL :: AdjointReleaseFilter
 
 !==== Initialize
@@ -269,11 +266,7 @@ IF( doWrite )THEN
     trelease%control%mode     = SCIPnull
     trelease%control%searchID = ' '
 
-    IF( PRESENT(relMCList) )THEN
-      irv = Write_ReleaseMC( trelease,relList,nMC,relMCList )
-    ELSE
-      irv = Write_Release( trelease,relList )
-    END IF
+    irv = Write_Release( trelease,relList )
     IF( irv == SCIPfailure )GOTO 9999
   END IF
 

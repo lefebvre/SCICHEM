@@ -526,13 +526,11 @@ DO j = j1,j2
       END DO
       i = MAX(i1-1,1)
       x = (FLOAT(i)-0.5)*dfac
-      IF( global_lon )CALL SetGlobalGrid( x,nxs )
       icell = 0
       CALL accum_surf( srf,x,y,mlev,ig,ng,ccell,icell )
       IF( nError /= NO_ERROR )GOTO 9998
       i = MIN(i2+1,m1)
       x = (FLOAT(i)-0.5)*dfac
-      IF( global_lon )CALL SetGlobalGrid( x,nxs )
       icell = 0
       CALL accum_surf( srf,x,y,mlev,ig,ng,ccell,icell )
       IF( nError /= NO_ERROR )GOTO 9998
@@ -559,12 +557,10 @@ IF( j2-j1 <= 1 )THEN
 
   DO i = i1,i2
     x  = (FLOAT(i)-0.5)*dfac
-    IF( global_lon )CALL SetGlobalGrid( x,nxs )
     icell = 0
     CALL accum_surf( srf,x,y,mlev,ig,ng,ccell,icell )
     IF( nError /= NO_ERROR )GOTO 9998
     x  = (FLOAT(i)-0.5)*dfac
-    IF( global_lon )CALL SetGlobalGrid( x,nxs )
     icell = 0
     CALL accum_surf( srf,x,y,mlev,ig,ng,ccell,icell )
     IF( nError /= NO_ERROR )GOTO 9998
@@ -582,7 +578,6 @@ IF( interior )THEN
     y = (FLOAT(j)-0.5)*dfac
     i = MAX(NINT(s%xbar/delx),1)
     x = (FLOAT(i)-0.5)*dfac
-    IF( global_lon )CALL SetGlobalGrid( x,nxs )
 
     fac = (ABS(s%pmass)/darea - ABS(csum)) / ABS(cfac(1))
 
@@ -1279,7 +1274,7 @@ INTEGER, EXTERNAL :: getPuffifld
 
 IF( lter )THEN
 
-  CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),h,hx,hy,getPuffifld(p) )
+  CALL get_topogIn( p%xbar,p%ybar,h,hx,hy,getPuffifld(p) )
   zp = p%zbar - (zsrf+h)
   zs = p%zbar - h
   CALL puff_reflect( zs,zp,p,hx,hy,.FALSE.,xr,dum,dummer )
@@ -1311,10 +1306,10 @@ END IF
 
 !------ Set gaussian centroid and map factors
 
-CALL mapfac( SNGL(p%xbar),SNGL(p%ybar),s%xmap,s%ymap )
+CALL mapfac( p%xbar,p%ybar,s%xmap,s%ymap )
 
-s%xbar = SNGL(p%xbar) + 0.5*xr(1)*s%xmap !- srf%xmin
-s%ybar = SNGL(p%ybar) + 0.5*xr(2)*s%ymap !- srf%ymin
+s%xbar = p%xbar + 0.5*xr(1)*s%xmap !- srf%xmin
+s%ybar = p%ybar + 0.5*xr(2)*s%ymap !- srf%ymin
 
 !------ set min. concentration
 

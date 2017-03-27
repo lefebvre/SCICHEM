@@ -20,16 +20,16 @@ CHARACTER(256) :: vname
 CHARACTER(NF_MAX_NAME) varnam, string
 
 INTEGER irv, alloc_stat, ifile, fid, id_var, ivtype, id_aux, iv
-INTEGER i, j, k, j0, k0, is, nx, ny, nz, nxy, ks, nzp
-INTEGER nxi, nyi, nxyi, ndims, natts, n_times, itx
+INTEGER i, j, k, j0, k0, is, nx, ny, nz, nxy
+INTEGER ntot, nxi, nyi, nxyi, ndims, natts, n_times, itx
 INTEGER ishft, jshft, ks0, ix, iy, iz, it, ip
 INTEGER inc, nend, i1, i2
 REAL    tWRF, T0, zs, fac
 LOGICAL lend
 INTEGER(LEN_ADDRESS) iaddr
 
-INTEGER(LEN_ADDRESS) k_len
-INTEGER(LEN_ADDRESS), DIMENSION(:), ALLOCATABLE :: istart, icount
+INTEGER k_len
+INTEGER, DIMENSION(:), ALLOCATABLE :: istart, icount
 INTEGER, DIMENSION(:), ALLOCATABLE :: dimids
 
 REAL,    DIMENSION(:,:,:,:), ALLOCATABLE :: wrk3d, aux3d
@@ -91,6 +91,7 @@ ifile = fld%gridSource%unit
 nxi   = fld%gridSource%nX
 nyi   = fld%gridSource%nY
 nxyi  = nxi*nyi
+ntot  = nxyi*fld%gridSource%nZ
 
 nxy = fld%grid%nXY
 nx  = fld%grid%nX
@@ -203,9 +204,9 @@ WRITE(string,"('t =',1PG11.4,'hrs.')",IOSTAT=irv) tWRF/3600.
 irv = SWIMaddLogMessage( string )
 IF( irv /= SWIMsuccess )GOTO 9999
 
-!------ Allocate arrays for setting dimensions
+!------ Allocate local 3d work space (pointer for use in Read3dVarGridded and Copy2dVar)
 
-ALLOCATE( istart(4),icount(4),dimids(4),STAT=alloc_stat )
+ALLOCATE( pwrk(ntot),istart(4),icount(4),dimids(4),STAT=alloc_stat )
 IF( alloc_stat /= 0 )THEN
   error%Number  = UK_ERROR
   error%Message = 'Error allocating array to read 3d WRF fields'
@@ -218,10 +219,9 @@ DO iv = 1,fld%gridSource%nVar3d
 
   vname = TRIM(fld%gridSource%Var3dName(iv));  error%Action = 'Field= '//vname
 
-
   irv = nc_inq_varid( fid,AddNull(vname),id_var ); IF( irv /= 0 )GOTO 9999
-  irv = nc_inq_var( fid,id_var,varnam,ivtype,ndims,dimids,natts )
-
+  irv = nf90_inquire_variable( fid,id_var+1,name=varnam,xtype=ivtype,ndims=ndims,dimids=dimids,nAtts=natts )
+  dimids(1:ndims) = dimids(1:ndims) - 1
   IF( irv /= 0 )GOTO 9999
 
   IF( ndims /= 4 )THEN
@@ -257,27 +257,30 @@ DO iv = 1,fld%gridSource%nVar3d
         icount(j) = nyi; iy = j
         istart(j) = 1
       CASE( 'bottom_top' )
-        icount(j) = nz; iz = j; ks = ks0; nzp = nz
+        icount(j) = nz; iz = j
       CASE( 'bottom_top_stag' )
-        icount(j) = nz+1; iz = j ; ks = 0; nzp = nz+1 !this is W & Z
-        istart(j) = 0
+        icount(j) = nz; iz = j
+        istart(j) = 1
     END SELECT
 
   END DO
 
-!------ Setup 3d work arrays and 3d pointer for use in Read3dVarGridded and Copy2dVar
-!       N.B. dimensions may vary for each field
+!------ Setup work arrays (assume all 3d fields have same dimensions and sizes)
 
-  ALLOCATE( pwrk(nxyi*nzp), &
-            wrk3d(icount(ix),icount(iy),icount(iz),icount(it)), &
-            aux3d(icount(ix),icount(iy),icount(iz),icount(it)),STAT=alloc_stat )
-  IF( alloc_stat /= 0 )THEN
-    error%Number  = UK_ERROR
-    error%Message = 'Error allocating arrays to read 3d WRF fields'
-    GOTO 9999
+  IF( iv == 1 )THEN
+
+    ALLOCATE( wrk3d(icount(ix),icount(iy),icount(iz),icount(it)), &
+              aux3d(icount(ix),icount(iy),icount(iz),icount(it)),STAT=alloc_stat )
+    IF( alloc_stat /= 0 )THEN
+      error%Number  = UK_ERROR
+      error%Message = 'Error allocating arrays to read 3d WRF fields'
+      GOTO 9999
+    END IF
+
   END IF
 
-  irv = nc_get_vara_float( fid,id_var,istart,icount,wrk3d )
+  istart = istart + 1
+  irv = nf90_get_var( fid,id_var+1,wrk3d,start=istart,count=icount )
   IF( irv /= 0 )THEN
     iaddr = nc_strerror( irv )
     CALL ADDRESS_STRING( iaddr,error%Message )
@@ -301,7 +304,7 @@ DO iv = 1,fld%gridSource%nVar3d
       pfld => fld%NextField%Press
 
       irv = nc_inq_varid( fid,AddNull('PB'),id_aux ); IF( irv /= 0 )GOTO 9999
-      irv = nc_get_vara_float( fid,id_aux,istart,icount,aux3d )
+      irv = nf90_get_var( fid,id_aux+1,aux3d,start=istart,count=icount )
       IF( irv /= 0 )THEN
         iaddr = nc_strerror( irv )
         CALL ADDRESS_STRING( iaddr,error%Message )
@@ -314,14 +317,14 @@ DO iv = 1,fld%gridSource%nVar3d
       pfld => fld%NextField%Z
 
       irv = nc_inq_varid( fid,AddNull('PHB'),id_aux ); IF( irv /= 0 )GOTO 9999
-      irv = nc_get_vara_float( fid,id_aux,istart,icount,aux3d )
+      irv = nf90_get_var( fid,id_aux+1,aux3d,start=istart,count=icount )
       IF( irv /= 0 )THEN
         iaddr = nc_strerror( irv )
         CALL ADDRESS_STRING( iaddr,error%Message )
         GOTO 9999
       END IF
 
-      CALL AddAux3d( nxi,nyi,nzp,wrk3d,aux3d,1./G0 )
+      CALL AddAux3d( nxi,nyi,nz,wrk3d,aux3d,1./G0 )
 
     CASE( GVP_H )
       pfld => fld%NextField%Humid
@@ -333,7 +336,7 @@ DO iv = 1,fld%gridSource%nVar3d
 
 !------ Copy into 1d array
 
-  DO k = 1,nzp
+  DO k = 1,nz
     k0 = (k-1)*nxyi
     DO j = 1,nyi
       j0 = (j-1)*nxi
@@ -352,19 +355,18 @@ DO iv = 1,fld%gridSource%nVar3d
     jshft = 0
   END IF
 
-  irv = Read3dVarGridded( fld%gridSource,nx,ny,nzp,pfld,ks,ishft,jshft,pwrk )
+  irv = Read3dVarGridded( fld%gridSource,nx,ny,nz,pfld,ks0,ishft,jshft,pwrk )
   IF( irv /= SWIMsuccess )GOTO 9999
 
 !------ Bottom bc (assume vertically staggered)
 
   IF( fld%gridSource%Var3dID(iv) == GVP_W )THEN
-    k = nz*nxy                                         !Top BC
-    DO i = 1,nxy
-      fld%NextField%W(k+i) = 0.
+    DO is = 1,nxy
+      pfld(is) = 0.
     END DO
   ELSE IF( fld%gridSource%Var3dID(iv) == GVP_Z )THEN
     DO is = 1,nxy
-      pfld(is) = fld%grid%terrain%H(is)+fld%grid%Hmin  !Set bottom slice explicitly
+      pfld(is) = fld%grid%terrain%H(is)+fld%grid%Hmin
     END DO
   ELSE
     DO is = 1,nxy
@@ -375,11 +377,6 @@ DO iv = 1,fld%gridSource%nVar3d
 !------ Scale fields if appropriate
 
   IF( fld%gridSource%Conv3d(iv) > 0. )CALL ScaleArray( fld%gridSource%Conv3d(iv),pfld,SIZE(pfld) )
-
-
-  IF( ASSOCIATED(pwrk)  )DEALLOCATE(pwrk, STAT=alloc_stat)
-  IF( ALLOCATED(wrk3d)  )DEALLOCATE(wrk3d,STAT=alloc_stat)
-  IF( ALLOCATED(aux3d)  )DEALLOCATE(aux3d,STAT=alloc_stat)
 
 END DO
 
@@ -407,15 +404,6 @@ END DO
 DO is = 1,nxy
   fld%NextField%Z(is) = -fld%NextField%Z(is+nxy)
 END DO
-
-!------ Scale potential temperature to PSURF
-
-IF( .NOT.BTEST(fld%gridSource%type,GSB_ABSTEMP) )THEN
-  fac = (PSURF/1000.)**KAPPA
-  DO is = 1,SIZE(fld%NextField%Tpot)
-    fld%NextField%Tpot(is) = fld%NextField%Tpot(is) *  fac
-  END DO
-END IF
 
 !------ Convert to relative humidity
 
@@ -494,7 +482,8 @@ DO iv = 1,fld%gridSource%nVar2d
   vname = TRIM(fld%gridSource%Var2dName(iv)); error%Action = 'Field= '//vname
 
   irv = nc_inq_varid( fid,AddNull(vname),id_var ); IF( irv /= 0 )GOTO 9999
-  irv = nc_inq_var( fid,id_var,varnam,ivtype,ndims,dimids,natts )
+  irv = nf90_inquire_variable( fid,id_var+1,name=varnam,xtype=ivtype,ndims=ndims,dimids=dimids,nAtts=natts )
+  dimids(1:ndims) = dimids(1:ndims) - 1
   IF( irv /= 0 )GOTO 9999
 
   IF( ndims /= 3 )THEN
@@ -541,7 +530,8 @@ DO iv = 1,fld%gridSource%nVar2d
 
   END IF
 
-  irv = nc_get_vara_float( fid,id_var,istart,icount,wrk2d )
+  istart = istart + 1
+  irv = nf90_get_var( fid,id_var+1,wrk2d,start=istart,count=icount )
   IF( irv /= 0 )THEN
     iaddr = nc_strerror( irv )
     CALL ADDRESS_STRING( iaddr,error%Message )
@@ -683,7 +673,7 @@ IMPLICIT NONE
 
 INTEGER,                                   INTENT( IN    ) :: fid
 INTEGER,                                   INTENT( IN    ) :: ix, iy, it
-INTEGER(LEN_ADDRESS), DIMENSION(3),        INTENT( IN    ) :: istart, icount
+INTEGER, DIMENSION(3),                     INTENT( IN    ) :: istart, icount
 REAL, DIMENSION( icount(ix),icount(iy),*), INTENT( INOUT ) :: Hflx
 
 INTEGER alloc_stat, irv, id, iaddr
@@ -720,7 +710,7 @@ IF( irv /= 0 )THEN
   error%Inform = 'Reading Q2'
   GOTO 9999
 END IF
-irv = nc_get_vara_float( fid,id,istart,icount,aux2d )
+irv = nf90_get_var( fid,id+1,aux2d,start=istart,count=icount )
 IF( irv /= 0 )THEN
   error%Routine = 'ComputeBuoyFlux'
   iaddr = nc_strerror( irv )
@@ -749,7 +739,7 @@ IF( irv /= 0 )THEN
   error%Inform = 'Reading TH2'
   GOTO 9999
 END IF
-irv = nc_get_vara_float( fid,id,istart,icount,wrk2d )
+irv = nf90_get_var( fid,id+1,wrk2d,start=istart,count=icount )
 IF( irv /= 0 )THEN
   error%Routine = 'ComputeBuoyFlux'
   iaddr = nc_strerror( irv )
@@ -776,7 +766,7 @@ IF( irv /= 0 )THEN
   error%Inform = 'Reading QFX'
   GOTO 9999
 END IF
-irv = nc_get_vara_float( fid,id,istart,icount,aux2d )
+irv = nf90_get_var( fid,id+1,aux2d,start=istart,count=icount )
 IF( irv /= 0 )THEN
   error%Routine = 'ComputeBuoyFlux'
   iaddr = nc_strerror( irv )
@@ -820,7 +810,7 @@ IMPLICIT NONE
 
 INTEGER,                                   INTENT( IN    ) :: fid
 INTEGER,                                   INTENT( IN    ) :: ix, iy, it
-INTEGER(LEN_ADDRESS), DIMENSION(3),        INTENT( IN    ) :: istart, icount
+INTEGER, DIMENSION(3),                     INTENT( IN    ) :: istart, icount
 REAL, DIMENSION( icount(ix),icount(iy),*), INTENT( INOUT ) :: precip  !Accumulated total precipitation
 
 INTEGER alloc_stat, irv, id, iaddr
@@ -850,7 +840,7 @@ nyi = icount(iy)
 irv = nc_inq_varid( fid,AddNull('RAINSH'),id )
 IF( irv == 0 )THEN
 
-  irv = nc_get_vara_float( fid,id,istart,icount,wrk2d )
+  irv = nf90_get_var( fid,id+1,wrk2d,start=istart,count=icount )
   IF( irv /= 0 )THEN
     error%Routine = 'AddAuxPrecip'
     iaddr = nc_strerror( irv )
@@ -872,7 +862,7 @@ END IF
 irv = nc_inq_varid( fid,AddNull('RAINNC'),id )
 IF( irv == 0 )THEN
 
-  irv = nc_get_vara_float( fid,id,istart,icount,wrk2d )
+  irv = nf90_get_var( fid,id+1,wrk2d,start=istart,count=icount )
   IF( irv /= 0 )THEN
     error%Routine = 'AddAuxPrecip'
     iaddr = nc_strerror( irv )

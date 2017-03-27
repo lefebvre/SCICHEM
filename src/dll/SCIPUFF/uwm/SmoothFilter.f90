@@ -18,6 +18,7 @@ CONTAINS
 INTEGER FUNCTION ilimit( i,imin,imax )
 
 !DEC# ATTRIBUTES DLLEXPORT :: ilimit
+
 IMPLICIT NONE
 
 INTEGER, INTENT( IN ) :: i, imin, imax
@@ -33,6 +34,7 @@ END FUNCTION ilimit
 REAL FUNCTION rlimit( r,rmin,rmax )
 
 !DEC# ATTRIBUTES DLLEXPORT :: rlimit
+
 IMPLICIT NONE
 
 REAL, INTENT( IN ) :: r, rmin, rmax
@@ -48,6 +50,7 @@ END FUNCTION rlimit
 SUBROUTINE GetFilterLengthMG( nFil )
 
 !DEC# ATTRIBUTES DLLEXPORT :: GetFilterLengthMG
+
 IMPLICIT NONE
 
 INTEGER, INTENT( OUT ) :: nFil
@@ -62,6 +65,7 @@ END SUBROUTINE GetFilterLengthMG
 SUBROUTINE GetFilterWeightsMG( wt )
 
 !DEC# ATTRIBUTES DLLEXPORT :: GetFilterWeightsMG
+
 IMPLICIT NONE
 
 REAL, DIMENSION(*), INTENT( OUT ) :: wt
@@ -82,6 +86,7 @@ END SUBROUTINE GetFilterWeightsMG
 SUBROUTINE GetFilterWeightsStgMG( wt )
 
 !DEC# ATTRIBUTES DLLEXPORT :: GetFilterWeightsStgMG
+
 IMPLICIT NONE
 
 REAL, DIMENSION(*), INTENT( OUT ) :: wt
@@ -102,6 +107,7 @@ END SUBROUTINE GetFilterWeightsStgMG
 REAL FUNCTION FilterFacMG( tc,tp ) RESULT( f )
 
 !DEC# ATTRIBUTES DLLEXPORT :: FilterFacMG
+
 IMPLICIT NONE
 
 !------ Filter function for non-integer locations
@@ -126,6 +132,7 @@ END FUNCTION FilterFacMG
 REAL FUNCTION FilterFacStgMG( tc,tp ) RESULT( f )
 
 !DEC# ATTRIBUTES DLLEXPORT :: FilterFacStgMG
+
 IMPLICIT NONE
 
 !------ Filter function for velocity locations on a staggered grid

@@ -6,17 +6,15 @@
 !===============================================================================
 !     ReadNamelistScn
 !===============================================================================
-SUBROUTINE ReadNamelistScn( iunit, relSpec )
+SUBROUTINE ReadNamelistScn( iunit )
 
 USE convert_fd
 USE relparam_fd
 USE scipuff_fi
-USE release_fi
 
 IMPLICIT NONE
 
-INTEGER,            INTENT( IN    ) :: iunit
-TYPE(releaseSpecT), INTENT( INOUT ) :: relSpec
+INTEGER, INTENT( IN ) :: iunit
 
 INTEGER, PARAMETER :: STATUS_COMPLETE  = 1
 
@@ -36,7 +34,6 @@ REAL    horiz_uncertainty
 REAL    vert_uncertainty
 REAL    slurry_fraction
 REAL    active_fraction
-REAL    next_updtTime
 INTEGER number_random
 INTEGER random_seed
 
@@ -47,13 +44,10 @@ REAL                 :: PArel    !For compatibility with NWPN
 
 REAL, DIMENSION(150) :: rel_mc   !For compatibility with MULTCOMP
 
-INTEGER opid
-INTEGER, DIMENSION(SCIPUFF_STATUS_ARRAY_SIZE) :: opmod
-
 NAMELIST / scn / trel, xrel, yrel, zrel, cmass, subgroup, tdur, &
                  size, sigx, sigy, sigz, urel, vrel, wrel, &
                  sigRxy, sigRxz, sigRyz, umom, vmom, wmom, buoy, &
-                 lognorm_mmd, lognorm_sigma, slurry_fraction, active_fraction, next_updtTime, &
+                 lognorm_mmd, lognorm_sigma, slurry_fraction, active_fraction, &
                  number_random, random_spread, random_seed, &
                  random_spreadT, random_spreadV, random_dir, &
                  horiz_uncertainty, vert_uncertainty, &
@@ -64,8 +58,6 @@ NAMELIST / scn / trel, xrel, yrel, zrel, cmass, subgroup, tdur, &
                  opid, opmod, opready, relEffect !For backward compatability
 
 !==== Initialize
-
-CALL InitRelease()
 
 number_random = NOT_SET_I
 random_seed   = NOT_SET_I
@@ -78,9 +70,8 @@ random_spreadT    = NOT_SET_R
 random_spreadV    = NOT_SET_R
 random_dir        = NOT_SET_R
 slurry_fraction   = NOT_SET_R
+opid             =  0
 active_fraction = 1.0
-opid            =  0
-next_updtTime   = NOT_SET_R
 
 !==== Read
 
@@ -155,6 +146,10 @@ IF( reltyp(1:2) /= 'CS' .OR. reltyp(1:3) == 'CSP' )THEN
   umom = 0.0
   vmom = 0.0
 END IF
+IF( reltyp(1:2) == 'CS' )THEN
+  !--Force update of CS release
+  relStatus = 0 !STATUS_INVALID
+END IF
 
 IF( slurry_fraction == DEF_VAL_R )slurry_fraction = NOT_SET_R
 IF( lognorm_mmd /= NOT_SET_R )THEN
@@ -177,10 +172,6 @@ rel_param(REL_WMFRAC_INDX) = slurry_fraction
 CALL CheckRangeReal( active_fraction  ,1.E-30,1.0,'Active fraction' )
 IF( nError /= NO_ERROR )GOTO 9999
 rel_param(REL_AFRAC_INDX) = active_fraction
-
-CALL CheckRangeReal( next_updtTime  ,1.E-30,1.E+30,'Next update time' )
-IF( nError /= NO_ERROR )GOTO 9999
-rel_param(REL_NXTUPDT_INDX) = next_updtTime
 
 IF( number_random /= NOT_SET_I )THEN
   CALL CheckRangeReal( random_spread,0.0,1.E30,'Random spread' )
@@ -207,9 +198,7 @@ ELSE
   rel_param(REL_RANDIR_INDX)  = NOT_SET_R
 END IF
 
-
-CALL LoadRelease( relSpec%release )
-CALL ReadNamelistMC( iunit,relSpec%MClist )
+CALL ReadNamelistMC( iunit )
 IF( nError /= NO_ERROR )GOTO 9999
 
 9999 CONTINUE
@@ -219,18 +208,16 @@ END
 !===============================================================================
 !     CountNamelistScn
 !===============================================================================
-SUBROUTINE CountNamelistScn( iunit,nRel,nMCrel )
+SUBROUTINE CountNamelistScn( iunit,nRel )
 
 USE convert_fd
 USE relparam_fd
 USE scipuff_fi
-USE release_fi
 
 IMPLICIT NONE
 
 INTEGER, INTENT( IN )    :: iunit
 INTEGER, INTENT( INOUT ) :: nRel
-INTEGER, INTENT( INOUT ) :: nMCrel
 
 INTEGER, PARAMETER :: STATUS_COMPLETE  = 1
 
@@ -250,7 +237,6 @@ REAL    horiz_uncertainty
 REAL    vert_uncertainty
 REAL    slurry_fraction
 REAL    active_fraction
-REAL    next_updtTime
 INTEGER number_random
 INTEGER random_seed
 
@@ -260,13 +246,11 @@ REAL                 :: PArel    !For compatibility with NWPN
 
 REAL, DIMENSION(150) :: rel_mc   !For compatibility with MULTCOMP
 
-INTEGER opid
-INTEGER, DIMENSION(SCIPUFF_STATUS_ARRAY_SIZE) :: opmod
 
 NAMELIST / scn / trel, xrel, yrel, zrel, cmass, subgroup, tdur, &
-                 size, sigx, sigy, sigz, urel, vrel, wrel, &
-                 sigRxy, sigRxz, sigRyz, umom, vmom, wmom, buoy, &
-                 lognorm_mmd, lognorm_sigma, slurry_fraction, active_fraction, next_updtTime, &
+                 size, sigx, sigy, sigz, sigRxy, sigRxz, sigRyz, urel, vrel, wrel, &
+                 umom, vmom, wmom, buoy, &
+                 lognorm_mmd, lognorm_sigma, slurry_fraction, active_fraction, &
                  number_random, random_spread, random_seed, &
                  random_spreadT, random_spreadV, random_dir, &
                  horiz_uncertainty, vert_uncertainty, &
@@ -301,9 +285,6 @@ END IF
 
 IF( size /= NOT_SET_R )size_rel=size
 
-CALL CountNamelistMC( iunit,nMCrel )
-IF( nError /= NO_ERROR )GOTO 9999
-
 nRel = nRel + 1
 
 9999 CONTINUE
@@ -313,14 +294,13 @@ END
 !===============================================================================
 !     ReadNamelistMC
 !===============================================================================
-SUBROUTINE ReadNamelistMC( iunit,MClist )
+SUBROUTINE ReadNamelistMC( iunit )
 
 USE scipuff_fi
 
 IMPLICIT NONE
 
-INTEGER,           INTENT( IN    ) :: iunit
-TYPE( MCrelList ), INTENT( INOUT ) :: MClist
+INTEGER, INTENT( IN ) :: iunit
 
 INTEGER ios, n_arg, nch
 LOGICAL lerr
@@ -334,7 +314,9 @@ TYPE( MCrelData ), POINTER :: nextRelMC
 
 INTEGER, EXTERNAL  :: RemoveCF
 
-CALL ClearMCrelList(MClist)
+IF( ASSOCIATED(RelMC%rel) )CALL ClearMCrelList()
+
+RelMC%nList = 0
 
 READ(iunit,'(A)',IOSTAT=ios) line
 IF( ios < 0 )THEN
@@ -354,16 +336,16 @@ IF( TRIM(line) /= '#START_MC' )THEN
   GOTO 9999
 END IF
 
-ALLOCATE( MClist%firstMCRel,STAT=ios )
+ALLOCATE( RelMC%rel,STAT=ios )
 IF( ios /= 0 )THEN
   nError   = UK_ERROR
   eRoutine = 'ReadNamelistMC'
   eMessage = 'Error allocating array for multi-component release data'
   GOTO 9999
 END IF
-NULLIFY( MClist%firstMCRel%next )
+NULLIFY( RelMC%rel%next )
 
-nextRelMC => MClist%firstMCRel
+nextRelMC => RelMC%rel
 
 CALL get_next_data( iunit,line,nch,kwrd,n_arg,c_arg,2,lerr )
 IF( lerr )THEN
@@ -394,7 +376,7 @@ DO
     GOTO 9999
   END IF
 
-  MClist%nList = MClist%nList + 1
+  RelMC%nList = RelMC%nList + 1
 
   CALL get_next_data( iunit,line,nch,kwrd,n_arg,c_arg,2,lerr )
   IF( lerr )THEN
@@ -485,20 +467,19 @@ END
 !===============================================================================
 !     WriteNamelistMC
 !===============================================================================
-SUBROUTINE WriteNamelistMC( iunit,MClist )
+SUBROUTINE WriteNamelistMC( iunit )
 
 USE scipuff_fi
 
 IMPLICIT NONE
 
-INTEGER,           INTENT( IN ) :: iunit
-TYPE( MCrelList ), INTENT( IN ) :: MClist
+INTEGER, INTENT( IN ) :: iunit
 
 INTEGER ios
 
 TYPE( MCrelData ), POINTER :: rel
 
-IF( MClist%nList == 0 )GOTO 9999
+IF( RelMC%nList == 0 )GOTO 9999
 
 WRITE(iunit,'(A)',IOSTAT=ios) '#START_MC'
 IF( ios /= 0 )THEN
@@ -508,7 +489,7 @@ IF( ios /= 0 )THEN
   GOTO 9999
 END IF
 
-rel => MClist%firstMCRel
+rel => RelMC%rel
 
 DO WHILE( ASSOCIATED(rel) )
 
@@ -534,117 +515,46 @@ END IF
 
 9999 CONTINUE
 
+CALL ClearMCrelList()
+
 RETURN
 END
 !===============================================================================
-!     CopyMCrelList
+!     ClearMCrelList
 !===============================================================================
-SUBROUTINE CopyMCrelList( MClistIn,MClistOut )
+SUBROUTINE ClearMCrelList()
 
-USE error_fi
-USE release_fd
+USE scipuff_fi
 
 IMPLICIT NONE
 
-TYPE( MCrelList ), INTENT( IN    ) :: MClistIn
-TYPE( MCrelList ), INTENT( INOUT ) :: MClistOut
+TYPE( MCrelData ), POINTER :: Rel, Next
 
-INTEGER ios
-TYPE( MCrelData ), POINTER :: MCrelIn, MCrelOut
+Rel => RelMC%rel
 
-CALL ClearMCrelList(MClistOut)
-
-MCrelIn => MClistIn%firstMCRel
-MCrelOut => MClistOut%firstMCRel
-
-DO WHILE( ASSOCIATED(MCrelIn) )
-  ALLOCATE(MCrelOut,STAT=ios)
-  IF( ios /= 0 )THEN
-    nError   = IV_ERROR
-    eRoutine = 'CopyMCrelList'
-    eMessage = 'Error allocating MClist element'
-    GOTO 9999
-  END IF
-  MCrelOut%MCname = MCrelIn%MCname
-  MCrelOut%MCmass = MCrelIn%MCmass
-  NULLIFY(MCrelOut%next)
-
-  MCrelIn => MCrelIn%next
-  MCrelOut => MCrelOut%next
+DO WHILE( ASSOCIATED(Rel) )
+  Next => Rel%next
+  NULLIFY( Rel )
+  Rel => Next
 END DO
 
-MClistOut%nList = MClistIn%nList
-
-9999 CONTINUE
-RETURN
-END
-!===============================================================================
-!     FillMCrelList
-!===============================================================================
-SUBROUTINE FillMCrelList( index, nMC, relMCList, MClist )
-
-USE error_fi
-USE release_fd
-
-IMPLICIT NONE
-
-INTEGER,                          INTENT( IN    ) :: index
-INTEGER,                          INTENT( IN    ) :: nMC
-TYPE( releaseMCT ), DIMENSION(*), INTENT( IN    ) :: relMCList
-TYPE( MCrelList ),                INTENT( INOUT ) :: MClist
-
-TYPE( MCrelData ), POINTER :: MCrel
-
-INTEGER i,ios !,count
-
-CALL ClearMCrelList( MClist )
-
-NULLIFY(MCrel)
-
-DO i = nMC,1,-1
-  IF( relMCList(i)%relID == index )THEN
-    MClist%nList = MClist%nList + 1
-    ALLOCATE(MCrel,STAT=ios)
-    IF( ios /= 0 )THEN
-      nError = UK_ERROR
-      eRoutine = 'FillMCrelList'
-      eMessage = 'Error allocating next list item'
-      GOTO 9999
-    END IF
-    MCrel%MCname = TRIM(relMCList(i)%MCname)
-    MCrel%MCmass = relMCList(i)%MCmass
-    NULLIFY(MCrel%next)
-    IF( .NOT.ASSOCIATED(MClist%firstMCRel) )THEN
-      MClist%firstMCRel => MCrel
-      MCrel => MClist%firstMCRel%next
-    ELSE
-      MCrel%next => MClist%firstMCRel
-      MClist%firstMCRel => MCrel
-    END IF
-  END IF
-END DO
-
-9999 CONTINUE
+RelMC%nList = 0
 
 RETURN
 END
 !===============================================================================
 !     WriteNamelistScn
 !===============================================================================
-SUBROUTINE WriteNamelistScn( iunit, relSpec )
+SUBROUTINE WriteNamelistScn( iunit )
 
 USE convert_fd
 USE scipuff_fi
-USE release_fi
 
 IMPLICIT NONE
 
 INTEGER, INTENT( IN ) :: iunit
-TYPE(releaseSpecT), INTENT( INOUT ) :: relSpec
 
 REAL, EXTERNAL :: ScaleReal
-
-CALL UnloadRelease( relSpec%release )
 
 trel = ScaleReal( trel,HCF_SEC2HOUR )
 IF( reltyp(1:1) == 'C' )THEN
@@ -670,17 +580,11 @@ SELECT CASE( TRIM(reltyp) )
   CASE( 'CM' )
     CALL WriteNamelistScnMove( iunit )
 
-  CASE( 'CF' )
-    CALL WriteNamelistScnContFile( iunit )
-
   CASE( 'CP' )
     CALL WriteNamelistScnPool( iunit )
 
   CASE( 'CS','CSP' )
     CALL WriteNamelistScnStack( iunit )
-
-  CASE( 'CSF' )
-    CALL WriteNamelistScnStackFile( iunit )
 
   CASE DEFAULT
     nError = IV_ERROR
@@ -695,7 +599,7 @@ IF( nError /= NO_ERROR )GOTO 9999
 trel = ScaleReal( trel,HCF_HOUR2SEC )
 IF( reltyp(1:1) == 'C' )tdur = ScaleReal( tdur,HCF_HOUR2SEC )
 
-CALL WriteNamelistMC( iunit, relSpec%MClist )
+CALL WriteNamelistMC( iunit )
 IF( nError /= NO_ERROR )GOTO 9999
 
 9999 CONTINUE
@@ -709,7 +613,6 @@ SUBROUTINE WriteNamelistScnInst( iunit )
 
 USE relparam_fd
 USE scipuff_fi
-USE release_fi
 
 IMPLICIT NONE
 
@@ -761,7 +664,6 @@ SUBROUTINE WriteNamelistScnXInst( iunit )
 
 USE relparam_fd
 USE scipuff_fi
-USE release_fi
 
 IMPLICIT NONE
 
@@ -813,7 +715,6 @@ SUBROUTINE WriteNamelistScnXInst3( iunit )
 
 USE relparam_fd
 USE scipuff_fi
-USE release_fi
 
 IMPLICIT NONE
 
@@ -872,50 +773,6 @@ SUBROUTINE WriteNamelistScnCont( iunit )
 
 USE relparam_fd
 USE scipuff_fi
-USE release_fi
-
-IMPLICIT NONE
-
-INTEGER, INTENT( IN ) :: iunit
-
-INTEGER ios
-
-REAL    lognorm_mmd
-REAL    lognorm_sigma
-REAL    slurry_fraction
-REAL    active_fraction
-REAL    next_updtTime
-
-NAMELIST / scn / relName,relDisplay,trel, xrel, yrel, zrel, cmass, subgroup, tdur, &
-                 sigx, sigy, sigz, &
-                 wmom, buoy, &
-                 lognorm_mmd, lognorm_sigma, slurry_fraction, active_fraction, next_updtTime, &
-                 relStatus, &
-                 reltyp, relmat
-
-lognorm_mmd       = rel_param(REL_MMD_INDX)
-lognorm_sigma     = rel_param(REL_SIGMA_INDX)
-slurry_fraction   = rel_param(REL_WMFRAC_INDX)
-active_fraction   = rel_param(REL_AFRAC_INDX)
-next_updtTime     = rel_param(REL_NXTUPDT_INDX)
-
-WRITE( iunit,scn,IOSTAT=ios )
-IF( ios /= 0 )THEN
-  nError   = WR_ERROR
-  eRoutine = 'WriteNamelistScnCont'
-  eMessage = 'Error writing continuous SCN namelist'
-END IF
-
-RETURN
-END
-!===============================================================================
-!     WriteNamelistScnContFile
-!===============================================================================
-SUBROUTINE WriteNamelistScnContFile( iunit )
-
-USE relparam_fd
-USE scipuff_fi
-USE release_fi
 
 IMPLICIT NONE
 
@@ -932,7 +789,7 @@ NAMELIST / scn / relName,relDisplay,trel, xrel, yrel, zrel, cmass, subgroup, tdu
                  sigx, sigy, sigz, &
                  wmom, buoy, &
                  lognorm_mmd, lognorm_sigma, slurry_fraction, active_fraction, &
-                 relStatus, name_rel, &
+                 relStatus, &
                  reltyp, relmat
 
 lognorm_mmd       = rel_param(REL_MMD_INDX)
@@ -943,7 +800,7 @@ active_fraction   = rel_param(REL_AFRAC_INDX)
 WRITE( iunit,scn,IOSTAT=ios )
 IF( ios /= 0 )THEN
   nError   = WR_ERROR
-  eRoutine = 'WriteNamelistScnContFile'
+  eRoutine = 'WriteNamelistScnCont'
   eMessage = 'Error writing continuous SCN namelist'
 END IF
 
@@ -956,7 +813,6 @@ SUBROUTINE WriteNamelistScnMove( iunit )
 
 USE relparam_fd
 USE scipuff_fi
-USE release_fi
 
 IMPLICIT NONE
 
@@ -968,12 +824,11 @@ REAL    lognorm_mmd
 REAL    lognorm_sigma
 REAL    slurry_fraction
 REAL    active_fraction
-REAL    next_updtTime
 
 NAMELIST / scn / relName,relDisplay,trel, xrel, yrel, zrel, cmass, subgroup, tdur, &
                  sigx, sigy, sigz, urel, vrel, wrel, &
                  wmom, buoy, &
-                 lognorm_mmd, lognorm_sigma, slurry_fraction, active_fraction, next_updtTime, &
+                 lognorm_mmd, lognorm_sigma, slurry_fraction, active_fraction, &
                  relStatus, &
                  reltyp, relmat
 
@@ -981,7 +836,6 @@ lognorm_mmd       = rel_param(REL_MMD_INDX)
 lognorm_sigma     = rel_param(REL_SIGMA_INDX)
 slurry_fraction   = rel_param(REL_WMFRAC_INDX)
 active_fraction   = rel_param(REL_AFRAC_INDX)
-next_updtTime     = rel_param(REL_NXTUPDT_INDX)
 
 WRITE( iunit,scn,IOSTAT=ios )
 IF( ios /= 0 )THEN
@@ -999,7 +853,6 @@ SUBROUTINE WriteNamelistScnPool( iunit )
 
 USE relparam_fd
 USE scipuff_fi
-USE release_fi
 
 IMPLICIT NONE
 
@@ -1029,7 +882,6 @@ SUBROUTINE WriteNamelistScnFile( iunit )
 
 USE relparam_fd
 USE scipuff_fi
-USE release_fi
 
 IMPLICIT NONE
 
@@ -1068,52 +920,6 @@ SUBROUTINE WriteNamelistScnStack( iunit )
 
 USE relparam_fd
 USE scipuff_fi
-USE release_fi
-
-IMPLICIT NONE
-
-INTEGER, INTENT( IN ) :: iunit
-
-INTEGER ios
-
-REAL    size                     !Local to avoid conflict with implicit function name
-REAL    lognorm_mmd
-REAL    lognorm_sigma
-REAL    slurry_fraction
-REAL    active_fraction
-REAL    next_updtTime
-
-NAMELIST / scn / relName,relDisplay,trel, xrel, yrel, zrel, cmass, subgroup, tdur, &
-                 size, &
-                 umom, vmom, wmom, buoy, &
-                 lognorm_mmd, lognorm_sigma, slurry_fraction, active_fraction, next_updtTime, &
-                 relStatus, &
-                 reltyp, relmat
-
-size              = size_rel
-lognorm_mmd       = rel_param(REL_MMD_INDX)
-lognorm_sigma     = rel_param(REL_SIGMA_INDX)
-slurry_fraction   = rel_param(REL_WMFRAC_INDX)
-active_fraction   = rel_param(REL_AFRAC_INDX)
-next_updtTime     = rel_param(REL_NXTUPDT_INDX)
-
-WRITE( iunit,scn,IOSTAT=ios )
-IF( ios /= 0 )THEN
-  nError   = WR_ERROR
-  eRoutine = 'WriteNamelistScnStack'
-  eMessage = 'Error writing stack SCN namelist'
-END IF
-
-RETURN
-END
-!===============================================================================
-!     WriteNamelistScnStackFile
-!===============================================================================
-SUBROUTINE WriteNamelistScnStackFile( iunit )
-
-USE relparam_fd
-USE scipuff_fi
-USE release_fi
 
 IMPLICIT NONE
 
@@ -1131,7 +937,7 @@ NAMELIST / scn / relName,relDisplay,trel, xrel, yrel, zrel, cmass, subgroup, tdu
                  size, &
                  umom, vmom, wmom, buoy, &
                  lognorm_mmd, lognorm_sigma, slurry_fraction, active_fraction, &
-                 relStatus, name_rel, &
+                 relStatus, &
                  reltyp, relmat
 
 size              = size_rel
@@ -1143,8 +949,32 @@ active_fraction   = rel_param(REL_AFRAC_INDX)
 WRITE( iunit,scn,IOSTAT=ios )
 IF( ios /= 0 )THEN
   nError   = WR_ERROR
-  eRoutine = 'WriteNamelistScnStackFile'
+  eRoutine = 'WriteNamelistScnStack'
   eMessage = 'Error writing stack SCN namelist'
+END IF
+
+RETURN
+END
+!===============================================================================
+!     WriteNamelistScnStatus
+!===============================================================================
+SUBROUTINE WriteNamelistScnStatus( iunit )
+
+USE scipuff_fi
+
+IMPLICIT NONE
+
+INTEGER, INTENT( IN ) :: iunit
+
+INTEGER ios
+
+NAMELIST / scn / opid,opmod
+
+WRITE( iunit,scn,IOSTAT=ios )
+IF( ios /= 0 )THEN
+  nError   = WR_ERROR
+  eRoutine = 'WriteNamelistScnStatus'
+  eMessage = 'Error writing SCN(Status) namelist'
 END IF
 
 RETURN

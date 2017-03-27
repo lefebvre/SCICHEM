@@ -37,21 +37,13 @@ INTEGER, EXTERNAL :: SWIMinitAERsfc, SWIMinitAERpfl
 REAL,    EXTERNAL :: SWIMsetHmin
 
 INTERFACE
-
   INTEGER FUNCTION ReadZgrid( VertGridFile,nz,z )
     CHARACTER(*), INTENT( IN  ) :: VertGridFile
     INTEGER,      INTENT( OUT ) :: nz
     REAL, DIMENSION(:), POINTER :: z
   END FUNCTION ReadZgrid
-
-  INTEGER FUNCTION SWIMinitMcWIF( zMC,nzMC,grid )
-    USE SWIM_fi
-    REAL, DIMENSION(:),      POINTER         :: zMC
-    INTEGER,                 INTENT( IN    ) :: nzMC
-    TYPE( MetGrid ), TARGET, INTENT( INOUT ) :: grid
-  END FUNCTION SWIMinitMcWIF
-
 END INTERFACE
+
 
 !------ Initialize success value
 
@@ -174,17 +166,8 @@ DO i = 1,SCIPUFFinit%nMetSrc
     CASE( SWIMvrtGrid)
       !Skip
 
-    CASE( SWIMgrid,SWIMSCIP )
-      numGridded = numGridded + 1
-
-    CASE( SWIMWRF )
-      numGridded = numGridded + 1
-
-    CASE( SWIMMEDLIST )
-      numGridded = numGridded + 1
-
     CASE DEFAULT
-      !Skip
+      numGridded = numGridded + 1
 
   END SELECT
 
@@ -200,7 +183,7 @@ END IF
 !------ Checks for terrain file specification with list input
 
 IF( (numObsSrc > 0 .AND. numGridded > 0) .OR. numGridded > 1 .OR. numTer > 0 )THEN
-  IF( BTEST(Prj%MC%type,MCB_TER) .OR. BTEST(Prj%MC%type,MCB_LC) )THEN
+  IF( Prj%MC%type > 0 )THEN
     error%Number  = IV_ERROR
     error%Routine = 'SWIMInitRun'
     error%Message = 'Terrain file and/or mass-consisent calculation specified in msc file'
@@ -249,9 +232,10 @@ unit        = SWIMunit
 jObs        = 0
 numField    = 0
 numFieldMax = 0
-grdField    = 0
-numTer      = 0
-numObsSrc0  = 0
+
+grdField   = 0
+numTer     = 0
+numObsSrc0 = 0
 
 DO i = 1,SCIPUFFinit%nMetSrc
 
@@ -451,7 +435,8 @@ DO i = 1,SCIPUFFinit%nMetSrc
 
     CASE( SWIMgrid,SWIMMEDOC,SWIMSCIP,SWIMWRF,SWIMMEDLIST )
 
-      IF( (BTEST(Prj%MC%type,MCB_TER) .OR. BTEST(Prj%MC%type,MCB_LC)) .AND. numField > 1 )THEN
+
+      IF( Prj%MC%type > 0 .AND. numField > 1 )THEN
         error%Number  = IV_ERROR
         error%Routine = 'SWIMInitRun'
         error%Message = 'Terrain file specified before gridded file'
@@ -598,11 +583,6 @@ IF( .NOT.Prj%Create )THEN
         irv = SWIMinitObsAssim( field(i) )
         IF( irv /= SWIMsuccess )GOTO 9999
 
-        irv = SWIMinitMcWIF( Prj%MC%Z,-1,field(i)%grid ) !Initialize for mass-consistent adjustment (-1 => grid is unchanged)
-        IF( irv /= SWIMsuccess )GOTO 9999
-
-        field(i)%type = IBSET(field(i)%type,FTB_MCWIF)
-
       END IF
 
     END DO
@@ -732,7 +712,6 @@ TYPE( MetField ), INTENT( IN ) :: fld
 CHARACTER(128) string
 
 INTEGER irv, ios, k, n1, n2
-INTEGER is
 INTEGER(8) :: ftype
 
 CHARACTER(PATH_MAXLENGTH), DIMENSION(:), POINTER :: pSource
@@ -805,29 +784,17 @@ WRITE(string,102,IOSTAT=ios) fld%grid%Ymin,fld%grid%Ymax,fld%grid%dY,fld%grid%nY
 irv = SWIMaddLogMessage( string )
 IF( irv /= SWIMsuccess )GOTO 9999
 
-IF( BTEST(fld%grid%type,GTB_Z3D) )THEN
-  irv = SWIMaddLogMessage( 'z:   3d height field.  Representative values reported later' )
-ELSE
-  irv = SWIMaddLogMessage( 'z:   Terrain-following coordinate.  Height (AGL) at domain center' )
-  is = MAX( (fld%grid%nY/2-1)*fld%grid%nX + fld%grid%nX/2,1 )
-  n1 = 1
-  n2 = MIN0(fld%grid%nZ,n1+5)
-  IF( BTEST(fld%type,FTB_MEDOC) .AND. (.NOT.BTEST(fld%type,FTB_W) .AND. BTEST(fld%grid%type,GTB_TERRAIN)) )THEN
-    DO WHILE( n1 <= fld%grid%nZ )
-      WRITE(string,"('   ',6ES12.4)",IOSTAT=irv) (fld%grid%Z(k),k=n1,n2)
-      irv = SWIMaddLogMessage( string )
-      IF( irv /= SWIMsuccess )GOTO 9999
-      n1 = n1+6; n2 = MIN0(fld%grid%nZ,n1+5)
-    END DO
-  ELSE
-    DO WHILE( n1 <= fld%grid%nZ )
-      WRITE(string,"('   ',6ES12.4)",IOSTAT=irv) (fld%grid%Z(k)*fld%grid%terrain%d(is),k=n1,n2)
-      irv = SWIMaddLogMessage( string )
-      IF( irv /= SWIMsuccess )GOTO 9999
-      n1 = n1+6; n2 = MIN0(fld%grid%nZ,n1+5)
-    END DO
-  END IF
-END IF
+n1 = 1; n2 = MIN(fld%grid%nZ,6)
+WRITE(string,103,IOSTAT=ios) (fld%grid%Z(k),k=n1,n2)
+irv = SWIMaddLogMessage( string )
+IF( irv /= SWIMsuccess )GOTO 9999
+
+DO WHILE( n2 < fld%grid%nZ )
+  n1 = n1+6; n2 = MIN(fld%grid%nZ,n1+5)
+  WRITE(string,104,IOSTAT=ios) (fld%grid%Z(k),k=n1,n2)
+  irv = SWIMaddLogMessage( string )
+  IF( irv /= SWIMsuccess )GOTO 9999
+END DO
 
 IF( BTEST(fld%grid%type,GTB_TERRAIN) )THEN
   WRITE(string,'(A,ES12.4)',IOSTAT=ios) 'Minimum terrain elevation =',fld%grid%hmin

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectType="typeDynamicLibrary" ProjectCreator="Intel Fortran" Keyword="Dll - Converted from CVF" Version="11.0" ProjectIdGuid="{915396E7-EC4F-4BB8-B936-057C8459A8A4}">
+	<Platforms>
+		<Platform Name="Win32"/>
+		<Platform Name="x64"/></Platforms>
+	<Configurations>
+		<Configuration Name="Debug|Win32" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\dll\Messages" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" EnableRecursion="true" WarnDeclarations="true" WarnUnusedVariables="true" WarnTruncateSource="true" FloatingPointModel="strict" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" RuntimeChecks="rtChecksNone" BoundsCheck="true" UninitializedVariablesCheck="true"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(PlatformName)\$(ConfigurationName)\Messages.dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(PlatformName)\$(ConfigurationName)" GenerateDebugInformation="true" ProgramDatabaseFile="$(OUTDIR)\$(TargetName).pdb" GenerateMapFile="true" MapFileName="$(INTDIR)/Messages.map" SubSystem="subSystemWindows" StackReserveSize="67108864" StackCommitSize="65536" ImportLibrary="$(OUTDIR)/Messages.lib" LinkDLL="true" AdditionalDependencies="kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="_DEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/Messages.tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|Win32" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\dll\Messages" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" OmitFramePointers="false" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" EnableRecursion="true" Diagnostics="diagnosticsDisableAll" ByteRECL="true" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" RuntimeChecks="rtChecksNone"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(PlatformName)\$(ConfigurationName)\Messages.dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(PlatformName)\$(ConfigurationName)" ProgramDatabaseFile="$(OUTDIR)\$(TargetName).pdb" SubSystem="subSystemWindows" ImportLibrary="$(OUTDIR)/Messages.lib" LinkDLL="true" AdditionalDependencies="kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="NDEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/Messages.tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Debug|x64" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\dll\Messages" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" EnableRecursion="true" DebugParameter="debugParameterAll" WarnDeclarations="true" WarnUnusedVariables="true" WarnTruncateSource="true" ByteRECL="true" FloatingPointModel="source" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(IntDir)\$(InputName).pdb" AssemblerListingLocation="$(INTDIR)/" EmitSourceListing="true" Traceback="true" BoundsCheck="true" UninitializedVariablesCheck="true"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(PlatformName)\$(ConfigurationName)\Messages.dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(PlatformName)\$(ConfigurationName)" GenerateDebugInformation="true" ProgramDatabaseFile="$(OUTDIR)/Messages.pdb" GenerateMapFile="true" MapFileName="$(INTDIR)/Messages.map" SubSystem="subSystemWindows" StackReserveSize="67108864" StackCommitSize="65536" ImportLibrary="$(OUTDIR)/Messages.lib" LinkDLL="true" AdditionalDependencies="kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="_DEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/Messages.tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|x64" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\dll\Messages" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMET_PLOT /DNEW_MCWIF /DPROCESS /DREVERSE /DVALIDATION /DWININI /DWRF" SuppressStartupBanner="true" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" EnableRecursion="true" ByteRECL="true" FloatingPointModel="source" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(PlatformName)\$(ConfigurationName)\Messages.dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(PlatformName)\$(ConfigurationName)" ProgramDatabaseFile="$(OUTDIR)/Messages.pdb" SubSystem="subSystemWindows" ImportLibrary="$(OUTDIR)/Messages.lib" LinkDLL="true" AdditionalDependencies="kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="NDEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/Messages.tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration></Configurations>
+	<Files>
+		<Filter Name="Header Files" Filter="h;hpp;hxx;hm;inl;fi;fd"/>
+		<Filter Name="Resource Files" Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
+		<Filter Name="Source Files" Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;f90;for;f;fpp">
+		<File RelativePath="..\..\..\src\dll\util\Messages\InitMessage.f90"/>
+		<File RelativePath="..\..\..\src\dll\util\Messages\Messages.f90"/>
+		<File RelativePath="..\..\..\src\dll\util\Messages\PostMessage.f90"/></Filter></Files>
+	<Globals/></VisualStudioProject>
