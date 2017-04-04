@@ -1,0 +1,3 @@
+# Include file for makefile using dynamic libraries
+LIBS= -L./ -lsciptool -llanduse -lsystool -lswim -lfdatums -larap -lmessages -L ${NETCDF_LIB_PATH}/lib -lnetcdff -lnetcdf -L ${HDF_LIB_PATH}/lib -lhdf5_hl -lhdf5 -lsz -lz -L ${NETCDF_LIB_PATH}/lib -lnetcdff -lnetcdf -L ${HDF_LIB_PATH}/lib -lhdf5_hl -lhdf5 -lsz -lz
+LIBDEPENDS= libfdatums.a libarap.a

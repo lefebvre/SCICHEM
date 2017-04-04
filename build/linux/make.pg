@@ -1,0 +1,40 @@
+# Portland Group compiler
+
+COMPILER = pg
+
+FC = pgf90
+
+F77 = pgf90
+
+CC = cc
+
+LB = ar
+
+LNK = $(FC)
+
+FCFLAGS = -Mlfs -Mextend -O2 -pc 64 -c
+
+F77FLAGS = -Mlfs -Mextend -O2 -pc 64 -c
+
+ifeq ($(MPI),On)
+  FCFLAGS  += -D MPICH2
+  F77FLAGS += -D MPICH2
+endif
+
+CCFLAGS = -c -O2 -m32 -fPIC -DLinux -DNOFUNCDEF -DUTIME_H
+
+LBFLAGS = r
+
+LNKFLAGS = -Mlfs -Mextend -O2 -pc 64 -o
+
+ifeq ($(LSuf),a)
+LD = ar rs
+LDFLAGS =
+else
+LD = ld -m elf_i386 -o 
+LDFLAGS = -shared -L/usr/pgi/linux86/6.1/lib -lpgf90rtl -lpgsse1 -lpgsse2
+endif
+
+I = -I
+
+M = -I

@@ -1,0 +1,2 @@
+# Include path for missing modules
+INCDIR=  $(M)$(BD)/lib/AQAER/AE5/aero/inc $(M)$(BD)/lib/AQAER/AE5/aqueous/inc
