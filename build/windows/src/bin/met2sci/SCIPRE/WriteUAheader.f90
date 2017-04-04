@@ -17,7 +17,7 @@ carg(1) = 'ID'     ; carg(nt+1) = ' '
 carg(2) = 'LAT'    ; carg(nt+2) = 'N'
 carg(3) = 'LON'    ; carg(nt+3) = 'E'
 carg(4) = 'YYMMDD' ; carg(nt+4) = ' '
-carg(5) = 'HOUR'   ; carg(nt+7) = 'HRS'
+carg(5) = 'HOUR'   ; carg(nt+5) = 'HRS'
 
 carg(nv1+1) = 'Z'     ; carg(nt+nv1+1) = 'M       '
 carg(nv1+2) = 'P'     ; carg(nt+nv1+2) = 'MB      '

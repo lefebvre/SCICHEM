@@ -9,9 +9,9 @@ IMPLICIT NONE
 
 INTEGER, INTENT( OUT ) :: iversion_code
 
-!**************************** VERSION 2.8 **************************************
+!**************************** VERSION 3.1 **************************************
 
-iversion_code = 3000
+iversion_code = 3101
 
 RETURN
 END

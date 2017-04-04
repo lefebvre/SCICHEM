@@ -6,7 +6,7 @@ SUBROUTINE owner_draw(iwnd,draw)
 USE resource_fd
 USE reldef_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -39,7 +39,7 @@ SUBROUTINE owner_draw_setup(draw,id_level)
 USE resource_fd
 USE reldef_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -125,7 +125,7 @@ SUBROUTINE draw_button_rect(draw,ipn,ioff)
 
 USE resource_fd
 USE reldef_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -168,7 +168,7 @@ SUBROUTINE owner_redraw(iwnd,id_dialog,igroup,id_level)
 USE resource_fd
 USE reldef_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

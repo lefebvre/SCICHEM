@@ -6,7 +6,7 @@
 !*******************************************************************************
 !            Load Project Input
 !*******************************************************************************
-INTEGER FUNCTION LoadProject( UserID,project,mtlList,relList )
+INTEGER FUNCTION LoadProject( UserID,project,mtlList,relList,relMCList )
 
 USE SCIMgr_fd
 USE files_fi
@@ -20,6 +20,7 @@ INTEGER,                          INTENT( IN    ) :: UserID !USER ID Tag
 TYPE( projectT ),                 INTENT( INOUT ) :: project !Project ID
 TYPE( materialT ),  DIMENSION(*), INTENT( OUT   ) :: mtlList !Material list
 TYPE( releaseT ),   DIMENSION(*), INTENT( OUT   ) :: relList !Release list
+TYPE( releaseMCT ), DIMENSION(*), OPTIONAL, INTENT( OUT ) :: relMCList !Release multicomponent list
 
 INTEGER currentState, ios, irv
 INTEGER save_status, i
@@ -35,6 +36,7 @@ CHARACTER(PATH_MAXLENGTH) string, filename
 INTEGER, EXTERNAL :: Load_Domain, Load_Time, Load_Ctrl, Load_Release
 INTEGER, EXTERNAL :: Load_Weather
 INTEGER, EXTERNAL :: ExtracProjectVersion
+INTEGER, EXTERNAL :: Load_ReleaseMC
 
 CHARACTER(PATH_MAXLENGTH), EXTERNAL :: AddExtension, StripNull
 
@@ -156,7 +158,11 @@ scenario%control%mode          = SCIPnull
 scenario%control%searchID      = ' '
 scenario%control%fileExtension = ' '
 
-irv = Load_Release( scenario,relList )
+IF( PRESENT(relMCList) )THEN
+  irv = Load_ReleaseMC( scenario,relList,relMCList )
+ELSE
+  irv = Load_Release( scenario,relList )
+END IF
 IF( irv == SCIPfailure )GOTO 9999
 
 project%scnHead = scenario%scnHead
@@ -180,7 +186,11 @@ DO i = 1,project%scnHead%number
   IF( LEN_TRIM(relList(i)%relName) > 0 )THEN
     save_status = relList(i)%status
     scenario%control%searchID = TRIM(StripNull( relList(i)%relName ))
-    irv = Load_Release( scenario,relList )
+    IF( PRESENT(relMCList) )THEN
+      irv = Load_ReleaseMC( scenario,relList,relMCList )
+    ELSE
+      irv = Load_Release( scenario,relList )
+    END IF
     IF( irv == SCIPfailure )THEN
       IF( nError == EOF_ERROR )THEN
         CALL ModuleInitError()
@@ -215,7 +225,7 @@ END
 !*******************************************************************************
 !            Get Project Size
 !*******************************************************************************
-INTEGER FUNCTION SizeProject( UserID,project,nMtl,nRel )
+INTEGER FUNCTION SizeProject( UserID,project,nMtl,nRel,nMCrel )
 
 USE SCIMgr_fd
 USE SCIMgr_fi
@@ -227,8 +237,10 @@ INTEGER,             INTENT( IN  ) :: UserID !USER ID tag
 TYPE ( projectIDT ), INTENT( IN  ) :: project !Project ID
 INTEGER,             INTENT( OUT ) :: nMtl   !number of materials in file
 INTEGER,             INTENT( OUT ) :: nRel   !number of releases in file
+INTEGER,             INTENT( OUT ) :: nMCrel !number of MC release records in file
 
 INTEGER irv, nr, nm, currentState
+INTEGER nmc
 
 CHARACTER(PATH_MAXLENGTH) string
 
@@ -272,13 +284,14 @@ CALL AddPath( string,TRIM(project%path) )
 string = TRIM(AddExtension(string,'scn'))
 file%string = TRIM(string)
 
-irv = CountRelease( UserID,file,nr )
+irv = CountRelease( UserID,file,nr,nmc )
 IF( irv == SCIPfailure )GOTO 9999
 
 !==== Set return value
 
 nMtl   = nm
 nRel   = nr
+nMCrel = nmc
 
 SizeProject = SCIPsuccess
 

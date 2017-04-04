@@ -10,7 +10,7 @@ USE pcscipuf_fi
 USE files_fi
 USE dialog_fi
 USE param_fd
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the DOMAIN Dialog Box
 !
@@ -139,7 +139,7 @@ USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine loads the Domain Dialog Box
 !
@@ -293,7 +293,7 @@ END
 SUBROUTINE ShowLocalCoordinates( iwnd_db,iopt,jopt,kopt,lref )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
@@ -487,7 +487,7 @@ END
 SUBROUTINE CheckLocalCoordinates( iwnd_db,id_level,lreset,lok )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
@@ -794,7 +794,7 @@ END
 SUBROUTINE init_dialog_options( iwnd_db,id_level )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
@@ -901,7 +901,7 @@ END
 SUBROUTINE load_dialog_options( iwnd_db,id_level )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
@@ -1258,7 +1258,7 @@ END
 SUBROUTINE init_dialog_prjdef( iwnd_db,id_level )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
@@ -1444,7 +1444,7 @@ END
 SUBROUTINE load_dialog_prjdef( iwnd_db,id_level )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi

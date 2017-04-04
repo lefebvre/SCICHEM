@@ -15,7 +15,7 @@ USE dialog_fi
 USE GUImatl_fi
 USE units_fd
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

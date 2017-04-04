@@ -140,7 +140,7 @@ ELSE IF( lmap == I_CARTESIAN )THEN
         lon0 == DEF_VAL_R .OR. lat0 == DEF_VAL_R )THEN
       nError   = IV_ERROR
       eRoutine = 'SetSampCoord'
-      eMessage = 'Reference location for not set for Cartesian project'
+      eMessage = 'Reference location not set for Cartesian project'
       eMessage = 'Must be set for CART samplers with ORIGIN'
       GOTO 9999
     END IF
@@ -169,7 +169,7 @@ IMPLICIT NONE
 INTEGER ios
 LOGICAL lValidUnits
 
-REAL, EXTERNAL :: ParseSensorTime, ParseTimeUnits
+REAL, EXTERNAL :: ParseTimeUnits
 
 iarg = iarg + 1
 IF( iarg > n_arg )THEN
@@ -263,6 +263,60 @@ END
 
 !==============================================================================
 
+SUBROUTINE SetSampEnd()
+
+USE scipuff_fi
+USE sampler_fi
+USE ParseLine_fi
+USE files_fi
+
+IMPLICIT NONE
+
+LOGICAL lValidUnits, lRelTime
+
+REAL, EXTERNAL :: ParseSensorTime, ParseTimeUnits
+
+IF( lSmpOutList )THEN
+  nError   = IV_ERROR
+  eRoutine = 'SetSampEnd'
+  eMessage = 'End time must be given in following list'
+  GOTO 9999
+END IF
+
+iarg = iarg + 1
+IF( iarg > n_arg )THEN
+  nError   = IV_ERROR
+  eRoutine = 'SetSampEnd'
+  eMessage = 'Missing end time in sampler file'
+  eInform  = 'Required in sampler input file when specifying END keyword'
+  GOTO 9999
+END IF
+
+tEndSamp = ParseSensorTime( c_arg(iarg),lRelTime )
+IF( tEndSamp == NOT_SET_R )THEN
+  nError   = IV_ERROR
+  eRoutine = 'SetSampEnd'
+  eMessage = 'Error reading sampler end time'
+  eInform  = 'Format must be HH:MM:SS.SS or YYYYMMDD:HH:MM:SS.SS'
+  GOTO 9999
+END IF
+
+!------ Look for optional (relative) time units
+
+IF( lRelTime )THEN
+  IF( iarg+1 > n_arg )GOTO 9999
+  tEndSamp = tEndSamp * ParseTimeUnits( c_arg(iarg+1),lValidUnits )
+  IF( lValidUnits )iarg = iarg + 1
+END IF
+IF( BTEST(run_mode,REVERSE_MODE) .AND. .NOT. lRelTime )tEndSamp = -tEndSamp
+
+9999 CONTINUE
+
+RETURN
+END
+
+!==============================================================================
+
 SUBROUTINE SetSampOutput()
 
 USE scipuff_fi
@@ -275,7 +329,7 @@ IMPLICIT NONE
 INTEGER ios
 LOGICAL lValidUnits
 
-REAL, EXTERNAL :: ParseSensorTime, ParseTimeUnits
+REAL, EXTERNAL :: ParseTimeUnits
 
 iarg = iarg + 1           !Set for string following OUTPUT keyword
 IF( iarg > n_arg )THEN
@@ -293,7 +347,7 @@ IF( TRIM(c_arg(iarg)) == 'LIST' )THEN
   GOTO 9999 !No more output time parameters on header record
 END IF
 
-READ(c_arg(iarg),*,IOSTAT=ios) dtSmpOut  !Used for otuput interval
+READ(c_arg(iarg),*,IOSTAT=ios) dtSmpOut  !Used for output interval
 IF( ios /= 0 )THEN
   nError   = IV_ERROR
   eRoutine = 'SetSampOutput'
@@ -415,6 +469,11 @@ IF( lSmpOutList )THEN
     END IF
 
     CALL cupper( c_arg(1) )
+
+    IF( TRIM(c_arg(1)) == 'OUTPUT' .OR. TRIM(c_arg(1)) == 'LIST' )THEN  !Skip optional section header
+      CALL get_next_data( lun,string,nch,kwrd,n_arg,c_arg,MAXN_ARG,lerr )
+      IF( lerr )GOTO 9999
+    END IF
     IF( c_arg(1) == 'END' )EXIT TimeListLoop
 
     IF( lavg .AND. n_arg < 2 )THEN
@@ -587,6 +646,7 @@ CALL cupper( c_arg(iarg+1) )
 IF( c_arg(iarg+1) == 'LOS' )THEN
   iarg = iarg+1
   smp(nsmp)%stype = IBSET(smp(nsmp)%stype,STB_LOS)
+  lLOSSmp = .TRUE.
 END IF
 
 !------ Check for a gridded output sensor
@@ -599,6 +659,8 @@ ELSE IF( c_arg(iarg+1) == 'GRID' )THEN
   smp(nsmp)%stype = IBSET(smp(nsmp)%stype,STB_AUTOGRID)
   smp(nsmp)%nx    = 0
   smp(nsmp)%ny    = 0
+ELSE IF( c_arg(iarg+1) == 'FIXED' )THEN  !Same as no type
+  iarg = iarg+1
 END IF
 
 lGrid    = BTEST(smp(nsmp)%stype,STB_FXGRID) .OR. BTEST(smp(nsmp)%stype,STB_AUTOGRID)
@@ -622,6 +684,22 @@ IF( lGrid )THEN
     nError   = IV_ERROR
     eRoutine = 'SetSampType'
     eMessage = 'LOS output invalid with gridded sensor'
+    CALL SensorNumStr( nsmp,eInform )
+    GOTO  9999
+  END IF
+END IF
+
+IF( lBinOut )THEN
+  IF( BTEST(smp(nsmp)%stype,STB_MOVING) )THEN
+    nError   = IV_ERROR
+    eRoutine = 'SetSampType'
+    eMessage = 'MOVING sensor invalid with binary output'
+    CALL SensorNumStr( nsmp,eInform )
+    GOTO  9999
+  ELSE IF( BTEST(smp(nsmp)%stype,STB_AUTOGRID) )THEN
+    nError   = IV_ERROR
+    eRoutine = 'SetSampType'
+    eMessage = 'Adaptive grid sensor invalid with binary output'
     CALL SensorNumStr( nsmp,eInform )
     GOTO  9999
   END IF
@@ -794,6 +872,9 @@ END IF
 smp(nsmp)%az   = smp(nsmp-1)%az
 smp(nsmp)%el   = smp(nsmp-1)%el
 smp(nsmp)%dist = smp(nsmp-1)%dist
+smp(nsmp)%lx   = smp(nsmp-1)%lx
+smp(nsmp)%ly   = smp(nsmp-1)%ly
+smp(nsmp)%lz   = smp(nsmp-1)%lz
 
 
 RETURN
@@ -807,7 +888,7 @@ USE scipuff_fi
 USE sampler_fi
 USE ParseLine_fi
 USE files_fi
-USE met_fi, ONLY: hmin, numMet, lensm
+USE met_fi, ONLY: hmin
 USE los_fd
 
 IMPLICIT NONE
@@ -1378,8 +1459,7 @@ END IF
 imat = typeID(smp(nsmp)%is)%imat
 Units = material(imat)%unit
 
-IF( BTEST(smp(nsmp)%stype,STB_INTEGRATE) .AND. &
-          (lGrid .OR. lDosSmp .OR. BTEST(run_mode,DINCRMNT)) )THEN
+IF( BTEST(smp(nsmp)%stype,STB_INTEGRATE) .AND. lGrid )THEN
   CALL check_smp_dos( smp(nsmp) )
   IF( nError /= NO_ERROR )GOTO 9999
   smp(nsmp)%stype = IBSET(smp(nsmp)%stype,STB_INTGRID)
@@ -1733,6 +1813,8 @@ IF( smp(nsmp)%ie == -1 )THEN
   IF( nError /= NO_ERROR )GOTO 9999
 
   nvarsmp = nvarsmp + 1; smp_vname(nvarsmp) = 'R'; smp_units(nvarsmp) = TRIM(Units)//'/m2'
+
+  lDepS = .TRUE.
 
 END IF
 
@@ -3106,4 +3188,5 @@ IF( ALLOCATED(dosblk_tmp) )DEALLOCATE( dosblk_tmp,STAT=alloc_stat )
 RETURN
 
 END FUNCTION reallocate_dosblk_smp
+
 

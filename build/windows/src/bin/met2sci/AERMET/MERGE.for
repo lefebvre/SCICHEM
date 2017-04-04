@@ -1,4 +1,4 @@
-      SUBROUTINE MERGE (ISTAT)
+      SUBROUTINE AERMET_MERGE (ISTAT)
 C=====================================================================**
 C          MERGE Module of the AERMET Meteorological Preprocessor
 C

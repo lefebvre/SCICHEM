@@ -107,7 +107,6 @@ USE default_fd
 USE error_fi
 USE files_fi
 
-
 IMPLICIT NONE
 
 TYPE( releaseT ), INTENT( IN ) :: release
@@ -117,6 +116,7 @@ TYPE( relFileT  ) fileData
 TYPE( relInstT  ) instData
 TYPE( relXInstT ) XinstData
 TYPE( relMoveT  ) moveData
+TYPE( relContFileT ) contDataF
 TYPE( relPoolT  ) poolData
 TYPE( relPuffT  ) puffData
 TYPE( relStackT ) stckData
@@ -128,11 +128,11 @@ REAL, EXTERNAL :: GetSCIPUFFtime
 
 SkipRelease = .FALSE.
 
-SELECT CASE ( release%type )
-  CASE ( HR_INST )
+SELECT CASE( release%type )
+  CASE( HR_INST )
     instData = TRANSFER(release%relData,instData)
     SkipRelease = instData%mass == NOT_SET_R
-  CASE ( HR_XINST )
+  CASE( HR_XINST )
     XinstData = TRANSFER(release%relData,XinstData)
     SkipRelease = XinstData%mass == NOT_SET_R
   CASE( HR_FILE )
@@ -144,6 +144,18 @@ SELECT CASE ( release%type )
   CASE( HR_CONT )
     contData = TRANSFER(release%relData,contData)
     SkipRelease = contData%rate == NOT_SET_R
+  CASE( HR_CONTF )
+    contDataF = TRANSFER(release%relData,contDataF)
+    SkipRelease = contDataF%rate == NOT_SET_R .OR. &
+                  TRIM(fileData%relFile) == TRIM(NOT_SET_C)
+  CASE( HR_STACKF )
+    stckData = TRANSFER(release%relData,stckData)
+    SkipRelease = stckData%rate == NOT_SET_R .OR. &
+                  TRIM(fileData%relFile) == TRIM(NOT_SET_C)
+  CASE( HR_STACK3F )
+    stck3Data = TRANSFER(release%relData,stck3Data)
+    SkipRelease = stck3Data%rate == NOT_SET_R .OR. &
+                  TRIM(fileData%relFile) == TRIM(NOT_SET_C)
   CASE( HR_MOVE )
     moveData = TRANSFER(release%relData,moveData)
     SkipRelease = moveData%rate == NOT_SET_R

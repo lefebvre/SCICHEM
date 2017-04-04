@@ -97,7 +97,7 @@ IF( BTEST(fld%status,FSB_DOINIT) )THEN
 ELSE
 
   DoIt = BTEST(fldp%status,FSB_UPDATE)
-    IF( fld%nObsSource > 0 )DoIt = DoIt .AND. fldp%tNext > fld%t2
+  IF( fld%nObsSource > 0 )DoIt = DoIt .AND. fldp%tNext > fld%t2
 
 END IF
 

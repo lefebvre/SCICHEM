@@ -158,11 +158,12 @@ relDataC%momentum     = 0.
 relDataC%buoyancy     = 0.
 relDataC%dryFrac      = NOT_SET_R
 relDataC%activeFrac   = 1.
+relDataC%nextUpdtTime = NOT_SET_R
 relDataC%padding      = NOT_SET_I
 
 DO i = 1,nRel
     rlsList(i)%type      = NOT_SET_I
-    rlsList(i)%status    = 1  !HS_VALID
+    rlsList(i)%status    = HS_VALID
     rlsList(i)%tRel      = NOT_SET_R
     rlsList(i)%xRel      = NOT_SET_D
     rlsList(i)%yRel      = NOT_SET_D
@@ -174,11 +175,6 @@ DO i = 1,nRel
     rlsList(i)%material   = ' '
     rlsList(i)%relName    = '<empty>'
     rlsList(i)%relDisplay = '<empty>'
-    rlsList(i)%nMC        = 0
-    DO j = 1,MAX_MCR
-      rlsList(i)%MCname(j)= NOT_SET_C
-      rlsList(i)%MCmass(j)= NOT_SET_R
-    END DO
 END DO
 
 ALLOCATE( Times(nMtl),STAT=ios )
@@ -232,7 +228,8 @@ DO
       rlsList(i)%type = HR_CONT
       !-- relmat
       indx = INDEX (TRIM(line), ';')
-      READ(line(1:indx-1),'(A)',IOSTAT=ios)rlsList(i)%material
+      string = ADJUSTL(line(1:indx-1))
+      READ(string,'(A)',IOSTAT=ios)rlsList(i)%material
       IF( ios /= 0 )EXIT
       matList(i)%name = rlsList(i)%material
       line = line(indx+1:)
@@ -268,9 +265,9 @@ DO
       line = line(indx+1:)
       !-- Material type
       indx = INDEX (TRIM(line), ';')
-      READ(line(1:indx-1),'(A)',IOSTAT=ios)MatTyp
+      string = ADJUSTL(line(1:indx-1))
+      READ(string,'(A)',IOSTAT=ios)MatTyp
       IF( ios /= 0 )EXIT
-      MatTyp = ADJUSTL(MatTyp)
       IF( MatTyp(1:1) == 'N' .OR. MatTyp(1:1) == 'n' )nNull = nNull + 1
       line = line(indx+1:)
       !-- Conc Min
@@ -290,9 +287,9 @@ DO
       line = line(indx+1:)
       !-- Saturation type
       indx = INDEX (TRIM(line), ';')
-      READ(line(1:indx-1),'(A)',IOSTAT=ios)sat
+      string = ADJUSTL(line(1:indx-1))
+      READ(string,'(A)',IOSTAT=ios)sat
       IF( ios /= 0 )EXIT
-      sat = ADJUSTL(sat)
       line = line(indx+1:)
       !-- Tau
       READ(line,*,IOSTAT=ios)relDataC%duration
@@ -357,19 +354,19 @@ jul_start = IFIX(-1.*Times(1))/24.
 CALL julian_ymd(jul_start,iyr,imon,iday)
 tstart = (IFIX(Times(1)/24.) - Times(1)/24.)*24.
 
-RunTime%START%TIME%YEAR	 = iyr
+RunTime%START%TIME%YEAR  = iyr
 RunTime%START%TIME%MONTH = imon
-RunTime%START%TIME%DAY	 = iday
-RunTime%START%TIME%HOUR	 = tstart
+RunTime%START%TIME%DAY   = iday
+RunTime%START%TIME%HOUR  = tstart
 
 jul_end = jul_start + IFIX((tstart + RunTime%END%TIME%RUNTIME)/24.)
 CALL julian_ymd(jul_end,iyr,imon,iday)
 tend = MOD(tstart + RunTime%END%TIME%RUNTIME,24.)
 
-RunTime%END%TIME%YEAR	 = iyr
-RunTime%END%TIME%MONTH   = imon
-RunTime%END%TIME%DAY	 = iday
-RunTime%END%TIME%HOUR	 = tend
+RunTime%END%TIME%YEAR  = iyr
+RunTime%END%TIME%MONTH = imon
+RunTime%END%TIME%DAY   = iday
+RunTime%END%TIME%HOUR  = tend
 
 LoadSen = SCIPsuccess
 

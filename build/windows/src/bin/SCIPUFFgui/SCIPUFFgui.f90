@@ -7,7 +7,7 @@ RECURSIVE INTEGER FUNCTION WinMain( hInstance,hPrevInst,lpCmdLine,nCmdSh )
 USE resource_fd
 USE pcscipuf_fi
 USE script_fi
-USE winAPI
+USE myWinAPI
 USE guiAPI
 
 IMPLICIT NONE
@@ -92,7 +92,7 @@ INTEGER FUNCTION MessageLoop()
 
 USE resource_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -151,7 +151,7 @@ INTEGER(2) FUNCTION InitApp( hInstance )
 USE resource_fd
 USE tooluser_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 USE guiAPI
 !
 !     This function registers the window class for the main windows.
@@ -236,7 +236,7 @@ USE resource_fd
 USE tooluser_fd
 USE pcscipuf_fi
 USE script_fi
-USE winAPI
+USE myWinAPI
 USE guiAPI
 USE mainbeta
 USE SCIPtool
@@ -376,7 +376,7 @@ SUBROUTINE MainWindowSize( x0,y0,wid,hgt )
 
 USE resource_fd
 USE tooluser_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -472,7 +472,7 @@ USE mettype_fd
 USE script_fi
 USE GUItool_fi
 USE GUImatl_fi
-USE winAPI
+USE myWinAPI
 USE guiAPI
 USE cscrollbar
 USE MyClock
@@ -958,7 +958,7 @@ USE pltchoice_fi
 USE GUItool_fi
 USE create_fi
 USE GUImatl_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine cleans up before posting a quit message
 
@@ -1165,7 +1165,7 @@ USE dialog_fi
 USE plotdlg_fi
 USE script_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

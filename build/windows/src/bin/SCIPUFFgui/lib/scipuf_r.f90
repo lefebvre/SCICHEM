@@ -14,7 +14,7 @@ USE script_fi
 USE create_fi
 USE GUItool_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 USE GUIerror_fi
 
 IMPLICIT NONE
@@ -80,9 +80,17 @@ IF( StartFlag )THEN
 
   ELSE
 
-    irv = SCIPNewProject( ToolCallerID,createNew, &
-                          mtlList, &
-                          relList)
+    IF( ALLOCATED(relMCList) )THEN
+      irv = SCIPNewProjectMC( ToolCallerID,createNew, &
+                              mtlList, &
+                              relList, &
+                              SIZE(relMCList), &
+                              relMCList)
+    ELSE
+      irv = SCIPNewProject( ToolCallerID,createNew, &
+                            mtlList, &
+                            relList)
+    END IF
   END IF
 ELSE
   CALL GUI_SCIP_end( project(BASE_LEVEL),dlgTime(BASE_LEVEL),run )
@@ -233,14 +241,14 @@ USE pcscipuf_fi
 USE mettype_fd
 USE dialog_fi
 USE mouse_fi
-USE winAPI
+USE myWinAPI
 USE pltchoice_fi
 USE files_fi
 USE PlotOpt_fd
-USE SCIPUFFdriver_fi, ONLY: SUCCESS
 USE MyEffect
 USE MyClock
 USE MySync
+USE GUItool_fi
 
 IMPLICIT NONE
 
@@ -253,14 +261,6 @@ INTEGER iCaller
 
 TYPE( messageT ) message
 TYPE( releaseT ) release
-TYPE( updateRelT ) update
-TYPE( relInstT  ) instData
-TYPE( relContT  ) contData
-TYPE( relMoveT  ) moveData
-TYPE( relPoolT  ) poolData
-TYPE( relFileT  ) fileData
-TYPE( relStackT ) stackData
-TYPE( relPuffT  ) puffData
 
 REAL, DIMENSION(2) :: rArray
 
@@ -277,7 +277,6 @@ INTEGER, EXTERNAL :: VALUEOF
 LOGICAL, EXTERNAL :: hasError
 
 CHARACTER(128), EXTERNAL :: StripNull
-INTEGER, EXTERNAL        :: UpdateStackEmission
 
 ToolCallBack = SCIPfailure
 
@@ -551,20 +550,6 @@ SELECT CASE( iMessage )
     ToolCallBack = SCIPnull
     release%tRel = 1.0
 
-  CASE( HM_UPDATEREL )
-    jParm = ADDRESSOF( iParm )
-    CALL ADDRESS_UPDATE( jParm,update )
-
-    irv = UpdateStackEmission( update )
-    IF( irv /= SUCCESS )THEN
-      ToolCallBack = SCIPfailure
-      GOTO 9999
-    END IF
-
-    update%release%status = HS_VALID
-
-    CALL UPDATE_ADDRESS( update,jParm )
-
   CASE DEFAULT
 
 END SELECT
@@ -575,6 +560,7 @@ CALL check_messages()
 
 RETURN
 END
+
 !===============================================================================
 !===============================================================================
 !===============================================================================

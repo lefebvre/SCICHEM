@@ -3,7 +3,7 @@
 !$Revision$
 !$Date$
 !*******************************************************************************
-MODULE winAPI_fd
+MODULE myWinAPI_fd
   USE basic_fd, ONLY: TRUE, FALSE, NULL
   USE ifwinty, HIDE_TRUE => TRUE, HIDE_FALSE => FALSE, HIDE_NULL=>NULL, HIDE_NO_ERROR => NO_ERROR &
              , HIDEX_ERROR => ERROR
@@ -15,13 +15,13 @@ MODULE winAPI_fd
 !
 ! PARAMETERS
 !
-END MODULE winAPI_fd
+END MODULE myWinAPI_fd
 !==============================================================================
 !==============================================================================
 !==============================================================================
 !==============================================================================
-MODULE winAPI
-  USE winAPI_fd
+MODULE myWinAPI
+  USE myWinAPI_fd
   USE IFWINA, HIDEX_TRUE => TRUE, HIDEX_FALSE => FALSE, HIDEX_NULL=>NULL, HIDEX_NO_ERROR => NO_ERROR &
             , HIDEX_ERROR => ERROR
 !==============================================================================
@@ -29,4 +29,4 @@ MODULE winAPI
 !==============================================================================
 
 
-END MODULE winAPI
+END MODULE myWinAPI

@@ -1280,7 +1280,7 @@ USE dialog_fi
 USE GUItool_fi
 USE animate_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine saves the Delete Dialog Box Parameters
 !

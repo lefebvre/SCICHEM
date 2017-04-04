@@ -379,7 +379,7 @@ END IF
 SELECT CASE( TRIM(ter_map) )
 
   CASE( 'LATLON' )
-    CALL AdjustLongitude( TerHead%grid%X0 )
+    CALL AdjustLongitudeDom( TerHead%grid%X0,FLOAT(TerHead%Imax-1)*TerHead%grid%dX )
     TerHead%grid%coord = I_LATLON
     TerHead%grid%Lon0  = TerHead%grid%X0
     TerHead%grid%Lat0  = TerHead%grid%Y0

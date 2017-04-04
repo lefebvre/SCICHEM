@@ -15,7 +15,7 @@ MODULE files_fi
 ! Puff file parameters
 
   CHARACTER(32), PARAMETER :: PUFFFILE_VERSION_STRING = 'PUFFFILE FORMAT VERSION:'
-  INTEGER,       PARAMETER :: PUFFFILE_VERSION_VALUE  = 1
+  INTEGER,       PARAMETER :: PUFFFILE_VERSION_VALUE  = 2
   INTEGER,       PARAMETER :: PUFFFILE_TIME_HEADER    = 1
   INTEGER,       PARAMETER :: PUFFFILE_MET_HEADER     = 2
   INTEGER,       PARAMETER :: PUFFFILE_SRC_HEADER     = 3
@@ -76,6 +76,8 @@ MODULE files_fi
   CHARACTER(PATH_MAXLENGTH) file_abort ! if present - implies abort (immediate)   - dispersion process, output
   CHARACTER(PATH_MAXLENGTH) file_halt  ! if present - implies halt  (next step)   - dispersion process
   CHARACTER(PATH_MAXLENGTH) file_stop  ! if present - implies stop  (next output) - dispersion process
+  CHARACTER(PATH_MAXLENGTH) file_pause ! if present - implies pause (next step)   - dispersion process
+  CHARACTER(PATH_MAXLENGTH) file_resum ! if present - implies resume from pause   - dispersion process
   CHARACTER(PATH_MAXLENGTH) file_clog  ! caution log file
 
 ! file unit numbers
@@ -86,7 +88,7 @@ MODULE files_fi
   INTEGER lun_pal, lun_prj, lun_puf
   INTEGER lun_sbl, lun_scn, lun_sfc, lun_smp
   INTEGER lun_amr, lun_dgn, lun_asmp, lun_ados  ! stepped ambient, diagnostic, ambient sampler and dose output
-  INTEGER lun_sps ! binary sampler output file
+  INTEGER lun_sps !Binary sampler output file
   INTEGER lun_src, lun_ter, lun_tmp, lun_usr
   INTEGER lun_clog
 

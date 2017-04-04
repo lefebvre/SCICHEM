@@ -24,7 +24,6 @@ NSDGS = 0
 !------ Open scratch file for GetFSL output
 
 OPEN(UNIT=lunScratch,STATUS='SCRATCH',ACTION='READWRITE',IOSTAT=ios)
-!OPEN(UNIT=lunScratch,FILE='XXX.TMP',STATUS='UNKNOWN',ACTION='READWRITE',IOSTAT=ios)
 IF( ios /= 0)THEN
   error%Number  = OP_ERROR
   error%Routine = 'ExtractUAdata'
@@ -57,7 +56,6 @@ DO WHILE( ASSOCIATED(currentFile) )
 
   istat = 0
   CALL UAEXT( istat )
-!  CALL GETFSL( istat, NSDGS )
   IF( istat /= 0 )THEN
     error%Number = RD_ERROR
     error%Routine = 'GETFSL'

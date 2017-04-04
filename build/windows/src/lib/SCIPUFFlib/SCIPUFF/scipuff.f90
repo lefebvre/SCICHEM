@@ -121,8 +121,9 @@ IMPLICIT NONE
 
 INTEGER ios
 
-CHARACTER(12)           :: sysTime
+CHARACTER(12)           :: sysTime, cPuff
 CHARACTER(12), EXTERNAL :: sysGetTime
+CHARACTER(12), EXTERNAL :: FormatPuffs
 
 !------ set code version number
 
@@ -152,10 +153,11 @@ IF( create )GOTO 9999
 !------ setup for integration
 
 sysTime = SysGetTime()
+cPuff   = FormatPuffs(npuf)
 
 WRITE(lun_log,111,IOSTAT=ios)'Starting run at t =',t/3600., &
-                             'hrs. with NPUFF = ',npuf,' at ',sysTime
-111 FORMAT(A,1PG11.4,A,I5,2A)
+                             'hrs. with NPUFF = '//TRIM(cPuff)//' at '//sysTime
+111 FORMAT(A,1PG11.4,A)
 IF( ios /= 0 )THEN
   nError   = WR_ERROR
   eRoutine = 'scipuff'
@@ -165,6 +167,98 @@ IF( ios /= 0 )THEN
 END IF
 
 CALL enableSCIPUFFhalt( istop )
+
+9999 CONTINUE
+
+RETURN
+END
+
+!===============================================================================
+SUBROUTINE CheckPause()
+
+!------ Pause calculation if PAUSE file exists
+!       Check for RESUME file every 2 seconds
+
+USE SCIPUFF_fi
+USE files_fi
+USE SCIPresults_fd
+
+IMPLICIT NONE
+
+INTEGER irv
+LOGICAL lexist
+
+INTEGER, DIMENSION (8) :: values
+
+CHARACTER(80) cmsg,cmsg2,cmsg3
+
+INTEGER, EXTERNAL :: sysDeleteFile
+CHARACTER(12), EXTERNAL :: FormatPuffs
+
+INQUIRE(FILE=file_pause,EXIST=lexist)
+IF( lexist )THEN
+
+  irv = sysDeleteFile( file_pause )
+  IF( irv /= SCIPsuccess )THEN
+    nError = UK_ERROR
+    eRoutine = 'CheckPause'
+    eMessage = 'Error deleting PAUSE file'
+    GOTO 9999
+  END IF
+
+  INQUIRE(FILE=file_resum,EXIST=lexist)
+  IF( lexist )THEN
+    irv = sysDeleteFile( file_resum )
+    IF( irv /= SCIPsuccess )THEN
+      nError = UK_ERROR
+      eRoutine = 'CheckPause'
+      eMessage = 'Error deleting RESUME file'
+      GOTO 9999
+    END IF
+  END IF
+
+  CALL DATE_AND_TIME(VALUES = values)
+  WRITE(cmsg,'(A,": Paused at system time ",I2.2,":",I2.2,":",I2.2)')TRIM(name),values(5),values(6),values(7)
+  CALL time_message( cmsg2,t )
+  cmsg3 = TRIM(FormatPuffs(npuf))//' Puffs'
+  CALL write_progress( cmsg,cmsg2,cmsg3 )
+  IF( nError /= NO_ERROR )GOTO 9999
+
+  WRITE(lun_log,'(A)',IOSTAT=irv)TRIM(cmsg)
+  FLUSH(lun_log,IOSTAT=irv) !N.B. May still need to "type" file twice
+                            !to fully display log file
+  DO
+
+    INQUIRE(FILE=file_resum,EXIST=lexist)
+
+    IF( lexist )THEN
+
+      irv = sysDeleteFile( file_resum )
+      IF( irv /= SCIPsuccess )THEN
+        nError = UK_ERROR
+        eRoutine = 'CheckPause'
+        eMessage = 'Error deleting RESUME file'
+        GOTO 9999
+      END IF
+
+      CALL DATE_AND_TIME(VALUES = values)
+      WRITE(cmsg,'(A,": Resumed at system time ",I2.2,":",I2.2,":",I2.2)')TRIM(name),values(5),values(6),values(7)
+      cmsg2 = ''
+      cmsg3 = ''
+      CALL write_progress( cmsg,cmsg2,cmsg3 )
+      IF( nError /= NO_ERROR )GOTO 9999
+      WRITE(lun_log,'(A)',IOSTAT=irv)TRIM(cmsg)
+      FLUSH(lun_log,IOSTAT=irv)
+
+      EXIT
+
+    END IF
+
+    CALL sysSleep( 2000 )  !Wait 2 seconds
+
+  END DO
+
+END IF
 
 9999 CONTINUE
 
@@ -391,8 +485,9 @@ INTEGER, EXTERNAL :: SetMetGrid
 INTEGER, EXTERNAL :: SAG_ClearGridID
 INTEGER, EXTERNAL :: SAG_OpenID, SAG_LastTime, SAG_CloseID
 
-CHARACTER(12)           :: sysTime
+CHARACTER(12)           :: sysTime, cPuffs, cRels
 CHARACTER(12), EXTERNAL :: sysGetTime
+CHARACTER(12), EXTERNAL :: FormatPuffs
 
 cmsg = TRIM(name)//' : Saving Output'
 CALL time_message( cmsg2,t )
@@ -562,10 +657,12 @@ IF( multicomp )THEN
 END IF
 
 sysTime = SysGetTime()
+cPuffs  = FormatPuffs(npuf)
+cRels   = FormatPuffs(count_nrel())
 WRITE(lun_log,111,IOSTAT=ios)'Output completed at t =',t/3600., &
-                    'hrs. with NCREL = ',count_nrel(),' and NPUFF = ', &
-                     npuf,' at ',sysTime
-111 FORMAT(A,1PG11.4,A,I4,A,I5,A,A)
+                    'hrs. with NCREL = '//TRIM(cRels)//' and NPUFF = ' &
+                     //TRIM(cPuffs)//' at '//sysTime
+111 FORMAT(A,1PG11.4,A)
 
 IF( ios /= 0 )THEN
   nError   = WR_ERROR
@@ -582,6 +679,22 @@ END
 
 !===============================================================================
 
+CHARACTER(*) FUNCTION FormatPuffs( n )
+IMPLICIT NONE
+INTEGER, INTENT(IN) :: n
+
+INTEGER ios
+CHARACTER(12) ctmp
+
+WRITE(ctmp,'(I10)',IOSTAT=ios)n
+
+FormatPuffs = TRIM(ADJUSTL(ctmp))
+
+RETURN
+END
+
+!===============================================================================
+
 SUBROUTINE end_scipuff()
 
 USE scipuff_fi
@@ -591,10 +704,11 @@ USE mpi_fi, ONLY: useMPI
 IMPLICIT NONE
 
 INTEGER ios, nch
-
+INTEGER j
 CHARACTER(80) cmsg,cmsg2,cmsg3
 
 INTEGER, EXTERNAL :: SWIMexitRun
+CHARACTER(12), EXTERNAL :: FormatPuffs
 
 cmsg = TRIM(name)//' : Exiting SCIPUFF'
 cmsg2 = ' '
@@ -603,7 +717,7 @@ CALL write_progress( cmsg,cmsg2,cmsg3 )
 
 IF( nError == NO_ERROR )THEN
   eRoutine = 'EndScipuff'
-  WRITE(eInform,'(A,I5)')'No. Puffs = ',npuf
+  eInform  = 'No. Puffs = '//TRIM(FormatPuffs(npuf))
   IF( istop < 0 )THEN
     nError = UK_ERROR
     WRITE(eMessage,'(A,1PG11.4,A)')'Abnormal termination detected at Time = ',t/3600.,' hrs'
@@ -617,7 +731,7 @@ IF( nError == NO_ERROR )THEN
       CASE DEFAULT
         WRITE(eMessage,'(A,1PG11.4,A)')'Unknown Halt detected at Time = ',t/3600.,' hrs'
     END SELECT
-    WRITE(eInform,'(A,I5)')'No. Puffs = ',npuf
+    eInform = 'No. Puffs = '//TRIM(FormatPuffs(npuf))
   ELSE
     WRITE(eMessage,'(A,1PG11.4,A)')'Normal termination detected at Time = ',t/3600.,' hrs'
   END IF

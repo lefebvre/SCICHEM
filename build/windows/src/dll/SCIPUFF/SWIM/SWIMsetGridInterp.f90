@@ -89,7 +89,7 @@ INTEGER gType
 REAL    x1, y1, xu, yv, xp, yp
 LOGICAL lter
 
-INTEGER, EXTERNAL :: SetGridParam, SWIMcnvCoord
+INTEGER, EXTERNAL :: SWIMcnvCoord
 
 CHARACTER(128), EXTERNAL :: ArraySizeStr
 

@@ -67,6 +67,10 @@ MODULE SCIMgrparam_fd
 
   INTEGER, PARAMETER :: HM_UPDATEREL  = HM_STRUCTURE + 2
 
+!     Parameter = Pointer to UpdateRelMCT Structure
+
+  INTEGER, PARAMETER :: HM_UPDATERELMC  = HM_STRUCTURE + 4
+
 !     Parameter = Pointer to an array
 
   INTEGER, PARAMETER :: HM_ARRAY   = 128

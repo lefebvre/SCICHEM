@@ -10,8 +10,8 @@ MODULE sampler_fi
 
   SAVE
 
-  INTEGER, PARAMETER :: SamplerFileVersion = 0002
   INTEGER, PARAMETER :: MAXSMP = 200
+  INTEGER, PARAMETER :: SamplerFileVersion = 0002
   INTEGER nvarAlloc, nsmp0
   INTEGER nsmp, isg, itys, itye, nvarsmp, ndepblk_smp, ndosblk_smp
   INTEGER nsmpT, nbinOut
@@ -20,11 +20,12 @@ MODULE sampler_fi
   REAL    dtsP
   REAL    t_smp, zi_smp, tolSmpOut
   REAL    dtSmpOut, tSmpOut, tStartSamp, tNextSamp
+  REAL    tEndSamp
   REAL    cartLat0, cartLon0, cartX0, cartY0
   LOGICAL lWrap, lSmpOut, lSmpOutList, lGridOut, lCartOrig
   LOGICAL lReadSum, lUpdateSum, lSmpCnv, lOutToSmp
   LOGICAL lAvg
-  LOGICAL lBinOut, lDosSmp
+  LOGICAL lBinOut, lDosSmp, lLOSSmp, lDepS
 
   CHARACTER(256) SampTitle
 
@@ -66,5 +67,6 @@ MODULE sampler_fi
   LOGICAL lIsSPSOpened, lKgToUg, lOutputVariance
 
   INTEGER, ALLOCATABLE, DIMENSION(:) :: intSPSMaterials
+
 
 END MODULE sampler_fi

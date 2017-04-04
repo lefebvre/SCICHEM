@@ -17,6 +17,8 @@ TYPE( MetField ), INTENT( INOUT ) :: fld
 INTEGER irv, iflag
 INTEGER hour, min, sec, year, month, day
 LOGICAL lymd
+INTEGER is, k, n1, n2
+REAL, DIMENSION(:), POINTER :: z3d
 
 CHARACTER(128) string
 
@@ -40,6 +42,7 @@ INTEGER, EXTERNAL :: SWIMupdateObsField, SWIMupdateGriddedMet
 INTEGER, EXTERNAL :: SWIMupdatePolarField, SWIMshearGrad
 INTEGER, EXTERNAL :: SWIMinterpNest, CheckMet
 INTEGER, EXTERNAL :: SWIMinterpTimeAssm
+INTEGER, EXTERNAL :: SWIMaddLogMessage, getFieldIndex
 INTEGER, EXTERNAL :: PostCautionMessage
 
 SWIMnextField = SWIMfailure
@@ -136,6 +139,34 @@ IF( BTEST(fld%type,FTB_DU2) )THEN
     irv = SWIMshearGrad( fld%NextField,fld%grid )
     IF( irv /= SWIMsuccess )GOTO 9999
   END IF
+END IF
+
+IF( BTEST(fld%status,FSB_DOINIT) .AND. BTEST(fld%grid%type,GTB_Z3D) )THEN
+  string = CHAR(13)  !Carriage return
+  irv = SWIMaddLogMessage( string )
+  IF( irv /= SWIMsuccess )GOTO 9999
+  WRITE(string,'("Meteorology grid ",I2)') getFieldIndex( fld%index )
+  irv = SWIMaddLogMessage( string )
+  IF( irv /= SWIMsuccess )GOTO 9999
+  irv = SWIMaddLogMessage( 'z:   3d height (AGL) field at domain center' )
+  is = (fld%grid%nY/2-1)*fld%grid%nX + fld%grid%nX/2
+  IF( BTEST(fld%grid%type,GTB_SIGMA) .OR. BTEST(fld%grid%type,GTB_Z3DW) )THEN
+    z3d => fld%grid%sigma%Z
+  ELSE
+    z3d => fld%NextField%Z
+  END IF
+  IF( z3d(1) < 0. )THEN
+    n1 = 2
+  ELSE
+    n1 = 1
+  END IF
+  n2 = MIN0(fld%grid%nZ,n1+5)
+  DO WHILE( n1 <= fld%grid%nZ )
+    WRITE(string,"('   ',6ES12.4)",IOSTAT=irv) (z3d(is+(k-1)*fld%grid%nXY),k=n1,n2)
+    irv = SWIMaddLogMessage( string )
+    IF( irv /= SWIMsuccess )GOTO 9999
+    n1 = n1+6; n2 = MIN0(fld%grid%nZ,n1+5)
+  END DO
 END IF
 
 !------ Move 'next' field into 'current' field for initialization

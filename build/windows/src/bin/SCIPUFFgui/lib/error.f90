@@ -189,7 +189,7 @@ USE errorParam_fd
 USE GUIerror_fi
 USE pcscipuf_fi
 USE script_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -293,7 +293,7 @@ USE errorParam_fd
 USE GUIerror_fi
 USE pcscipuf_fi
 USE script_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -423,7 +423,7 @@ USE errorParam_fd
 USE GUIerror_fi
 USE pcscipuf_fi
 USE script_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -533,7 +533,7 @@ USE errorParam_fd
 USE GUIerror_fi
 USE pcscipuf_fi
 USE script_fi
-USE winAPI
+USE myWinAPI
 USE files_fi
 
 IMPLICIT NONE
@@ -650,7 +650,7 @@ USE errorParam_fd
 USE GUIerror_fi
 USE pcscipuf_fi
 USE script_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -773,7 +773,7 @@ USE resource_fd
 USE errorParam_fd
 USE GUIerror_fi
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the Special error Dialog Box
 !

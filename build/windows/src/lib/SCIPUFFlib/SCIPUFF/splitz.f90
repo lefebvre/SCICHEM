@@ -10,30 +10,53 @@ USE step_p_fi
 
 IMPLICIT NONE
 
-REAL, PARAMETER :: ZFAC = 3.0000000 ! set to match value in step_p
-REAL, PARAMETER :: R2   = 0.7071068
+REAL, PARAMETER :: ZFAC = 3.0           !Match value in step_p
+REAL, PARAMETER :: MXZ2 = 1.E5          !sxx/szz
+REAL, PARAMETER :: ZIZ2 = 1.E-2         !zi^2*azz
+REAL, PARAMETER :: ZIX2 = 1.E-4         !zi^2*axx
 
 TYPE( puff_str ), INTENT( INOUT ) :: p
-REAL,             INTENT( IN    ) :: zinv
+REAL,             INTENT( INOUT ) :: zinv
 
 
-REAL    dzz, tfac, zrfl
-REAL    temz, szz
-LOGICAL lrfl_top, lrfl_bot
+REAL,    DIMENSION(3)   :: normal
+REAL(8), DIMENSION(3,3) :: amat, amat_t
+
+REAL    dzz, zrfl, fac, zi2
+LOGICAL lrfl_top, lrfl_bot, lrotate
+
+LOGICAL, EXTERNAL :: check_slope
 
 !------ check space for new puff
 
 CALL check_newpuff()
 IF( nError /= NO_ERROR )GOTO 9999
 
-!------ determine vertical range for newly created puffs
+!---- Rotate puff into local terrain coordinate
+
+IF( check_slope(hx,hy) )THEN
+  fac = 1.0/SQRT(1.0+hx*hx+hy*hy)
+  normal(1) = -fac*hx
+  normal(2) = -fac*hy
+  normal(3) =  fac
+  CALL set_rot_norm( normal,amat ) !Rotate into coord. aligned with terrain
+  amat_t = TRANSPOSE( amat )
+  CALL apply_rot_norm( p,amat,amat_t )
+  sz = SQRT(p%szz)
+  lrotate = .TRUE.
+ELSE
+  lrotate = .FALSE.
+END IF
+
+CALL siginv( p )  !Needs to be called even w/o rotation
+
+!------ Determine vertical range for newly created puffs
 
 zbar = p%zbar
 dzz  = ZFAC*sz
-tfac = R2/sz
 zrfl = p%zc
 
-!------ top-most extent
+!------ Top-most extent
 
 IF( zrfl >= zbar + dzz .OR. zrfl == 0. )THEN
   ztop = zbar + dzz
@@ -43,24 +66,32 @@ ELSE
   lrfl_top = .TRUE.
 END IF
 
-!------ bottom reflection condition
+!------ Do not split puffs with very large aspect ratio, or
+!       if zinv is above vertical extent of puff, or
+!       if zinv is relatively small; rotate back and set cap if so.
+
+zi2 = (zinv - hp)**2
+
+IF( MAX(p%sxx,p%syy)*p%azz > MXZ2 .OR. ztop < zinv .OR. &
+    zi2*p%azz < ZIZ2 .OR. zi2*MIN(p%axx,p%ayy) < ZIX2 )THEN
+  IF( lrotate )THEN
+    CALL apply_rot_norm( p,amat_t,amat )
+    CALL siginv( p )
+  END IF
+  p%zi = zinv
+  p%zc = p%zi
+  RETURN
+END IF
+
+!------ Bottom reflection condition
 
 lrfl_bot = (zbar - hp) < dzz
 
-!------ create new puff above zi with remainder below (in original puff)
+!------ Create new puff above zi with remainder below (in original puff)
 
-CALL chop_puff_zi( p,sz,tfac,zinv,ztop,zrfl,hp,lrfl_top,lrfl_bot )
+CALL chop_puff_zi( p,zinv,ztop,zrfl,hp,lrfl_top,lrfl_bot,lrotate,amat,amat_t )
 
-!----- limit capped puff to well-mixed value
-
-temz = WMX*(zinv-hp)
-szz  = MIN(p%szz,temz*temz)
-
-temz  = SQRT(szz/p%szz)
-p%sxz = p%sxz*temz
-p%syz = p%syz*temz
-p%szz = szz
-sz    = sz*temz
+CALL siginv( p )
 
 9999 CONTINUE
 
@@ -69,72 +100,83 @@ END
 
 !===============================================================================
 
-SUBROUTINE chop_puff_zi( p,sz,tfac,zinv,ztop,zrfl,hp,lrfl_top,lrfl_bot )
+SUBROUTINE chop_puff_zi( p,zinv,ztop,zrfl,hp,lrfl_top,lrfl_bot,lrotate,amat,amat_t )
 
 USE scipuff_fi
-
+USE step_p_fi, ONLY: hx, hy
 USE files_fi
 
 IMPLICIT NONE
 
-TYPE( puff_str ), INTENT( INOUT ) :: p
-REAL,             INTENT( IN    ) :: sz
-REAL,             INTENT( IN    ) :: tfac
-REAL,             INTENT( IN    ) :: zinv
-REAL,             INTENT( IN    ) :: ztop
-REAL,             INTENT( IN    ) :: zrfl
-REAL,             INTENT( IN    ) :: hp
-LOGICAL,          INTENT( IN    ) :: lrfl_top, lrfl_bot
+TYPE( puff_str ),        INTENT( INOUT ) :: p
+REAL,                    INTENT( IN    ) :: zinv
+REAL,                    INTENT( IN    ) :: ztop
+REAL,                    INTENT( IN    ) :: zrfl
+REAL,                    INTENT( IN    ) :: hp
+LOGICAL,                 INTENT( IN    ) :: lrfl_top, lrfl_bot, lrotate
+REAL(8), DIMENSION(3,3), INTENT( IN    ) :: amat, amat_t
 
 INTEGER next
-REAL    zlow, frac
-REAL    szz, delz, temz, sxz, syz
-REAL    aspect, fracFrac, minFrac
+REAL    zlow, frac, frac0
+REAL    szz, delz, sxz, syz
+REAL    delx, dely, sxx, syy, sxy, xmap, ymap
+REAL    zbar, h1, hx1, hy1
 
-REAL, PARAMETER :: MIN_FRAC = 0.05
-REAL, PARAMETER :: MAX_FRAC = 0.5 - MIN_FRAC
-REAL, PARAMETER :: MIN_ASPECT = 1000.0             !Aspect**2 => Aspect=31.6
-REAL, PARAMETER :: MAX_ASPECT = 100.0*MIN_ASPECT   !Aspect**2 => Aspect=316.2
+INTEGER, EXTERNAL :: next_puff, getPuffifld
 
-INTEGER, EXTERNAL :: next_puff
+!------ Define map factors based on original puff
+
+CALL mapfac( SNGL(p%xbar),SNGL(p%ybar),xmap,ymap )
 
 !----- set puff above zi
 
-aspect = MAX(p%sxx,p%syy)/p%szz                    !Aspect**2
-IF( aspect > 10.0*MAX_ASPECT )GOTO 9999            !Aspect**2 => Aspect = 1000.0
-
 zlow = zinv
-CALL chop_puff( p,sz,tfac,zlow,ztop,zrfl,hp,lrfl_top,lrfl_bot,frac,delz,szz )
 
-fracFrac = 0.5*LOG10(MAX(MIN(aspect,MAX_ASPECT),MIN_ASPECT)/MIN_ASPECT)
-minFrac = min_FRAC + fracFrac*MAX_FRAC
+CALL chop_puff( p,zlow,ztop,zrfl,hp,lrfl_top,lrfl_bot,frac, &
+                      delz,delx,dely,sxx,sxy,sxz,syy,syz,szz )
 
-IF( frac <= minFrac )GOTO 9999
+IF( frac == 0. )THEN
+  IF( lrotate )CALL apply_rot_norm( p,amat_t,amat )
+  p%zi = zinv
+  p%zc = p%zi
+  GOTO 9999
+END IF
+
+frac0 = frac
+
+IF( lrotate )CALL RotateDel( delx,dely,delz,amat_t )
+
 
 next = next_puff()
 
 CALL zero_puff( puff(next) )
 
-puff(next)%sxx = p%sxx
-puff(next)%sxy = p%sxy
-puff(next)%syy = p%syy
-
 CALL set_puff_xc( puff(next),p,frac )
 
-puff(next)%zc = p%zc
-puff(next)%zi = p%zi
-
-puff(next)%xbar = p%xbar
-puff(next)%ybar = p%ybar
+puff(next)%xbar = p%xbar + DBLE(delx*xmap)
+puff(next)%ybar = p%ybar + DBLE(dely*ymap)
 puff(next)%zbar = p%zbar + delz
 
-temz = SQRT(szz/p%szz)
-sxz  = p%sxz*temz
-syz  = p%syz*temz
+IF( global_lon )CALL SetGlobalLonD( puff(next)%xbar )
 
-puff(next)%sxz  = sxz
-puff(next)%syz  = syz
-puff(next)%szz  = szz
+CALL get_topogIn( SNGL(puff(next)%xbar),SNGL(puff(next)%ybar),h1,hx1,hy1,getPuffifld(p) )
+
+puff(next)%sxx = sxx
+puff(next)%sxy = sxy
+puff(next)%syy = syy
+puff(next)%sxz = sxz
+puff(next)%syz = syz
+puff(next)%szz = szz
+
+IF( lrotate )CALL apply_rot_norm( puff(next),amat_t,amat )
+
+IF( p%zc > 0. )THEN
+  puff(next)%zc = p%zc - hp + h1
+ELSE
+  puff(next)%zc = 0.
+END IF
+puff(next)%zi   = zinv - hp + h1
+puff(next)%zbar = MAX(puff(next)%zbar,puff(next)%zi + 1.)
 
 puff(next)%ityp = p%ityp
 puff(next)%inxt = 0
@@ -143,72 +185,47 @@ puff(next)%idtl = p%idtl
 puff(next)%idtn = p%idtn
 puff(next)%ipgd = p%ipgd
 
-!----- set puff below zi (don't move centroid or change second-moments)
+CALL siginv( puff(next) )
 
-frac = 1. - frac
+
+!------ Define puff below inversion
+
+CALL chop_puff( p,hp,zlow,zrfl,hp,lrfl_top,lrfl_bot,frac, &
+                    delz,delx,dely,sxx,sxy,sxz,syy,syz,szz )
+
+frac = 1. - frac0 !Ensure all mass is included
+
+IF( lrotate )CALL RotateDel( delx,dely,delz,amat_t )
+
+p%xbar = p%xbar + DBLE(delx*xmap)
+p%ybar = p%ybar + DBLE(dely*ymap)
+zbar   = p%zbar + delz
+
+IF( global_lon )CALL SetGlobalLonD( p%xbar )
+
+CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),h1,hx1,hy1,getPuffifld(p) )
+
+p%zbar = MAX(zbar,h1+0.1)
+
+!------  Set close to well-mixed without sxz, syz terms
+
+p%sxx = sxx
+p%sxy = sxy
+p%syy = syy
+p%sxz = 0. !sxz
+p%syz = 0. !syz
+p%szz = 0.25*(zlow-hp)**2 !szz
+
 CALL scale_puff( p,frac )
 
-p%zc = zinv
+CALL siginv( p )
+
+IF( lrotate )CALL apply_rot_norm( p,amat_t,amat )
+
+p%zi = zinv - hp + h1
+p%zc = p%zi
 
 9999 CONTINUE
-
-RETURN
-END
-
-!===============================================================================
-
-SUBROUTINE chop_puff( p,sz,tfac,zlow,ztop,zrfl,hp, &
-                      lrfl_top,lrfl_bot,frac,delz,szz )
-
-USE scipuff_fi
-
-IMPLICIT NONE
-
-TYPE( puff_str ), INTENT( INOUT ) :: p
-REAL,             INTENT( IN    ) :: sz
-REAL,             INTENT( IN    ) :: tfac
-REAL,             INTENT( IN    ) :: zlow
-REAL,             INTENT( IN    ) :: ztop
-REAL,             INTENT( IN    ) :: zrfl
-REAL,             INTENT( IN    ) :: hp
-LOGICAL,          INTENT( IN    ) :: lrfl_top, lrfl_bot
-REAL,             INTENT( OUT   ) :: frac
-REAL,             INTENT( OUT   ) :: delz
-REAL,             INTENT( OUT   ) :: szz
-
-REAL zbar_top, zbar_bot, zbar
-
-!------ compute section mass fraction and vertical moments
-
-CALL gauss_int( p%zbar,zlow,ztop,sz,p%szz,tfac,frac,delz,szz )
-
-IF( frac == 0. )RETURN
-
-!------ reflections if necessary
-
-IF( lrfl_top )THEN
-
-  zbar_top = 2.*zrfl - p%zbar
-  CALL refl_int( zbar_top,p%zbar,zlow,ztop,sz,szz,delz,frac,tfac )
-
-END IF
-
-IF( lrfl_bot )THEN
-
-  zbar_bot = 2.*hp - p%zbar
-  CALL refl_int( zbar_bot,p%zbar,zlow,ztop,sz,szz,delz,frac,tfac )
-
-  IF( lrfl_top )THEN
-
-    zbar = 2.*zrfl - zbar_bot
-    CALL refl_int( zbar,p%zbar,zlow,ztop,sz,szz,delz,frac,tfac )
-
-    zbar = 2.*hp - zbar_top
-    CALL refl_int( zbar,p%zbar,zlow,ztop,sz,szz,delz,frac,tfac )
-
-  END IF
-
-END IF
 
 RETURN
 END
@@ -240,94 +257,3 @@ CALL copy_scale_paux( p1,p2,frac )
 
 RETURN
 END
-
-!===============================================================================
-
-SUBROUTINE gauss_int( zbar,zlow,ztop,sz,szz,tfac,q0,delz,szzo )
-
-USE constants_fd
-
-!------ compute section mass fraction and vertical moments
-
-IMPLICIT NONE
-
-REAL, PARAMETER :: EPS  = 1.E-2
-
-REAL, INTENT( IN  ) :: zbar
-REAL, INTENT( IN  ) :: zlow
-REAL, INTENT( IN  ) :: ztop
-REAL, INTENT( IN  ) :: sz
-REAL, INTENT( IN  ) :: szz
-REAL, INTENT( IN  ) :: tfac
-REAL, INTENT( OUT ) :: q0
-REAL, INTENT( OUT ) :: delz
-REAL, INTENT( OUT ) :: szzo
-
-REAL t1, t2, e1, e2, q1, q2
-
-REAL, EXTERNAL :: erfc
-
-t1   = (zlow-zbar)*tfac
-t2   = (ztop-zbar)*tfac
-e1   = EXP(-t1**2)
-e2   = EXP(-t2**2)
-q0   = 0.5*(erfc( t1 ) - erfc( t2 ))
-
-IF( q0 < EPS )THEN
-  q0   = 0.
-  delz = 0.
-  szzo = 1.E+10
-  GOTO 9999
-END IF
-
-q1   = (e1 - e2) / (SQRT2*SQRTPI)
-q2   = (t1*e1 - t2*e2) / SQRTPI
-
-delz = sz*q1/q0
-delz = MAX(MIN(delz,ztop-zbar),zlow-zbar)
-szzo = szz*(1.+q2/q0-(q1/q0)**2)
-IF( szzo <= 0. )szzo = 0.0833333*(ztop-zlow)**2
-
-9999 CONTINUE
-
-RETURN
-END
-
-!===============================================================================
-
-SUBROUTINE refl_int( zbar,zbari,zlow,ztop,sz,szz,delz,frac,tfac )
-
-!------ integrate reflected puff at z=zbar and combine with existing puff
-
-IMPLICIT NONE
-
-REAL, INTENT( IN    ) :: zbar
-REAL, INTENT( IN    ) :: zbari
-REAL, INTENT( IN    ) :: zlow, ztop
-REAL, INTENT( IN    ) :: sz
-REAL, INTENT( INOUT ) :: szz
-REAL, INTENT( INOUT ) :: delz
-REAL, INTENT( INOUT ) :: frac
-REAL, INTENT( IN    ) :: tfac
-
-REAL szzi, fracr, delr, szzr, ftot, temz
-
-szzi = sz*sz
-
-CALL gauss_int( zbar,zlow,ztop,sz,szzi,tfac,fracr,delr,szzr )
-
-IF( fracr > 0. )THEN
-
-  ftot = frac + fracr
-  delr = delr + zbar - zbari
-  temz = (frac*delz + fracr*delr)/ftot
-  szz  = (frac*(delz*delz+szz) + fracr*(delr*delr+szzr))/ftot - temz**2
-  delz = temz
-
-  frac = ftot
-
-END IF
-
-RETURN
-END
-

@@ -19,6 +19,18 @@ MODULE update_fd
     TYPE ( environmentT ) environment
   END TYPE  updateRelT
 
+!==== updateRelMCT ==============================================================
+
+  TYPE  updateRelMCT
+    SEQUENCE
+    INTEGER               mode
+    REAL                  currentTime
+    REAL                  nextUpdate
+    TYPE ( releaseT     ) release
+    TYPE ( environmentT ) environment
+    CHARACTER(PATH_MAXLENGTH) updateSCN
+  END TYPE  updateRelMCT
+
 !==== computeEffT ==============================================================
 
   TYPE  computeEffT

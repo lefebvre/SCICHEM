@@ -4,7 +4,7 @@
 SUBROUTINE OpenFileDlg( ccust,cbuff,name,path,cext,ctitle,hdlg,ihinst,ltest )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE guiAPI
 USE DefSize_fd
 USE pcscipuf_fi, ONLY: NULL_POINTER

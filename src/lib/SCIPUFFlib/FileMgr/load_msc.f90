@@ -308,12 +308,12 @@ IF( lensm )THEN
       CASE( 'INPUT' )
         weather%lsv%type = HL_LSVINP
         weather%lsv%uu   = uu_ensm
-        weather%lsv%sl   = ScaleReal(sl_ensm,HCF_M2KM)
+        weather%lsv%sl   = ScaleReal( sl_ensm,HCF_M2KM )
       CASE( 'MODEL' )
         weather%lsv%type = HL_LSVMOD
       CASE( 'OBS' )
         weather%lsv%type = HL_LSVOBS
-        weather%lsv%sl   = ScaleReal(sl_ensm,HCF_M2KM)
+        weather%lsv%sl   = ScaleReal( sl_ensm,HCF_M2KM )
       CASE('OPER3.1' )
         weather%lsv%type = HL_LSVOPER
       CASE DEFAULT

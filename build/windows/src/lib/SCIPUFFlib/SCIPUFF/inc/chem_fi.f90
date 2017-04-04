@@ -9,6 +9,7 @@
 MODULE chem_fi
 
   USE multcomp_fd
+  USE sagstr_fd
   USE multcomp_aqaer_fd, ONLY: ChemMC_aqaer_str
   USE chem_mpi_fi, ONLY: ChemMCHead_mpi_str,ChemAqArHd_mpi_str,ChemReact_mpi_str
   USE sagstr_fd
@@ -30,6 +31,7 @@ MODULE chem_fi
 
   TYPE( ChemSpecies_ptr ), DIMENSION(:), POINTER :: fast
   TYPE( ChemSpecies_ptr ), DIMENSION(:), POINTER :: slow
+  TYPE( ChemSpecies_ptr ), DIMENSION(:), POINTER :: gaseous
   TYPE( ChemSpecies_ptr ), DIMENSION(:), POINTER :: particle
   TYPE( ChemSpecies_ptr ), DIMENSION(:), POINTER :: equil
 
@@ -42,7 +44,7 @@ MODULE chem_fi
   INTEGER, DIMENSION(:), POINTER :: irow_eq
 
   INTEGER nfast, nslow, nequil, nambient, nspecies, nspectot
-  INTEGER nparticle
+  INTEGER ngaseous, nparticle
   ! For useMPI
   INTEGER ngd_chem_sav, nbad_chem_sav
   INTEGER ndir_eq, nlin_eq, nsolve_eq, nsubs_eq

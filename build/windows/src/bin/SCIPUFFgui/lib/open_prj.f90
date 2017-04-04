@@ -12,7 +12,7 @@ USE GUImatl_fi
 USE create_fi
 USE dialog_fi
 USE mettype_fd
-USE winAPI
+USE myWinAPI
 USE pltchoice_fi
 
 IMPLICIT NONE

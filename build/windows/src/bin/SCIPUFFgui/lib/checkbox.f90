@@ -1,7 +1,7 @@
 RECURSIVE SUBROUTINE process_check( iwnd_db,MyCmd )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE pcscipuf_fi
 USE plotdlg_fi
 USE pltchoice_fi

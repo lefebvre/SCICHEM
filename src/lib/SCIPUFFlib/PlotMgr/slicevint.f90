@@ -39,10 +39,10 @@ s%axx = p%axx - p%axz*p%axz/p%azz
 s%ayy = p%ayy - p%ayz*p%ayz/p%azz
 s%axy = p%axy - p%axz*p%ayz/p%azz
 
-CALL mapfac( p%xbar,p%ybar,s%xmap,s%ymap )
+s%xbar = SNGL(p%xbar)
+s%ybar = SNGL(p%ybar)
 
-s%xbar = p%xbar
-s%ybar = p%ybar
+CALL mapfac( s%xbar,s%ybar,s%xmap,s%ymap )
 
 s%xp = 0.; s%yp = 0.; s%zp = 0.
 

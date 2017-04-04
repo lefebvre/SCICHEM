@@ -8,7 +8,7 @@ USE pcscipuf_fi
 USE files_fi
 USE errorParam_fd
 USE script_fi
-USE winAPI
+USE myWinAPI
 
 INTEGER(POINTER_LEN) hwnd
 CHARACTER(*)         line

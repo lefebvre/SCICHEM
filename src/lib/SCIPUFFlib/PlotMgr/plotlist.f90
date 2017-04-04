@@ -386,7 +386,7 @@ INTEGER nbase
 CHARACTER(16) lower, upper
 CHARACTER(8)  ext
 
-CHARACTER(16), DIMENSION(:), ALLOCATABLE :: AveMaxNames
+CHARACTER(64), DIMENSION(:), ALLOCATABLE :: AveMaxNames
 
 REAL, ALLOCATABLE, DIMENSION(:) :: pbounds
 
@@ -1111,7 +1111,7 @@ USE PtrGrdStrItf
 
 IMPLICIT NONE
 
-INTEGER irv, n, grdI, i, im
+INTEGER irv, n, grdI, i, im, nm
 
 CHARACTER(PATH_MAXLENGTH) fname
 
@@ -1159,13 +1159,16 @@ AvePlotNum = 1
 IF( grd%nblk > 1 )THEN
 
   im = INDEX( grd%ipblk(1)%name,'Max' )
+  nm = 1
 
   DO n = 2,grd%nblk
     i = INDEX( grd%ipblk(n)%name,'Max' )
-    IF( TRIM(grd%ipblk(n-1)%name(im:)) /= TRIM(grd%ipblk(n)%name(i:)) )THEN
+    IF( i == 0 )CYCLE
+    IF( TRIM(grd%ipblk(nm)%name(im:)) /= TRIM(grd%ipblk(n)%name(i:)) )THEN
       AvePlotNum = AvePlotNum + 1
+      nm = n
+      im = i
     END IF
-    im = i
   END DO
 
 END IF
@@ -1193,9 +1196,9 @@ USE PtrGrdStrItf
 IMPLICIT NONE
 
 INTEGER,                      INTENT( IN  ) :: nc
-CHARACTER(16), DIMENSION(nc), INTENT( OUT ) :: names
+CHARACTER(64), DIMENSION(nc), INTENT( OUT ) :: names
 
-INTEGER irv, grdI, i, im, n
+INTEGER irv, grdI, i, im, n, nm
 
 CHARACTER(PATH_MAXLENGTH) fname
 
@@ -1241,6 +1244,7 @@ grd => SAG_PtrGrdStr( grdI )
 AvePlotNames = 1
 
 im = INDEX( grd%ipblk(1)%name,'Max' )
+nm = 1
 
 names(1) = TRIM(grd%ipblk(1)%name(im:))
 
@@ -1248,11 +1252,13 @@ IF( grd%nblk > 1 )THEN
 
   DO n = 2,grd%nblk
     i = INDEX( grd%ipblk(n)%name,'Max' )
-    IF( TRIM(grd%ipblk(n-1)%name(im:)) /= TRIM(grd%ipblk(n)%name(i:)) )THEN
+    IF( i == 0 )CYCLE
+    IF( TRIM(grd%ipblk(nm)%name(im:)) /= TRIM(grd%ipblk(n)%name(i:)) )THEN
       AvePlotNames = AvePlotNames + 1
       names(AvePlotNames) = TRIM(grd%ipblk(n)%name(i:))
+      nm = n
+      im = i
     END IF
-    im = i
   END DO
 
 END IF

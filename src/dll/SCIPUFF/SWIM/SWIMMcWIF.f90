@@ -61,7 +61,7 @@ END IF
 !------ Compute alpha and determine appropriate method required
 
 MCWIFmethod = SetMcWIF( grid,meanField%U,meanField%V,meanField%W,meanField%Tpot,ptem, &
-                         alpha0,csq0,DivScale0 )
+                        alpha0,csq0,DivScale0 )
 IF( error%Number /= NO_ERROR )GOTO 9999
 
 SELECT CASE( MCWIFmethod )
@@ -296,7 +296,6 @@ MG_Loop : DO iMG = nMG,0,-1
   MGgrid => MGgrid%prevMGgrid      !Point to next (finer) grid
 
 END DO MG_Loop
-
 
 message%bString  = 'Completed wind field adjustment'
 message%cString  = ' '
@@ -702,13 +701,11 @@ Xsweep : DO ix = 1,nxm1
 
       tem   = dxi*(p(ip)*D(is)-p(ip+1)*D(is+1)) + cz*(wrk1(i-nyb)-wrk1(i))
       u(ip) = u(ip) + tem/Du(is) * alphaU(ip)
-!      END IF
 
 !------ v-equation
 
       tem   = dyi*(p(ip)*D(is)-p(ip+nxb)*D(is+nxb)) + cz*(wrk2(i-nyb)-wrk2(i))
       v(ip) = v(ip) + tem/Dv(is) * alphaV(ip)
-!      END IF
 
     END DO
   END DO

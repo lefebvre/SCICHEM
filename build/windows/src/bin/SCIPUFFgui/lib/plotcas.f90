@@ -113,7 +113,7 @@ USE pcscipuf_fi
 USE plotdlg_fi
 USE files_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

@@ -4,8 +4,8 @@ echo off
 set COMPILER=intel
 set   CONFIG=Release
 set PLATFORM=x64
-set   VS_VER=vs2012
-set  VS_PATH=11.0
+set   VS_VER=vs2013
+set  VS_PATH=12.0
 
 set SLN=EPRIintel.sln
 SET VERSION_DIR=%CD%

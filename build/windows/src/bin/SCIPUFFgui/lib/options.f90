@@ -10,7 +10,7 @@ USE plotdlg_fi
 USE pltchoice_fi
 USE PlotOpt_fd
 USE GUIparam_fd
-USE winAPI_fd, ONLY: POINTER_LEN
+USE myWinAPI_fd, ONLY: POINTER_LEN
 
 IMPLICIT NONE
 
@@ -260,7 +260,7 @@ IF( FileVersion > 1 )THEN
   BACKSPACE(lun_tmp,ERR=9998)
   READ(lun_tmp,ERR=9998,END=9998)magic,Fileversion,numContour
 ELSE
-  !We have to try to count the number of contour defintions since it
+  !We have to try to count the number of contour definitions since it
   !wasn't explicitly saved on the file
   !First get the numer of records in the contour definitions by counting
   !the records in the file

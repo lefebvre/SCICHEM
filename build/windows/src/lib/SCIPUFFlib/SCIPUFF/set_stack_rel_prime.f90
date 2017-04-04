@@ -3,7 +3,7 @@
 !$Revision$
 !$Date$
 !*******************************************************************************
-SUBROUTINE set_stack_rel_prime( frac )
+SUBROUTINE set_stack_rel_prime( release,frac )
 !*******************************************************************************
 !
 !----- Set SCICHEM release parameters for STACK release Using PRIME
@@ -46,7 +46,8 @@ IMPLICIT NONE
 
 ! --- ARGUMENTS
 
-REAL, INTENT( OUT ) :: frac    !Mass fraction in primary plume
+TYPE( releaseT ), INTENT( IN  ) :: release
+REAL,             INTENT( OUT ) :: frac    !Mass fraction in primary plume
 
 ! --- LOCALS
 
@@ -66,9 +67,15 @@ REAL,DIMENSION(MXGLVL)    :: svamb,swamb
 REAL,DIMENSION(MXGLVL)    :: dedz
 REAL(8),DIMENSION(mxntr)  :: xtr,ytr,ztr,rtr
 
-REAL                      :: xr,yr,zr,sz,sy,szc,syc
+REAL                      :: xr,yr,zr,rr,sz,sy,szc,syc
+REAL                      :: bldfac,xfac
+REAL                      :: xr0,zr0,sz0,sy0,wmom0,buoy0,syc0,szc0
 REAL                      :: dszdx,dsydx,dszcdx,dsycdx
+REAL                      :: dszdx0,dsydx0
 REAL                      :: h,hx,hy,tamb0,ramb0,hsav
+
+REAL                      :: sigx,sigy,sigz,sigRxy,sigRxz,sigRyz,buoy,cmass
+REAL, DIMENSION(3)        :: mom
 
 !      DSBH - real    - Effective building height (m)
 !      DSBW - real    - Effective building width (m) across flow
@@ -97,11 +104,11 @@ IF( nsrc_prime == 0 )THEN
 
   iline = 0
   WRITE(rdfrm,'("(A",I3.3,",T1,",I3.3,"A1)")') istrg, istrg
-  OPEN(lun_tmp,FILE=TRIM(relDisplay),STATUS='OLD',ACTION='READ',IOSTAT=ios)
+  OPEN(lun_tmp,FILE=TRIM(release%relDisplay),STATUS='OLD',ACTION='READ',IOSTAT=ios)
   IF( ios /= 0 )THEN
     nError   = IV_ERROR
     eRoutine ='set_stack_rel_prime'
-    eMessage = 'Missing Prime input File: '//TRIM(relDisplay)
+    eMessage = 'Missing Prime input File: '//TRIM(release%relDisplay)
     GOTO 9999
   END IF
   DO
@@ -188,11 +195,14 @@ END IF
 CALL numpr1()
 CALL prime1()
 
-hstack    = zrel                          ! stack height (m)
-!dstack    = size_rel                      ! stack diameter (m)
+CALL getReleaseSigmas( release,sigx,sigy,sigz,sigRxy,sigRxz,sigRyz )
+CALL getReleaseDynamics( release,buoy,mom )
+CALL getReleaseMass( release,cmass )
+
+hstack    = release%zrel                  ! stack height (m)
 dstack    = 2.*sigx                       ! stack diameter (m) - DSH 2012/05/18 because size_rel=0
 tstack    = buoy + 273.15                 ! exhaust temperature (deg K)
-wstack    = wmom                          ! exhaust velocity (m/s)
+wstack    = mom(3)                        ! exhaust velocity (m/s)
 zbase     = hmin
 
 ! KST - integer - PG stability class  *** no longer used ***
@@ -215,12 +225,12 @@ ELSE
    kst = 4
 END IF
 
-CALL sindex(srcid,nsrc_prime,relName,isrc,lfound)
+CALL sindex(srcid,nsrc_prime,release%relName,isrc,lfound)
 IF( .NOT.lfound )THEN
   eRoutine = 'set_stack_rel_prime'
   nError   = IV_ERROR
   eMessage = 'PRIME source not found'
-  eInform  = 'Release name = '//TRIM(relName)
+  eInform  = 'Release name = '//TRIM(release%relName)
   GO TO 9999
 END IF
 
@@ -242,13 +252,14 @@ ELSE
 END IF
 
 ! ---- Check if buildings affect plume
-CALL get_met(SNGL(xrel),SNGL(yrel),zrel,0.,0.,1 )
+CALL get_met(SNGL(release%xrel),SNGL(release%yrel),release%zrel,0.,0.,1 )
 CALL get_sector(ub,vb,uref,ifvsec,afv)
-dsbh = adsbh(ifvsec,isrc)
-dsbw = adsbw(ifvsec,isrc)
-dsbl = adsbl(ifvsec,isrc)
-xadj = adsxadj(ifvsec,isrc)
-yadj = adsyadj(ifvsec,isrc)
+dsbh  = adsbh(ifvsec,isrc)
+dsbw  = adsbw(ifvsec,isrc)
+dsbl  = adsbl(ifvsec,isrc)
+xadj  = adsxadj(ifvsec,isrc)
+yadj  = adsyadj(ifvsec,isrc)
+
 CALL wakflg(hstack,dsbh,dsbw,wake)
 
 IF( wake )THEN
@@ -259,19 +270,19 @@ IF( wake )THEN
   ramb0 = 1.2
   CALL set_bl_prime()
 
-  CALL get_met(SNGL(xrel),SNGL(yrel),SNGL(GRIDHT(1)),0.,0.,1)
+  CALL get_met(SNGL(release%xrel),SNGL(release%yrel),SNGL(GRIDHT(1)),0.,0.,1)
   uamb(1)  = SQRT(ub*ub + vb*vb)
   tamb(1)  = tb
   dedz(1)  = (1. + 0.608*hb)*dtdz
   swamb(1) = SQRT(wwbl)
   svamb(1) = SQRT(MAX(uubl,vvbl))
 
-  CALL get_met(SNGL(xrel),SNGL(yrel),0.5*SNGL(GRIDHT(1)+GRIDHT(2)),0.,0.,1)
+  CALL get_met(SNGL(release%xrel),SNGL(release%yrel),0.5*SNGL(GRIDHT(1)+GRIDHT(2)),0.,0.,1)
   thv2 = (1. + 0.608*hb)*thb
 
   DO k = 2,MXGLVL
 
-    CALL get_met(SNGL(xrel),SNGL(yrel),SNGL(GRIDHT(k)),0.,0.,1)
+    CALL get_met(SNGL(release%xrel),SNGL(release%yrel),SNGL(GRIDHT(k)),0.,0.,1)
     uamb(k)  = SQRT(ub*ub + vb*vb)
     tamb(k)  = tb
     swamb(k) = SQRT(wwbl)
@@ -279,7 +290,7 @@ IF( wake )THEN
 
     IF( k < MXGLVL )THEN
       thv1 = thv2
-      CALL get_met(SNGL(xrel),SNGL(yrel),0.5*SNGL(GRIDHT(k)+GRIDHT(k+1)),0.,0.,1)
+      CALL get_met(SNGL(release%xrel),SNGL(release%yrel),0.5*SNGL(GRIDHT(k)+GRIDHT(k+1)),0.,0.,1)
       thv2 = (1. + 0.608*hb)*thb
       ddz  = 2./SNGL(GRIDHT(k+1)-GRIDHT(k-1))
       dedz(k) = (thv2-thv1)*ddz
@@ -296,15 +307,18 @@ IF( wake )THEN
     ramb(i)=ramb0*(tamb0/tamb(i))*EXP(-gravi*SNGL(GRIDHT(i))/(RGAS*thv1))
   END DO
 
-  CALL set_ambient(MXGLVL,uamb,ramb,dedz,tamb,svamb,swamb,hstack,dsbh,dsbw )
+  ! Get values without bld effects
 
-  CALL get_met(SNGL(xrel),SNGL(yrel),hstack,0.,0.,1)
+  bldfac = 1.e-3
+  CALL set_ambient(MXGLVL,uamb,ramb,dedz,tamb,svamb,swamb,hstack,dsbh*bldfac,dsbw )
+
+  CALL get_met(SNGL(release%xrel),SNGL(release%yrel),hstack,0.,0.,1)
   ustack = MAX(uMin,SQRT(ub*ub+vb*vb)) ! Wind speed (m/s) at release height
 
-  CALL get_met(SNGL(xrel),SNGL(yrel),dsbh,0.,0.,1)
+  CALL get_met(SNGL(release%xrel),SNGL(release%yrel),dsbh*bldfac,0.,0.,1)
   ubldg  = MAX(uMin,SQRT(ub*ub+vb*vb))  ! Wind speed (m/s) at top of building
 
-  CALL wake_ini(ldbhr,rural,DBLE(dsbh),DBLE(dsbw),DBLE(dsbl),DBLE(xadj),DBLE(yadj),DBLE(ubldg),DBLE(ustack))
+  CALL wake_ini(ldbhr,rural,DBLE(dsbh)*bldfac,DBLE(dsbw),DBLE(dsbl),DBLE(xadj),DBLE(yadj),DBLE(ubldg),DBLE(ustack))
   hseff = hstack
   reff  = 0.5*dstack
   ntr = mxntr
@@ -320,32 +334,95 @@ IF( wake )THEN
     eMessage= 'Array size error'
     WRITE(eInform,*)'PRIME Model not implemented'
     eAction  = 'Using Plume rise algorithm'
-    CALL WarningMessage(.true.)
+    !CALL WarningMessage(.true.)
     wake = .false.
     GO TO 9999
   END IF
 
-  CALL get_wakedat( xr,yr,zr,sy,sz,dsydx,dszdx,syc,szc, &
+  CALL get_wakedat( xr,yr,zr,rr,sy,sz,dsydx,dszdx,syc,szc, &
                     dsycdx,dszcdx,ntr,xtr,ytr,ztr, &
-                    wmom,buoy )
+                    rtr,mom(3),buoy )
   IF( ierr /= 0 )THEN
-    eRoutine= 'get_wakedat'
-    eMessage= 'xr Point lies outside range of tabulated values '
-    WRITE(eInform,*)'PRIME Model not implemented'
-    eAction  = 'Using Plume rise algorithm'
-    CALL WarningMessage(.true.)
+    ! Ignore PRIME values without building effects
+    xr0    = 0.
+    zr0    = 0.
+    sy0    = 0.
+    syc0   = 0.
+    sz0    = 0.
+    szc0   = 0.
+    wmom0  = 0.
+    buoy0  = 0.
+    dsydx0 = 0.
+    dszdx0 = 0.
+    xfac   = -1
+  ELSE
+    xr0    = xr
+    zr0    = zr
+    sy0    = sy
+    syc0   = syc
+    sz0    = sz
+    szc0   = szc
+    wmom0  = mom(3)
+    buoy0  = buoy
+    dsydx0 = dsydx
+    dszdx0 = dszdx
+    xfac   = 0.
+  END IF
+
+  ! Get values with bld effects
+
+  CALL set_ambient(MXGLVL,uamb,ramb,dedz,tamb,svamb,swamb,hstack,dsbh,dsbw )
+
+  CALL get_met(SNGL(release%xrel),SNGL(release%yrel),hstack,0.,0.,1)
+  ustack = MAX(uMin,SQRT(ub*ub+vb*vb)) ! Wind speed (m/s) at release height
+
+  CALL get_met(SNGL(release%xrel),SNGL(release%yrel),dsbh,0.,0.,1)
+  ubldg  = MAX(uMin,SQRT(ub*ub+vb*vb))  ! Wind speed (m/s) at top of building
+
+  CALL wake_ini(ldbhr,rural,DBLE(dsbh),DBLE(dsbw),DBLE(dsbl),DBLE(xadj),DBLE(yadj),DBLE(ubldg),DBLE(ustack))
+  hseff = hstack
+  reff  = 0.5*dstack
+  ntr = mxntr
+  capped = .FALSE.
+  horiz  = .FALSE.
+  capfact = 0.
+
+  CALL numrise( ldbhr,DBLE(hseff),DBLE(reff),DBLE(tstack),DBLE(wstack),ntr,capped,horiz,DBLE(capfact), &
+                xtr,ytr,ztr,rtr,linwake,numwake,ierr)
+  IF( ierr /= 0 )THEN
+    eRoutine= 'numrise'
+    !nError  = SZ_ERROR
+    !eMessage= 'Array size error'
+    !WRITE(eInform,*)'PRIME Model not implemented'
+    !eAction  = 'Using Plume rise algorithm'
+    !CALL WarningMessage(.true.)
     wake = .false.
     GO TO 9999
   END IF
 
-! Reset release location
-  CALL mapfac( SNGL(xrel) , SNGL(yrel) , xmap , ymap )
+  CALL get_wakedat( xr,yr,zr,rr,sy,sz,dsydx,dszdx,syc,szc, &
+                    dsycdx,dszcdx,ntr,xtr,ytr,ztr, &
+                    rtr,mom(3),buoy )
+  IF( ierr /= 0 )THEN
+    !eRoutine= 'get_wakedat'
+    !eMessage= 'xr Point lies outside range of tabulated values '
+    !WRITE(eInform,*)'PRIME Model not implemented'
+    !eAction  = 'Using Plume rise algorithm'
+    !CALL WarningMessage(.true.)
+    !write(lun_log,*)TRIM(eMessage)
+    !write(lun_log,*)TRIM(eInform)
+    wake = .false.
+    GO TO 9999
+  END IF
+
+  ! Reset release location
+  CALL mapfac( SNGL(release%xrel) , SNGL(release%yrel) , xmap , ymap )
   wdsin = SIN(afv)
   wdcos = COS(afv)
-  xrel_prm(1) = xrel + xr*wdsin*xmap - yr*wdcos*xmap  ! afv = -pi to +pi from North.
-  xrel_prm(2) = xrel + xr*wdsin*xmap - (yr+SNGL(ybadj))*wdcos*xmap
-  yrel_prm(1) = yrel + xr*wdcos*ymap + yr*wdsin*xmap
-  yrel_prm(2) = yrel + xr*wdcos*ymap + (yr+SNGL(ybadj))*wdsin*xmap
+  xrel_prm(1) = SNGL(release%xrel) + xr*wdsin*xmap - yr*wdcos*xmap  ! afv = -pi to +pi from North.
+  xrel_prm(2) = SNGL(release%xrel) + xr*wdsin*xmap - (yr+SNGL(ybadj))*wdcos*xmap
+  yrel_prm(1) = SNGL(release%yrel) + xr*wdcos*ymap + yr*wdsin*xmap
+  yrel_prm(2) = SNGL(release%yrel) + xr*wdcos*ymap + (yr+SNGL(ybadj))*wdsin*xmap
 
 ! set scichem release parameters for the two source
   if (lter) then
@@ -355,11 +432,22 @@ IF( wake )THEN
     h = 0.0
   end if
   hsav = h
+  if( xfac < 0 )THEN
+    xfac = 0
+  else
+    xfac = MAX(0.,MIN(1.,(xtr(ntr)-xr)/(xtr(ntr)-xr0)))
+  end if
+  zr = (1.-xfac)*zr + xfac*zr0
   zrel_prm(1)  = zr  + h
   if (lter) then
     call get_topog(xrel_prm(2),yrel_prm(2),h,hx,hy)
     if (nError /= NO_ERROR) go to 9999
   endif
+
+  sy = (1.-xfac)*sy + xfac*sy0
+  sz = (1.-xfac)*sz + xfac*sz0
+  dsydx = (1.-xfac)*dsydx + xfac*dsydx0
+  dszdx = (1.-xfac)*dszdx + xfac*dszdx0
   zrel_prm(2)  = h
   sigy_prm(1)  = sy
   sigy_prm(2)  = syc
@@ -368,46 +456,39 @@ IF( wake )THEN
   frac_prm(1)  = 1.0 - SNGL(fqcav)
   frac_prm(2)  = SNGL(fqcav)
   cmass_prm    = cmass
-  wmom_prm(1)  = wmom
+  wmom_prm(1)  = (1.-xfac)*mom(3) + xfac*wmom0
   wmom_prm(2)  = 0.0
-  buoy_prm(1)  = buoy
+  buoy_prm(1)  = (1.-xfac)*buoy + xfac*buoy0
   buoy_prm(2)  = 0.0
-  !   Reset bouyancy to zero
-  wmom        = 0.0
-  buoy        = 0.0
-  size_rel    = 0.0
   frac        = frac_prm(1)
   CALL get_met(xrel_prm(2),yrel_prm(2),zrel_prm(2),0.,0.,0)
   ustack    = MAX(uMin,SQRT(ub*ub+vb*vb)) ! Wind speed (m/s) at secondary src release location
   ky_prm(2) = syc*dsycdx*ustack
-  kz_prm(2) = szc*dszcdx*ustack
+  kz_prm(2) = MIN(difb,szc*dszcdx*ustack)
 
   CALL get_met(xrel_prm(1),yrel_prm(1),zrel_prm(1),0.,0.,0)
   ustack    = MAX(uMin,SQRT(ub*ub+vb*vb)) ! Wind speed (m/s) at primary src release height ** saved for receptors **
   ky_prm(1) = sy*dsydx*ustack
-  kz_prm(1) = sz*dszdx*ustack
+  kz_prm(1) = MIN(difb,sz*dszdx*ustack)
 
   zi_rel = zinv - hsav
 
-  if (fqcav > 0.0) then
-    write(lun_log,'("Prime calculation: Source 1(xrel,yrel,zrel,1-fqcav,cmass_prm): ")',ADVANCE='NO')
-    write(lun_log,'(3(1pE10.3,1x),0pF4.2,1x,1pE10.3)')xrel_prm(1), yrel_prm(1), zrel_prm(1),frac_prm(1),cmass_prm
-    write(lun_log,'("Prime calculation: Source 2(xrel,yrel,zrel,fqcav): ")',ADVANCE='NO')
-    write(lun_log,'(3(1pE10.3,1x),0pF4.2)')xrel_prm(2),yrel_prm(2), zrel_prm(2),frac_prm(2)
-  else
-    write(lun_log,'("Prime calculation (xrel,yrel,zrel,cmass_prm): ")',ADVANCE='NO')
-    write(lun_log,'(3(1pE10.3,1x),1pE10.3)')xrel_prm(1), yrel_prm(1), zrel_prm(1),cmass_prm
-  end if
+  !if (fqcav > 0.0) then
+  !  write(lun_log,'("Prime calculation: Source 1(xrel,yrel,zrel,1-fqcav,cmass_prm): ")',ADVANCE='NO')
+  !  write(lun_log,'(3(1pE10.3,1x),0pF4.2,1x,1pE10.3)')xrel_prm(1), yrel_prm(1), zrel_prm(1),frac_prm(1),cmass_prm
+  !  write(lun_log,'("Prime calculation: Source 2(xrel,yrel,zrel,fqcav): ")',ADVANCE='NO')
+  !  write(lun_log,'(3(1pE10.3,1x),0pF4.2)')xrel_prm(2),yrel_prm(2), zrel_prm(2),frac_prm(2)
+  !else
+  !  write(lun_log,'("Prime calculation (xrel,yrel,zrel,cmass_prm): ")',ADVANCE='NO')
+  !  write(lun_log,'(3(1pE10.3,1x),1pE10.3)')xrel_prm(1), yrel_prm(1), zrel_prm(1),cmass_prm
+  !end if
 
   ! Skip adding PRIME concentration to sampler in B3 to be consistent with dosage file
   DO i = 1,nsmp
-   CALL AddPRIMEconc( i,xr,sy,xmap,ymap,ntr,xtr,ztr )
+   CALL AddPRIMEconc( i,xr,sy,xmap,ymap,ntr,xtr,ztr,release%xrel,release%yrel,release%zrel )
   END DO
 
 END IF
-
-umom = 0.0
-vmom = 0.0
 
 9999 CONTINUE
 
@@ -532,8 +613,6 @@ ldbhr   = .FALSE.
 iwrk2   = 0
 isstat  = 0
 wake    = .FALSE.
-kyprm   = 0.0
-kzprm   = 0.0
 adsbh   = 0.0
 adsbw   = 0.0
 adsbl   = 0.0
@@ -615,43 +694,12 @@ kz_prm(1:2)   = 1.
 wmom_prm(1:2) = 0.
 buoy_prm(1:2) = 0.
 
-umom = 0.0
-vmom = 0.0
-
 RETURN
 END
 
 !==============================================================================
 
-SUBROUTINE load_prime_rel( irel,zbar )
-
-USE scipuff_fi
-USE sciprime_fi
-
-IMPLICIT NONE
-
-INTEGER :: irel
-REAL    :: zbar
-
-cmass   = cmass_prm*frac_prm(irel)
-
-sigx    = sigy_prm(irel)
-sigy    = sigy_prm(irel)
-sigz    = sigz_prm(irel)
-xrel    = xrel_prm(irel)
-yrel    = yrel_prm(irel)
-zbar    = zrel_prm(irel)
-kyprm   = ky_prm(irel)
-kzprm   = kz_prm(irel)
-wmom    = wmom_prm(irel)
-buoy    = buoy_prm(irel)
-
-RETURN
-END
-
-!==============================================================================
-
-SUBROUTINE AddPRIMEconc( ismp,xSCI,sySCI,xmap,ymap,ntr,xtr,ztr )
+SUBROUTINE AddPRIMEconc( ismp,xSCI,sySCI,xmap,ymap,ntr,xtr,ztr,xrel,yrel,zrel )
 
 USE scipuff_fi
 USE sampler_fi
@@ -666,6 +714,9 @@ REAL,    INTENT( IN ) :: xSCI, sySCI
 REAL,    INTENT( IN ) :: xmap, ymap
 INTEGER, INTENT( IN ) :: ntr
 REAL(8), DIMENSION(ntr), INTENT( IN  ) :: xtr, ztr
+REAL(8), INTENT( IN ) :: xrel
+REAL(8), INTENT( IN ) :: yrel
+REAL,    INTENT( IN ) :: zrel
 
 INTEGER ipositn, is, n1, n2
 REAL    xsr, ysr, xbrec, ybrec
@@ -676,8 +727,8 @@ REAL(8) FYOUT
 REAL(8) :: q2(3),y2(3),sy2(3),z2(3),h2(3),sz2(3),qc2(3), &
            qtksav,ppfsav,fqcav !,qtk,ppf
 
-xsr = (smp(ismp)%x-xrel)/xmap  !Distance from receptor to source in project coordinates
-ysr = (smp(ismp)%y-yrel)/ymap
+xsr = (smp(ismp)%x-SNGL(xrel))/xmap  !Distance from receptor to source in project coordinates
+ysr = (smp(ismp)%y-SNGL(yrel))/ymap
 
 !     Calculate Downwind (X) and Crosswind (Y) Distances
 x = DBLE( xsr*wdsin + ysr*wdcos)
@@ -848,7 +899,6 @@ END
 !----------------------------------------------------------------------
 !      subroutine get_prime_grid(nz,mxz,zg,zf,r0)
       subroutine get_prime_grid( nz,zg,nza )
-!!DEC$ IF DEFINED (EPA)
 !----------------------------------------------------------------------
 
 ! --- purpose:  get the grid setup in numpr1
@@ -1059,9 +1109,9 @@ END
       END
 
 !----------------------------------------------------------------------
-      subroutine get_wakedat( xro,yro,zro,syo,szo,dsydxo,dszdxo, &
+      subroutine get_wakedat( xro,yro,zro,rro,syo,szo,dsydxo,dszdxo, &
                               syco,szco,dsycdxo,dszcdxo,ntr,xtr,ytr,ztr, &
-                              wmom,buoy)
+                              rtr,wmom,buoy)
 
 ! --- scichem and prime interface file
 ! --- purpose:  get wakedat variables in common
@@ -1077,14 +1127,14 @@ END
 
       IMPLICIT NONE
 
-      REAL,                    INTENT( OUT ) :: xro,yro,zro,syo,szo,syco,szco
+      REAL,                    INTENT( OUT ) :: xro,yro,zro,rro,syo,szo,syco,szco
       REAL,                    INTENT( OUT ) :: dsydxo,dszdxo,dsycdxo,dszcdxo
       INTEGER,                 INTENT( IN  ) :: ntr
-      REAL(8), DIMENSION(ntr), INTENT( IN  ) :: xtr, ytr, ztr
+      REAL(8), DIMENSION(ntr), INTENT( IN  ) :: xtr, ytr, ztr, rtr
       REAL,                    INTENT( OUT ) :: wmom, buoy
 
       INTEGER nm1, i, ip1, nwkm1, ncvm1
-      REAL(8) xr,yr,zr,sy,sz,syc,szc,x
+      REAL(8) xr,yr,zr,rr,sy,sz,syc,szc,x
       REAL(8) xp,syp,szp,zp,zx
       REAL(8) dsydx,dszdx,dsycdx,dszcdx
       REAL(8) hstk, rise, bidsq, fac, dxi
@@ -1101,7 +1151,7 @@ END
       dsycdx = 0.0
       ierr   = 0
 
-      syo = 0.; szo = 0.; syco = 0.; szco = 0.
+      rro = 0.; syo = 0.; szo = 0.; syco = 0.; szco = 0.
       dsydxo = 0.; dszdxo = 0.; dsycdxo = 0.; dszcdxo = 0.
 
 !     Transition from near wake to far wake region
@@ -1110,18 +1160,29 @@ END
       if (xr >= xtr(ntr)) then
          zr = ztr(ntr)
          yr = ytr(ntr)
+         rr = rtr(ntr)
          zx = 0.
       else
          nm1 = ntr - 1
          zr = ztr(1)
          yr = ytr(1)
+         rr = rtr(1)
          zx = (ztr(2)-ztr(1))/(xtr(2)-xtr(1))
+         if( (xtr(2) - xtr(1)) < 1.e-6 )then
+           ierr = -1 !****
+           return
+         end if
          do i=nm1,1,-1
             if (xr >= xtr(i))then
                ip1 = i + 1
+               if( (xtr(ip1) - xtr(i)) < 1.e-6 )then
+                 ierr = -1 !****
+                 return
+               end if
                fac = (xtr(ip1)-xr)/(xtr(ip1)-xtr(i))
                yr  = ytr(ip1)-(ytr(ip1)-ytr(i))*fac
                zr  = ztr(ip1)-(ztr(ip1)-ztr(i))*fac
+               rr  = rtr(ip1)-(rtr(ip1)-rtr(i))*fac
                zx  = (ztr(ip1)-ztr(i))/(xtr(ip1)-xtr(i))
                exit
             endif
@@ -1131,7 +1192,7 @@ END
 
 ! --- Single precision output
 
-      xro = SNGL(xr); yro = SNGL(yr); zro = SNGL(zr)
+      xro = SNGL(xr); yro = SNGL(yr); zro = SNGL(zr); rro = SNGL(rr)
 
 ! --- Use "hstk+rise" for consistency w/ WAKE_XSIG
       hstk = DBLE(hstack)
@@ -1170,6 +1231,10 @@ END
          endif
 ! *** Compute gradients *******************************************************
          dxi = DBLE(xtr(2)-xtr(1)); xp = x+dxi; zp = hstk+rise+zx*dxi
+         if( dxi < 1.e-6 )then
+           ierr = -1 !****
+           return
+         end if
          call SIGZPR(xp,zp,szp)
          call SIGYPR(xp,zp,syp)
          if(.not.NOBID) then
@@ -1190,6 +1255,10 @@ END
          sy = DSQRT(sy*sy + vsigy*vsigy )
 ! *** Compute gradients *******************************************************
          dxi = DBLE(xwak(nwak)-xwak(nwak-1)); xp = x+dxi; zp = hstk+rise+zx*dxi
+         if( dxi < 1.e-6 )then
+           ierr = -1 !****
+           return
+         end if
          call SIGZPR(xp,zp,szp)
          call SIGYPR(xp,zp,syp)
          szp = DSQRT(szp*szp + vsigz*vsigz )
@@ -1206,6 +1275,10 @@ END
          do i=nwkm1,1,-1
             if(x.ge.xwak(i))then
                ip1=i+1
+               if( (xtr(ip1) - xtr(i)) < 1.e-6 )then
+                 ierr = -1 !****
+                 return
+               end if
                fac=(xwak(ip1)-x)/(xwak(ip1)-xwak(i))
                sz=szwak(ip1)-(szwak(ip1)-szwak(i))*fac
                sy=sywak(ip1)-(sywak(ip1)-sywak(i))*fac
@@ -1244,6 +1317,9 @@ END
          do i=ncvm1,1,-1
             if(x.ge.xcav(i))then
                ip1=i+1
+               if( (xcav(ip1) - xcav(i)) < 1.e-6 )then
+                 EXIT
+               end if
                fac=(xcav(ip1)-x)/(xcav(ip1)-xcav(i))
                szc=szcav(ip1)-(szcav(ip1)-szcav(i))*fac
                syc=sycav(ip1)-(sycav(ip1)-sycav(i))*fac
@@ -1265,6 +1341,10 @@ END
       xro = SNGL(xr); yro = SNGL(yr); zro = SNGL(zr)
       syo = SNGL(sy); szo = SNGL(sz); dsydxo = SNGL(dsydx); dszdxo = SNGL(dszdx)
       syco = SNGL(syc); szco = SNGL(szc); dsycdxo = SNGL(dsycdx); dszcdxo = SNGL(dszcdx)
+      if( ANY((/xro<=0.,yro<=0.,zro<0.,syo<=0.,szo<=0.,dsydxo<=0.,dszdxo<=0./)) )THEN
+         ierr = -1 !****
+         return
+       end if
 
 ! --- Set mass fraction and fluxes
 
@@ -1529,6 +1609,5 @@ ELSE
  400        VOUT  = VOUT + SUM
    END IF
 END IF
-
 RETURN
 END

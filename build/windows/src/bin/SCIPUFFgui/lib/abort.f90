@@ -7,7 +7,7 @@ INTEGER FUNCTION ABORTPROC( hdc,nCode )
 
 USE resource_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -51,7 +51,7 @@ FUNCTION ABORTDLG( HDLG,MESSAGE,WPARAM,LPARAM )
 !DEC$ ATTRIBUTES STDCALL, DECORATE, ALIAS : 'ABORTDLG' :: ABORTDLG
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 !
 !     This is the message handler for the ABORT box.
 !
@@ -93,7 +93,7 @@ SUBROUTINE position_abort( HWND )
 
 USE errorParam_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine positions the ABORT PRINT box in the center of the
 !     PLOT window
@@ -160,7 +160,7 @@ SUBROUTINE abort_print( HWND )
 
 USE resource_fd
 USE pcscipuf_fi
-USE winAPI_fd
+USE myWinAPI_fd
 !
 !     This routine sets the flag to cancel the current print job
 !

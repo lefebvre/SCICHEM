@@ -81,7 +81,11 @@ USE MessageHandler
 
 IMPLICIT NONE
 
-PostCheckMessage = callback_ByValue( GetCallBack(),GetCallerID(),HM_CHECK,0 )
+IF( GetCallBack() /= 0 )THEN
+  PostCheckMessage = callback_ByValue( GetCallBack(),GetCallerID(),HM_CHECK,0 )
+ELSE
+  PostCheckMessage = SCIPtrue
+END IF
 
 RETURN
 END
@@ -276,12 +280,35 @@ USE errorParam_fd
 
 IMPLICIT NONE
 
-TYPE( updateRelT ), INTENT( IN ) :: update
+TYPE( updateRelT ), INTENT( INOUT ) :: update
 
 PostUpdateMessage = callback_ByReference( GetCallBack(),GetCallerID(),HM_UPDATEREL,update )
 
 IF( PostUpdateMessage == SCIPfailure )THEN
   CALL SetLastError( UK_ERROR,0,'PostUpdateMessage','Callback failed to update release',' ',' ' )
+END IF
+
+RETURN
+END
+
+!===============================================================================
+
+INTEGER FUNCTION PostUpdateMCMessage( update )
+
+!DEC$ ATTRIBUTES DLLEXPORT :: PostUpdateMCMessage
+
+USE MessageHandler
+USE update_fd
+USE errorParam_fd
+
+IMPLICIT NONE
+
+TYPE( updateRelMCT ), INTENT( INOUT ) :: update
+
+PostUpdateMCMessage = callback_ByReference( GetCallBack(),GetCallerID(),HM_UPDATERELMC,update )
+
+IF( PostUpdateMCMessage == SCIPfailure )THEN
+  CALL SetLastError( UK_ERROR,0,'PostUpdateMCMessage','Callback failed to update release',' ',' ' )
 END IF
 
 RETURN

@@ -172,6 +172,7 @@ ELSE IF( BTEST(src%type,GSB_MEDOC) )THEN
   READ(unit,'(6(F12.0,1X))',IOSTAT=ios) (wrk(i),i=1,ntot)
 
 ELSE IF( BTEST(src%type,GSB_WRF) )THEN
+  IF( SIZE(var_src) > ntot )km = SIZE(var_src)/nxym
   wrk => var_src
   ios = 0
 
@@ -231,7 +232,7 @@ IF( BTEST(src%type,GSB_PERIODIC) )THEN
   DO k = 1,nz
     k0 = (k-1)*nxy + ks0
     DO j = 1,ny
-      j0 = (j-1)*nx
+      j0 = (j-1)*nx + k0
       var(j0+nx) = var(j0+1)
     END DO
   END DO

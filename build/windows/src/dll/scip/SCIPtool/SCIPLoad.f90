@@ -225,6 +225,32 @@ SCIPLoadReleaseF = LoadReleaseF( UserID,releaseIO,relListIO )
 RETURN
 END
 !*******************************************************************************
+!            Load Project Release
+!*******************************************************************************
+INTEGER FUNCTION SCIPLoadReleaseMCF( UserID,releaseIO,relListIO,relMCListIO )
+
+USE relstruct_fd
+
+IMPLICIT NONE
+
+!DEC$ IF DEFINED (DUALBUILD)
+!DEC$ ATTRIBUTES DLLEXPORT, ALIAS : 'SCIPLOADRELEASEMCFOMP' :: SCIPLoadReleaseMCF
+!DEC$ ELSE
+!DEC$ ATTRIBUTES DLLEXPORT :: SCIPLoadReleaseMCF
+!DEC$ ENDIF
+
+INTEGER,                         INTENT( IN    ) :: UserID
+TYPE( preleaseT ),               INTENT( INOUT ) :: releaseIO
+TYPE( releaseT  ), DIMENSION(*), INTENT( INOUT ) :: relListIO
+TYPE( releaseMCT), DIMENSION(*), INTENT( INOUT ) :: relMCListIO
+
+INTEGER, EXTERNAL :: LoadReleaseMCF
+
+SCIPLoadReleaseMCF = LoadReleaseMCF( UserID,releaseIO,relListIO,relMCListIO )
+
+RETURN
+END
+!*******************************************************************************
 !            Load Project Weather
 !*******************************************************************************
 INTEGER FUNCTION SCIPLoadWeatherF( UserID,weatherIO )
@@ -245,33 +271,6 @@ TYPE( pweatherT ), INTENT( INOUT ) :: weatherIO
 INTEGER, EXTERNAL :: LoadWeatherF
 
 SCIPLoadWeatherF = LoadWeatherF( UserID,weatherIO )
-
-RETURN
-END
-!*******************************************************************************
-!            Load Project Status
-!*******************************************************************************
-INTEGER FUNCTION SCIPLoadStatusF( UserID,statusIO,statListIO )
-
-USE statstruct_fd
-
-IMPLICIT NONE
-
-!DEC$ IF DEFINED (DUALBUILD)
-!DEC$ ATTRIBUTES DLLEXPORT, ALIAS : 'SCIPLOADSTATUSFOMP' :: SCIPLoadStatusF
-!DEC$ ELSE
-!DEC$ ATTRIBUTES DLLEXPORT :: SCIPLoadStatusF
-!DEC$ ENDIF
-
-INTEGER,               INTENT( IN    ) :: UserID
-TYPE( pstatusT ),      INTENT( INOUT ) :: statusIO
-INTEGER, DIMENSION(*), INTENT( INOUT ) :: statListIO
-
-INTEGER, EXTERNAL :: LoadStatusF
-
-!==== Initialize
-
-SCIPLoadStatusF = LoadStatusF( UserID,statusIO,statListIO )
 
 RETURN
 END
@@ -584,7 +583,7 @@ END
 
 !==============================================================================
 
-INTEGER FUNCTION SCIPGetProjectPuff( UserID,puffHead,timeID,transFlag,puffList,auxData,typeList,mcList )
+INTEGER FUNCTION SCIPGetProjectPuff( UserID,puffHead,timeID,flag,puffList,auxData,typeList,mcList )
 
 USE spcstruct_fd
 USE mcstruct_fd
@@ -600,7 +599,7 @@ IMPLICIT NONE
 INTEGER,                           INTENT( IN    ) :: UserID      !USER ID Tag
 TYPE( ppuffHeadT ),                INTENT( INOUT ) :: puffHead    !Project ID
 INTEGER,                           INTENT( IN    ) :: timeID      !Time ID for reading puffs
-INTEGER,                           INTENT( IN    ) :: transFlag   !SCIPtrue => transform to LLA
+INTEGER,                           INTENT( IN    ) :: flag        !Bits to transform to LLA, MSL, terrain slope
 TYPE( puffT ),       DIMENSION(*), INTENT( OUT   ) :: puffList    !Puffs
 REAL,                DIMENSION(*), INTENT( OUT   ) :: auxData     !Puff auxiliary data
 TYPE( puffTypeT ),   DIMENSION(*), INTENT( OUT   ) :: typeList    !Puffs types
@@ -608,7 +607,7 @@ TYPE( material_MClist ),           INTENT( OUT   ) :: mcList      !multicomponen
 
 INTEGER, EXTERNAL :: GetProjectPuff
 
-SCIPGetProjectPuff = GetProjectPuff( UserID,puffHead,timeID,transFlag,puffList,auxData,typeList,mcList )
+SCIPGetProjectPuff = GetProjectPuff( UserID,puffHead,timeID,flag,puffList,auxData,typeList,mcList )
 
 RETURN
 END
@@ -636,7 +635,7 @@ INTEGER nMCrel
 
 INTEGER, EXTERNAL :: SizeProject
 
-SCIPSizeProject = SizeProject( UserID,project,nMtl,nRel )
+SCIPSizeProject = SizeProject( UserID,project,nMtl,nRel,nMCrel )
 
 RETURN
 END
@@ -660,9 +659,81 @@ TYPE( projectT ),               INTENT( INOUT ) :: project !Project ID
 TYPE( materialT ),DIMENSION(*), INTENT( OUT   ) :: mtlList !Material list
 TYPE( releaseT ), DIMENSION(*), INTENT( OUT   ) :: relList !Release list
 
-INTEGER, EXTERNAL :: LoadProject
+INTERFACE
+  INTEGER FUNCTION LoadProject( UserID,project,mtlList,relList,relMCList )
+    USE SCIMgr_fd
+    INTEGER,                          INTENT( IN    ) :: UserID !USER ID Tag
+    TYPE( projectT ),                 INTENT( INOUT ) :: project !Project ID
+    TYPE( materialT ),  DIMENSION(*), INTENT( OUT   ) :: mtlList !Material list
+    TYPE( releaseT ),   DIMENSION(*), INTENT( OUT   ) :: relList !Release list
+    TYPE( releaseMCT ), DIMENSION(*), OPTIONAL, INTENT( OUT ) :: relMCList !Release multicomponent list
+  END FUNCTION LoadProject
+END INTERFACE
 
 SCIPLoadProject = LoadProject( UserID,project,mtlList,relList )
+
+RETURN
+END
+
+!==============================================================================
+
+INTEGER FUNCTION SCIPSizeProjectMC( UserID,project,nMtl,nRel,nMCrel )
+
+USE prjstruct_fd
+
+IMPLICIT NONE
+
+!DEC$ IF DEFINED (DUALBUILD)
+!DEC$ ATTRIBUTES DLLEXPORT, ALIAS : 'SCIPSIZEPROJECTMCOMP' :: SCIPSizeProjectMC
+!DEC$ ELSE
+!DEC$ ATTRIBUTES DLLEXPORT :: SCIPSizeProjectMC
+!DEC$ ENDIF
+
+INTEGER,             INTENT( IN  ) :: UserID !USER ID tag
+TYPE ( projectIDT ), INTENT( IN  ) :: project !Project ID
+INTEGER,             INTENT( OUT ) :: nMtl   !number of materials in file
+INTEGER,             INTENT( OUT ) :: nRel   !number of releases in file
+INTEGER,             INTENT( OUT ) :: nMCrel !number of MC release records in file
+
+INTEGER, EXTERNAL :: SizeProject
+
+SCIPSizeProjectMC = SizeProject( UserID,project,nMtl,nRel,nMCrel )
+
+RETURN
+END
+
+!==============================================================================
+
+INTEGER FUNCTION SCIPLoadProjectMC( UserID,project,mtlList,relList,relMCList )
+
+USE structure_fd
+
+IMPLICIT NONE
+
+!DEC$ IF DEFINED (DUALBUILD)
+!DEC$ ATTRIBUTES DLLEXPORT, ALIAS : 'SCIPLOADPROJECTMCOMP' :: SCIPLoadProjectMC
+!DEC$ ELSE
+!DEC$ ATTRIBUTES DLLEXPORT :: SCIPLoadProjectMC
+!DEC$ ENDIF
+
+INTEGER,                          INTENT( IN    ) :: UserID    !USER ID Tag
+TYPE( projectT ),                 INTENT( INOUT ) :: project   !Project ID
+TYPE( materialT ),  DIMENSION(*), INTENT( OUT   ) :: mtlList   !Material list
+TYPE( releaseT ),   DIMENSION(*), INTENT( OUT   ) :: relList   !Release list
+TYPE( releaseMCT ), DIMENSION(*), INTENT( OUT   ) :: relMCList !Release multicomponent list
+
+INTERFACE
+  INTEGER FUNCTION LoadProject( UserID,project,mtlList,relList,relMCList )
+    USE SCIMgr_fd
+    INTEGER,                          INTENT( IN    ) :: UserID !USER ID Tag
+    TYPE( projectT ),                 INTENT( INOUT ) :: project !Project ID
+    TYPE( materialT ),  DIMENSION(*), INTENT( OUT   ) :: mtlList !Material list
+    TYPE( releaseT ),   DIMENSION(*), INTENT( OUT   ) :: relList !Release list
+    TYPE( releaseMCT ), DIMENSION(*), OPTIONAL, INTENT( OUT ) :: relMCList !Release multicomponent list
+  END FUNCTION LoadProject
+END INTERFACE
+
+SCIPLoadProjectMC = LoadProject( UserID,project,mtlList,relList,relMCList )
 
 RETURN
 END

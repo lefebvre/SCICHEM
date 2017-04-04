@@ -1,7 +1,7 @@
 MODULE animate_fi
 
   USE DefSize_fd
-  USE winAPI_fd, ONLY: POINTER_LEN
+  USE myWinAPI_fd, ONLY: POINTER_LEN
 
   INTEGER, PARAMETER :: MAX_PAUSE  = 10000 ! 10 sec pause between frames
   INTEGER, PARAMETER :: PAGE_PAUSE = 1000  ! 1 sec jump per scroll page

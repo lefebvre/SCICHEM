@@ -57,6 +57,8 @@ CALL get_next_data( 0,line,nch,kwrd,n_arg,c_arg,MAXN,lerr )
 
 Obs%Source = Obs%Source(2:i-1)
 
+CALL get_next_data( 0,line,nch,kwrd,n_arg,c_arg,MAXN,lerr )
+
 CALL ReportFileName( line,'Reading obs file ',Obs%Source )
 irv = SWIMaddLogMessage( line )
 IF( irv /= SWIMsuccess )GOTO 9999

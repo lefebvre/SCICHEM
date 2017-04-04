@@ -3,7 +3,10 @@
 !$Revision$
 !$Date$
 !*******************************************************************************
-INTEGER FUNCTION UpdateStackEmission( update )
+
+INTEGER FUNCTION UpdateStackEmission( relMC,update,updateMC,nMCup  )
+
+!------ Update either standard or multicomponent stacks, depending on input arguments
 
 USE SCIPUFFdriver_fi
 USE update_fd
@@ -11,12 +14,17 @@ USE constants_fd
 
 IMPLICIT NONE
 
-TYPE( updateRelT ), INTENT( INOUT ) :: update
+TYPE( releaseMCT ),   DIMENSION(:), POINTER         :: relMC
+TYPE( updateRelT ),   OPTIONAL,     INTENT( INOUT ) :: update
+TYPE( updateRelMCT ), OPTIONAL,     INTENT( INOUT ) :: updateMC
+INTEGER,              OPTIONAL,     INTENT( IN    ) :: nMCup
 
 TYPE( relStackT ) :: relData
 
-INTEGER irv, i
+INTEGER irv, i, j, nMCx, releaseType
 REAL    t, rate, ratm, r1, r2, r3, tdur
+REAL    currentTime, nextUpdate
+LOGICAL lMC
 
 CHARACTER(32) relName
 
@@ -26,31 +34,52 @@ INTEGER, EXTERNAL :: ReadNextEmission, FindRelName
 
 UpdateStackEmission = FAILURE
 
-IF( .NOT.lReadEmission )THEN
+IF( .NOT.lEmissionFile )THEN
   UpdateStackEmission = SUCCESS
   GOTO 9999
 END IF
 
-i = INDEX(update%release%relName,':')
-IF( i == 0 )THEN
-  relName = TRIM(update%release%relName)
+lMC = PRESENT(updateMC)  !Check for multicomponent release
+
+IF( lMC )THEN
+
+  IF( PRESENT(update) )GOTO 9999
+  IF( nMCup /= nMC    )GOTO 9999
+  relName = TRIM(updateMC%release%relName)
+  releaseType = updateMC%release%type
+  currentTime = updateMC%currentTime
+  nextUpdate  = updateMC%nextUpdate
+  nMCx = nMC
+
 ELSE
-  relName = TRIM(update%release%relName(1:i-1))
+
+  IF( .NOT.PRESENT(update) )GOTO 9999
+  relName = TRIM(update%release%relName)
+  releaseType = update%release%type
+  currentTime = update%currentTime
+  nextUpdate  = update%nextUpdate
+  nMCx = 0
+
 END IF
+
+i = INDEX(relName,':')
+IF( i > 0 )relName = TRIM(relName(1:i-1))
+
 i = FindRelName( relName )
 
 IF( i == 0 )GOTO 9999
 
-IF( nMC > 0 )THEN
-  ALLOCATE( rMC(nMC),STAT=irv )
+
+IF( nMCx > 0 )THEN
+  ALLOCATE( rMC(nMCx),STAT=irv )
   IF( irv /= 0 )GOTO 9999
 END IF
 
 IF( lIntrpEmission )THEN
 
-  t = 0.5*(update%currentTime+update%nextUpdate)
+  t = 0.5*(currentTime+nextUpdate)
 
-  IF( t > tNextEmi )THEN
+  IF( t > tNextEmi .AND. lReadEmission )THEN
     irv = ReadNextEmission( t )
     IF( irv /= SUCCESS )GOTO 9999
   END IF
@@ -62,55 +91,61 @@ IF( lIntrpEmission )THEN
     r1 = ratm*emiRate1(i) + rate*emiRate2(i)
     r2 = ratm*emiTemp1(i) + rate*emiTemp2(i)
     r3 = ratm*emiVel1(i)  + rate*emiVel2(i)
-    IF( nMC > 0 )THEN
+    IF( nMCx > 0 )THEN
       rMC = ratm*emiMC1(:,i) + rate*emiMC2(:,i)
     END IF
   ELSE
     r1 = emiRate2(i)
     r2 = emiTemp2(i)
     r3 = emiVel2(i)
-    IF( nMC > 0 )THEN
+    IF( nMCx > 0 )THEN
       rMC = emiMC2(:,i)
     END IF
   END IF
 
 ELSE
 
-  t = update%currentTime
+  t = currentTime
 
-  IF( t >= tNextEmi )THEN
+  IF( t >= tNextEmi .AND. lReadEmission )THEN
     irv = ReadNextEmission( t )
     IF( irv /= SUCCESS )GOTO 9999
   END IF
 
   IF( .NOT.lReadEmission )THEN
-    relData = TRANSFER(update%release%relData,relData)
-    tdur    = relData%duration
-  ELSE
-    tdur = 1.   !Emission rates last at least 1 hour
+    IF( lMC )THEN
+      relData = TRANSFER(updateMC%release%relData,relData)
+    ELSE
+      relData = TRANSFER(update%release%relData,relData)
+    END IF
   END IF
+  tdur = 1.   !Emissions persist for 1 hour
 
   IF( t < tEmi + tdur )THEN
     r1 = emiRate1(i)
     r2 = emiTemp1(i)
     r3 = emiVel1(i)
-    IF( nMC > 0 )THEN
+    IF( nMCx > 0 )THEN
       rMC = emiMC1(:,i)
     END IF
   ELSE
     r1 = 0.
     r2 = 300.  !Set small but physical velocity and temperature
     r3 = 0.01
-    IF( nMC > 0 )THEN
+    IF( nMCx > 0 )THEN
       rMC = 0.
     END IF
   END IF
 
 END IF
 
-SELECT CASE( update%release%type )
+SELECT CASE(releaseType )
   CASE( HR_STACK,HR_PRIME )
-    relStackData = TRANSFER(update%release%relData,relStackData)
+    IF( lMC )THEN
+      relStackData = TRANSFER(updateMC%release%relData,relStackData)
+    ELSE
+      relStackData = TRANSFER(update%release%relData,relStackData)
+    END IF
     relStackData%rate    = r1
     relStackData%exitVel = r3
     IF( iAreaSrc(i,1) > 0 )THEN
@@ -118,20 +153,34 @@ SELECT CASE( update%release%type )
     ELSE
       relStackData%exitTemp = r2 + ABSZERO
     END IF
-    update%release%relData = TRANSFER(relStackData,update%release%relData)
+    IF( lMC )THEN
+      updateMC%release%relData = TRANSFER(relStackData,updateMC%release%relData)
+    ELSE
+      update%release%relData = TRANSFER(relStackData,update%release%relData)
+    END IF
   CASE( HR_CONT )
-    relContData  = TRANSFER(update%release%relData,relContData)
+    IF( lMC )THEN
+      relContData  = TRANSFER(updateMC%release%relData,relContData)
+    ELSE
+      relContData  = TRANSFER(update%release%relData,relContData)
+    END IF
     relContData%rate     = r1
     relContData%buoyancy = r2
     relContData%momentum = r3
-    update%release%relData = TRANSFER(relContData,update%release%relData)
+    IF( lMC )THEN
+      updateMC%release%relData = TRANSFER(relContData,updateMC%release%relData)
+    ELSE
+      update%release%relData = TRANSFER(relContData,update%release%relData)
+    END IF
 END SELECT
 
-  IF( update%release%nMC > 0 )THEN
-    DO i = 1,update%release%nMC
-      update%release%MCmass(i) = rMC(i)
-    END DO
-  END IF
+IF( nMCx > 0 )THEN
+  DO j = 1,nMCx
+    relMC(j)%relID  = 1 !Always 1 release only
+    relMC(j)%MCname = MCname(j)
+    relMC(j)%MCmass = rMC(j)
+  END DO
+END IF
 
 UpdateStackEmission = SUCCESS
 
@@ -141,4 +190,3 @@ IF( ALLOCATED(rMC) )DEALLOCATE( rMC,STAT=irv )
 
 RETURN
 END
-

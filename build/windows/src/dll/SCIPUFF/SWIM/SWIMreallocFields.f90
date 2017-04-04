@@ -103,9 +103,10 @@ SWIMreallocMetField = SWIMresult
 9999 CONTINUE
 
 RETURN
-END
+    END
 
 !==============================================================================
+
 SUBROUTINE nullifyMetGrid( grid )
 
 USE SWIMmetField_fd

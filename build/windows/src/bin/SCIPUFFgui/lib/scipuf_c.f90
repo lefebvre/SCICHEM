@@ -15,7 +15,7 @@ USE create_fi
 USE GUImatl_fi
 USE defineok_fd
 USE GUItool_fi
-USE winAPI
+USE myWinAPI
 
 !     Create Input files for a NEW SCIPUFF run and run SCIPUFF
 
@@ -113,7 +113,7 @@ IF( ldelete(2) )THEN
     CALL SizeRelList( scenario(BASE_LEVEL) )
     IF( hasError() )GOTO 9000
     CALL GUI_SCIP_scenario( project(BASE_LEVEL),scenario(BASE_LEVEL), &
-                            materials(BASE_LEVEL),reldef,relList,SIZE(relList) )
+                            materials(BASE_LEVEL),reldef,relList,SIZE(relList),relMCList,SIZE(relMCList) )
     IF( hasError() )GOTO 9000
     createNew%scnHead = reldef%scnHead
   END IF
@@ -199,7 +199,7 @@ USE errorParam_fd
 USE files_fi
 USE pcscipuf_fi
 USE dialog_fi
-USE winAPI
+USE myWinAPI
 
 !     Create Input files to restart a SCIPUFF run and run SCIPUFF
 

@@ -1,6 +1,6 @@
 MODULE GUIstruct_fd
 
-  USE winAPI_fd, ONLY: POINTER_LEN
+  USE myWinAPI_fd, ONLY: POINTER_LEN
 
 !     Structure for passing Dialog Box command Information
 

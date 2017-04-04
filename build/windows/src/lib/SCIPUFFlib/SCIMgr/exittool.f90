@@ -25,6 +25,8 @@ INTEGER, EXTERNAL :: ExitPlotTool, SWIMexit, SimpleExitTool
 
 ExitTool = SCIPfailure
 
+irv = SimpleExitTool()
+
 IF( SCIMgrCheckState(HS_IDLESTATE) )THEN !Available only while idle
   currentState = SCIMgrSetState( HS_BUSY )
 ELSE

@@ -27,117 +27,179 @@ SRCS_f90 = bin/PostProcess/ClassData.f90 bin/PostProcess/CreateFields.f90 \
 	  bin/PostProcess/RegularGrid.f90 bin/PostProcess/Contours.f90 \
 	  bin/PostProcess/NativeGrid.f90 bin/PostProcess/Errors.f90
 
-OBJS_f90 := $(notdir $(subst .f90,.o,$(SRCS_f90)))
+OBJS_f90 := $(subst .f90,.o,$(SRCS_f90))
 
 OBJS :=  $(OBJS_f90) 
 
-all: $(PROG) separator
+DIRS = bin/PostProcess
+
+all: $(DIRS) $(PROG) separator
 
 separator:
 	@echo ==========================================================================
+
+$(DIRS): FORCE
+	$(shell [ -d "$@" ] || mkdir -p "$@")
+
+FORCE:
 
 $(PROG): $(OBJS) $(LIBDEPENDS)
 	$(LNK) $(LNKFLAGS) $(PROG) $(OBJS) $(LIBS)
 
 $(OBJS_f90): %.o:$(filter /\%.f90,$(SRCS_f90))
-	$(FC) $(FCFLAGS) $< 
+	$(FC) -o $@ $(FCFLAGS) $< 
 
 
-Extract_fi.o:$(BD)/bin/PostProcess/Extract_fi.f90  classdata_fd.o \
-	  default_fd.o tooluser_fd.o
+bin/PostProcess/Extract_fi.o:$(BD)/bin/PostProcess/Extract_fi.f90  \
+	  lib/SCIPUFFlib/PlotMgr/inc/classdata_fd.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/default_fd.o \
+	  lib/SCIPUFFlib/SCIMgr/inc/tooluser_fd.o
 
-ClassData.o:$(BD)/bin/PostProcess/ClassData.f90  Extract_fi.o
+bin/PostProcess/ClassData.o:$(BD)/bin/PostProcess/ClassData.f90  \
+	  bin/PostProcess/Extract_fi.o
 
-CreateFields.o:$(BD)/bin/PostProcess/CreateFields.f90  Extract_fi.o \
-	  SCIPtool.o
+bin/PostProcess/CreateFields.o:$(BD)/bin/PostProcess/CreateFields.f90  \
+	  bin/PostProcess/Extract_fi.o dll/scip/SCIPtool/inc/SCIPtool.o
 
-ExtractHorzLines.o:$(BD)/bin/PostProcess/ExtractHorzLines.f90  Extract_fi.o \
-	  SCIPtool.o
+bin/PostProcess/ExtractHorzLines.o:$(BD)/bin/PostProcess/ExtractHorzLines.f90  \
+	  bin/PostProcess/Extract_fi.o dll/scip/SCIPtool/inc/SCIPtool.o
 
-GetTimes_fi.o:$(BD)/bin/PostProcess/GetTimes_fi.f90  tooluser_fd.o
+bin/PostProcess/GetTimes_fi.o:$(BD)/bin/PostProcess/GetTimes_fi.f90  \
+	  lib/SCIPUFFlib/SCIMgr/inc/tooluser_fd.o
 
-LocalPuffs_fi.o:$(BD)/bin/PostProcess/LocalPuffs_fi.f90  GetTimes_fi.o \
-	  struct_fd.o multcomp_fd.o tooluser_fd.o
+bin/PostProcess/LocalPuffs_fi.o:$(BD)/bin/PostProcess/LocalPuffs_fi.f90  \
+	  bin/PostProcess/GetTimes_fi.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/struct_fd.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/multcomp_fd.o \
+	  lib/SCIPUFFlib/SCIMgr/inc/tooluser_fd.o
 
-GetSrcFunc_fi.o:$(BD)/bin/PostProcess/GetSrcFunc_fi.f90 
+bin/PostProcess/GetSrcFunc_fi.o:$(BD)/bin/PostProcess/GetSrcFunc_fi.f90 
 
-Initialization.o:$(BD)/bin/PostProcess/Initialization.f90  type_fd.o \
-	  basic_fd.o contour_fd.o Extract_fi.o GetSrcFunc_fi.o GetTimes_fi.o \
-	  LocalPuffs_fi.o SCIPtool.o scipuff_fi.o tooluser_fd.o
+bin/PostProcess/Initialization.o:$(BD)/bin/PostProcess/Initialization.f90  \
+	  lib/SCIPUFFlib/PlotMgr/inc/type_fd.o \
+	  lib/SCIPUFFlib/FileMgr/inc/basic_fd.o \
+	  lib/SCIPUFFlib/PlotMgr/inc/contour_fd.o \
+	  bin/PostProcess/Extract_fi.o bin/PostProcess/GetSrcFunc_fi.o \
+	  bin/PostProcess/GetTimes_fi.o bin/PostProcess/LocalPuffs_fi.o \
+	  dll/scip/SCIPtool/inc/SCIPtool.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/scipuff_fi.o \
+	  lib/SCIPUFFlib/SCIMgr/inc/tooluser_fd.o
 
-GetSrcFunc.o:$(BD)/bin/PostProcess/GetSrcFunc.f90 
+bin/PostProcess/GetSrcFunc.o:$(BD)/bin/PostProcess/GetSrcFunc.f90 
 
-PufMom.o:$(BD)/bin/PostProcess/PufMom.f90  LocalPuffs_fi.o SCIPtool.o \
-	  scipuff_fi.o struct_fd.o
+bin/PostProcess/PufMom.o:$(BD)/bin/PostProcess/PufMom.f90  \
+	  bin/PostProcess/LocalPuffs_fi.o dll/scip/SCIPtool/inc/SCIPtool.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/scipuff_fi.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/struct_fd.o
 
-ExtractContours.o:$(BD)/bin/PostProcess/ExtractContours.f90  Extract_fi.o \
-	  tooluser_fd.o write_fd.o
+bin/PostProcess/ExtractContours.o:$(BD)/bin/PostProcess/ExtractContours.f90  \
+	  bin/PostProcess/Extract_fi.o \
+	  lib/SCIPUFFlib/SCIMgr/inc/tooluser_fd.o \
+	  lib/SCIPUFFlib/PlotMgr/inc/write_fd.o
 
-Readpuf.o:$(BD)/bin/PostProcess/Readpuf.f90  chem_fi.o class_fd.o param_fd.o \
-	  errorParam_fd.o files_fi.o LocalPuffs_fi.o metparam_fd.o SCIPtool.o \
-	  scipuff_fi.o struct_fd.o tooluser_fd.o $(INCMOD)
+bin/PostProcess/Readpuf.o:$(BD)/bin/PostProcess/Readpuf.f90  \
+	  lib/SCIPUFFlib/SCIPUFF/inc/chem_fi.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/class_fd.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/param_fd.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/errorParam_fd.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/files_fi.o \
+	  bin/PostProcess/LocalPuffs_fi.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/metparam_fd.o \
+	  dll/scip/SCIPtool/inc/SCIPtool.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/scipuff_fi.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/struct_fd.o \
+	  lib/SCIPUFFlib/SCIMgr/inc/tooluser_fd.o $(INCMOD)
 
-SelectField.o:$(BD)/bin/PostProcess/SelectField.f90  Extract_fi.o \
-	  GetTimes_fi.o
+bin/PostProcess/SelectField.o:$(BD)/bin/PostProcess/SelectField.f90  \
+	  bin/PostProcess/Extract_fi.o bin/PostProcess/GetTimes_fi.o
 
-ExtractProfiles.o:$(BD)/bin/PostProcess/ExtractProfiles.f90  Extract_fi.o \
-	  SCIPtool.o
+bin/PostProcess/ExtractProfiles.o:$(BD)/bin/PostProcess/ExtractProfiles.f90  \
+	  bin/PostProcess/Extract_fi.o dll/scip/SCIPtool/inc/SCIPtool.o
 
-ExtractGrid.o:$(BD)/bin/PostProcess/ExtractGrid.f90  Extract_fi.o SCIPtool.o
+bin/PostProcess/ExtractGrid.o:$(BD)/bin/PostProcess/ExtractGrid.f90  \
+	  bin/PostProcess/Extract_fi.o dll/scip/SCIPtool/inc/SCIPtool.o
 
-MainEntryPoint.o:$(BD)/bin/PostProcess/MainEntryPoint.f90  Extract_fi.o \
-	  MPIFunc_fi.o SCIPtool.o scipuff_fi.o tooluser_fd.o $(INCMOD)
+bin/PostProcess/MainEntryPoint.o:$(BD)/bin/PostProcess/MainEntryPoint.f90  \
+	  bin/PostProcess/Extract_fi.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/MPIFunc_fi.o \
+	  dll/scip/SCIPtool/inc/SCIPtool.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/scipuff_fi.o \
+	  lib/SCIPUFFlib/SCIMgr/inc/tooluser_fd.o $(INCMOD)
 
-Output3D.o:$(BD)/bin/PostProcess/Output3D.f90  Extract_fi.o GetTimes_fi.o
+bin/PostProcess/Output3D.o:$(BD)/bin/PostProcess/Output3D.f90  \
+	  bin/PostProcess/Extract_fi.o bin/PostProcess/GetTimes_fi.o
 
-Tables.o:$(BD)/bin/PostProcess/Tables.f90 
+bin/PostProcess/Tables.o:$(BD)/bin/PostProcess/Tables.f90 
 
-BubbleMom.o:$(BD)/bin/PostProcess/BubbleMom.f90  LocalPuffs_fi.o SCIPtool.o \
-	  scipuff_fi.o struct_fd.o
+bin/PostProcess/BubbleMom.o:$(BD)/bin/PostProcess/BubbleMom.f90  \
+	  bin/PostProcess/LocalPuffs_fi.o dll/scip/SCIPtool/inc/SCIPtool.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/scipuff_fi.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/struct_fd.o
 
-FFT07.o:$(BD)/bin/PostProcess/FFT07.f90 
+bin/PostProcess/FFT07.o:$(BD)/bin/PostProcess/FFT07.f90 
 
-sppCallback.o:$(BD)/bin/PostProcess/sppCallback.f90  basic_fd.o \
-	  tooluser_fd.o
+bin/PostProcess/sppCallback.o:$(BD)/bin/PostProcess/sppCallback.f90  \
+	  lib/SCIPUFFlib/FileMgr/inc/basic_fd.o \
+	  lib/SCIPUFFlib/SCIMgr/inc/tooluser_fd.o
 
-GetPlotLists.o:$(BD)/bin/PostProcess/GetPlotLists.f90  Extract_fi.o \
-	  GetTimes_fi.o param_fd.o SCIPtool.o
+bin/PostProcess/GetPlotLists.o:$(BD)/bin/PostProcess/GetPlotLists.f90  \
+	  bin/PostProcess/Extract_fi.o bin/PostProcess/GetTimes_fi.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/param_fd.o \
+	  dll/scip/SCIPtool/inc/SCIPtool.o
 
-ExtractOutput.o:$(BD)/bin/PostProcess/ExtractOutput.f90  type_fd.o \
-	  contour_fd.o Extract_fi.o GetTimes_fi.o SCIPtool.o
+bin/PostProcess/ExtractOutput.o:$(BD)/bin/PostProcess/ExtractOutput.f90  \
+	  lib/SCIPUFFlib/PlotMgr/inc/type_fd.o bin/PostProcess/Extract_fi.o \
+	  lib/SCIPUFFlib/PlotMgr/inc/contour_fd.o \
+	  bin/PostProcess/GetTimes_fi.o dll/scip/SCIPtool/inc/SCIPtool.o
 
-TotalMass_fi.o:$(BD)/bin/PostProcess/TotalMass_fi.f90  tooluser_fd.o
+bin/PostProcess/TotalMass_fi.o:$(BD)/bin/PostProcess/TotalMass_fi.f90  \
+	  lib/SCIPUFFlib/SCIMgr/inc/tooluser_fd.o
 
-TotalMass.o:$(BD)/bin/PostProcess/TotalMass.f90  Extract_fi.o GetTimes_fi.o \
-	  LocalPuffs_fi.o SCIPtool.o scipuff_fi.o struct_fd.o TotalMass_fi.o
+bin/PostProcess/TotalMass.o:$(BD)/bin/PostProcess/TotalMass.f90  \
+	  bin/PostProcess/Extract_fi.o bin/PostProcess/GetTimes_fi.o \
+	  bin/PostProcess/LocalPuffs_fi.o dll/scip/SCIPtool/inc/SCIPtool.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/scipuff_fi.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/struct_fd.o \
+	  bin/PostProcess/TotalMass_fi.o
 
-WriteFiles.o:$(BD)/bin/PostProcess/WriteFiles.f90  Extract_fi.o \
-	  GetTimes_fi.o SCIPtool.o
+bin/PostProcess/WriteFiles.o:$(BD)/bin/PostProcess/WriteFiles.f90  \
+	  bin/PostProcess/Extract_fi.o bin/PostProcess/GetTimes_fi.o \
+	  dll/scip/SCIPtool/inc/SCIPtool.o
 
-GetPuffs.o:$(BD)/bin/PostProcess/GetPuffs.f90  chem_fi.o Extract_fi.o \
-	  GetTimes_fi.o LocalPuffs_fi.o struct_fd.o multcomp_fd.o SCIPtool.o \
-	  scipuff_fi.o $(INCMOD)
+bin/PostProcess/GetPuffs.o:$(BD)/bin/PostProcess/GetPuffs.f90  \
+	  lib/SCIPUFFlib/SCIPUFF/inc/chem_fi.o bin/PostProcess/Extract_fi.o \
+	  bin/PostProcess/GetTimes_fi.o bin/PostProcess/LocalPuffs_fi.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/struct_fd.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/multcomp_fd.o \
+	  dll/scip/SCIPtool/inc/SCIPtool.o \
+	  lib/SCIPUFFlib/SCIPUFF/inc/scipuff_fi.o $(INCMOD)
 
-CommandLine.o:$(BD)/bin/PostProcess/CommandLine.f90  Extract_fi.o
+bin/PostProcess/CommandLine.o:$(BD)/bin/PostProcess/CommandLine.f90  \
+	  bin/PostProcess/Extract_fi.o
 
-FFT07_fi.o:$(BD)/bin/PostProcess/FFT07_fi.f90 
+bin/PostProcess/FFT07_fi.o:$(BD)/bin/PostProcess/FFT07_fi.f90 
 
-Memory.o:$(BD)/bin/PostProcess/Memory.f90  Extract_fi.o GetTimes_fi.o \
-	  SCIPtool.o
+bin/PostProcess/Memory.o:$(BD)/bin/PostProcess/Memory.f90  \
+	  bin/PostProcess/Extract_fi.o bin/PostProcess/GetTimes_fi.o \
+	  dll/scip/SCIPtool/inc/SCIPtool.o
 
-RegularGrid.o:$(BD)/bin/PostProcess/RegularGrid.f90  contour_fd.o \
-	  Extract_fi.o SCIPtool.o
+bin/PostProcess/RegularGrid.o:$(BD)/bin/PostProcess/RegularGrid.f90  \
+	  lib/SCIPUFFlib/PlotMgr/inc/contour_fd.o \
+	  bin/PostProcess/Extract_fi.o dll/scip/SCIPtool/inc/SCIPtool.o
 
-Contours.o:$(BD)/bin/PostProcess/Contours.f90  Extract_fi.o SCIPtool.o
+bin/PostProcess/Contours.o:$(BD)/bin/PostProcess/Contours.f90  \
+	  bin/PostProcess/Extract_fi.o dll/scip/SCIPtool/inc/SCIPtool.o
 
-NativeGrid.o:$(BD)/bin/PostProcess/NativeGrid.f90  Extract_fi.o \
-	  GetTimes_fi.o SCIPtool.o
+bin/PostProcess/NativeGrid.o:$(BD)/bin/PostProcess/NativeGrid.f90  \
+	  bin/PostProcess/Extract_fi.o bin/PostProcess/GetTimes_fi.o \
+	  dll/scip/SCIPtool/inc/SCIPtool.o
 
-Errors.o:$(BD)/bin/PostProcess/Errors.f90  Extract_fi.o SCIPtool.o
+bin/PostProcess/Errors.o:$(BD)/bin/PostProcess/Errors.f90  \
+	  bin/PostProcess/Extract_fi.o dll/scip/SCIPtool/inc/SCIPtool.o
 
 
 # Entry for " make clean " to get rid of all object and module files 
 clean:
 	rm -f $(OBJS) $(PROG)  localpuf.mod readpuf_inc.mod \
-	  getsrcfunc_fi.mod extract_fi.mod totalmass_fi.mod fft07_fi.mod \
-	  gettimes_fi.mod
+	  getsrcfunc_fi.mod cmd_fi.mod extract_fi.mod totalmass_fi.mod \
+	  fft07_fi.mod gettimes_fi.mod

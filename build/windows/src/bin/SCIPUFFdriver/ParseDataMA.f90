@@ -273,9 +273,11 @@ SELECT CASE( TRIM(carg(ikwrd)) )
 
     BACKSPACE(lun,IOSTAT=ios)
 
-!------ Re-read line to handle files names with spaces
+!------ Re-read line "as is" since case matters for path and file names on Linux
+!       and to handle files names with spaces
 
     CALL get_next_data( lun,line,nch,kwrd,narg,carg,MAXN,lerr )
+
 
     fname = TRIM(BuildFileNameAERMOD(carg(ikwrd+1),line,path_in))
     CALL SplitName( fname,mtlList(nmat)%file,mtlList(nmat)%path ) !IMC file & path

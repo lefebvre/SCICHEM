@@ -13,7 +13,7 @@ USE files_fi
 USE script_fi
 USE pltchoice_fi
 USE guiAPI
-USE winAPI, ONLY : ADDRESSOF
+USE myWinAPI, ONLY : ADDRESSOF
 
 IMPLICIT NONE
 
@@ -196,7 +196,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE files_fi
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 USE testprt
 
 !     This routine creates the Print Job and does the printing
@@ -406,7 +406,7 @@ END
 !*******************************************************************************
 SUBROUTINE copydev( Dev1,Name1,Dev2,Name2 )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -424,7 +424,7 @@ END
 SUBROUTINE writepd( pd )
 
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -438,7 +438,7 @@ END
 SUBROUTINE writedev( Dev1,Name1 )
 
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -461,7 +461,7 @@ SUBROUTINE outline_rect( idc,lplt,lstat,ldate,lclass,lbare,class )
 
 USE resource_fd
 USE files_fi
-USE winAPI
+USE myWinAPI
 USE testprt
 
 IMPLICIT NONE
@@ -673,7 +673,7 @@ END
 SUBROUTINE check_abort()
 
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 !---- Check ABORT Dialog Box Messages
 
@@ -744,7 +744,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE errorParam_fd
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -804,7 +804,7 @@ SUBROUTINE DestroyPrint()
 
 USE resource_fd
 USE printdev_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

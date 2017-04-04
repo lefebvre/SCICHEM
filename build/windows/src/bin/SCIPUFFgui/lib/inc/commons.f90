@@ -3,14 +3,14 @@ MODULE testprt
 END MODULE testprt
 
 MODULE MySync
-  USE winAPI, ONLY : T_RECT
+  USE myWinAPI, ONLY : T_RECT
   TYPE( T_RECT)  dbBox,pbBox,pwBox,mwBox
   INTEGER        nSync,iSync,pbFlag
   REAL           SyncTime
 END MODULE MySync
 
 MODULE MyClock
-  USE winAPI, ONLY : POINTER_LEN
+  USE myWinAPI, ONLY : POINTER_LEN
   INTEGER Ncur,Icur
   INTEGER(POINTER_LEN) Hcur(8)
   LOGICAL ClockOn
@@ -53,7 +53,7 @@ MODULE mainbeta
 END MODULE mainbeta
 
 MODULE cDSWAlogo
-  USE winAPI, ONLY : T_POINT, POINTER_LEN
+  USE myWinAPI, ONLY : T_POINT, POINTER_LEN
   TYPE( T_POINT ) szDSWA
   INTEGER(POINTER_LEN) DSWAbmp,DSWApal
 END MODULE cDSWAlogo
@@ -63,12 +63,12 @@ MODULE liqdef
 END MODULE liqdef
 
 MODULE cfocus
-  USE winAPI, ONLY : POINTER_LEN
+  USE myWinAPI, ONLY : POINTER_LEN
   INTEGER(POINTER_LEN) ifocus
 END MODULE cfocus
 
 MODULE cfocus_pb
-  USE winAPI, ONLY : POINTER_LEN
+  USE myWinAPI, ONLY : POINTER_LEN
   INTEGER(POINTER_LEN) ifocus_pb
 END MODULE cfocus_pb
 

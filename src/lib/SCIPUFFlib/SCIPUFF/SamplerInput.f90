@@ -75,7 +75,7 @@ SUBROUTINE SCIPsensorInput( lun )
 !------ Read input information for generalized (SCIP40) sensors
 
 USE scipuff_fi
-USE met_fi, ONLY: hmin, numMet, lensm
+USE met_fi
 USE sampler_fi
 USE SamplerUtil
 USE SamplerGridOuput
@@ -91,12 +91,11 @@ IMPLICIT NONE
 INTEGER, INTENT( IN ) :: lun
 
 INTEGER i, j, k, alloc_stat, ios
-!REAL    xmap, ymap
 INTEGER nmc0
 INTEGER, DIMENSION(:), ALLOCATABLE :: mcID0
 LOGICAL lGrid
 INTEGER iSampClass
-LOGICAL lFirstClass
+LOGICAL lFirstClass, lOptions
 
 TYPE( SampClassT ), POINTER :: SampClass
 
@@ -105,16 +104,25 @@ TYPE( SampClassT ), POINTER :: SampClass
 nsmp   = 0
 string = ' '
 nSampClass = 0
+lOptions   = .FALSE.
 
 DO   !Read until EOF
   CALL get_next_data( lun,string,nch,kwrd,n_arg,c_arg,MAXN_ARG,lerr )
   IF( lerr )EXIT
+  IF( c_arg(1) == 'OPTIONS' )THEN
+    lOptions = .TRUE.
+    DO
+      CALL get_next_data( lun,string,nch,kwrd,n_arg,c_arg,MAXN_ARG,lerr )
+      IF( lerr )EXIT
+      CALL cupper( c_arg(1) )
+      IF( c_arg(1) == 'END' )EXIT
+    END DO
+  END IF
   IF( c_arg(1) == 'CLASS' )THEN
     DO
       CALL get_next_data( lun,string,nch,kwrd,n_arg,c_arg,MAXN_ARG,lerr )
       IF( lerr )EXIT
       CALL cupper( c_arg(1) )
-
       IF( c_arg(1) == 'END' )EXIT
       nSampClass = nSampClass + 1
     END DO
@@ -137,7 +145,7 @@ REWIND(lun,ERR=9998)
 IF( nsmp > MAXSMP )THEN
   nError   = IV_ERROR
   eRoutine = 'SCIPSensorInput'
-  WRITE(eMessage,'("Number of samplers exceed the maximum allowed value of ",I3)')MAXSMP
+  WRITE(eMessage,'("Number of samplers exceed the maximum allowed value of ",I3)') MAXSMP
   eInform = "Use postprocessor to sample the integrated concentration output field"
   GOTO  9999
 END IF
@@ -160,14 +168,20 @@ lSmpOut   = .FALSE.
 lGridOut  = .FALSE.
 
 tStartSamp = 0.
+tEndSamp   = HUGE(0.)
 tolSmpOut  = 0.
 dtSmpOut   = 0.
 tSmpOut    = 0.
 
+lBinOut   = .FALSE.
+lDosSmp   = .FALSE.
+lLOSSmp   = .FALSE.
+lDepS     = .FALSE.
+
+NULLIFY( FirstSampClass )
+
 lIsSPSOpened    = .FALSE.
 lOutputVariance = .FALSE.
-lBinOut  = .FALSE.
-lDosSmp  = .FALSE.
 
 !------ Pre-allocate sampler name and units arrays
 
@@ -179,11 +193,24 @@ nsmp0 = nsmp
 
 !------ Parse keywords and corresponding input
 
-IF( n_arg > 2 )THEN
+IF( lOptions )THEN
+  CALL get_next_data( lun,string,nch,kwrd,n_arg,c_arg,MAXN_ARG,lerr )
+  IF( lerr )GOTO 9998
+  IF( TRIM(c_arg(1)) /= 'OPTIONS' )GOTO 9998
+END IF
 
+IF( n_arg > 2 .OR. lOptions )THEN
   iarg = 3
 
   DO !Loop over keywords
+
+    IF( lOptions )THEN
+      CALL get_next_data( lun,string,nch,kwrd,n_arg,c_arg,MAXN_ARG,lerr )
+      IF( lerr )EXIT
+      CALL cupper( c_arg(1) )
+      IF( c_arg(1) == 'END' )EXIT
+      iarg = 1
+    END IF
 
     SELECT CASE( TRIM(c_arg(iarg)) )
 
@@ -197,6 +224,10 @@ IF( n_arg > 2 )THEN
 
       CASE( 'SINGLE','SPREADSHEET','NOWRAP' ) !Spread-sheet format (default)
         lWrap = .FALSE.
+
+      CASE( 'ASCII','TEXT' )         !Binary output
+
+        lBinOut = .FALSE.
 
       CASE( 'BINARY','BIN','BINOUT' )         !Binary output
 
@@ -217,6 +248,11 @@ IF( n_arg > 2 )THEN
         CALL SetSampStart()
         IF( nError /= NO_ERROR )GOTO 9999
 
+      CASE( 'STOP' ) !Last time for sensor calculations
+
+        CALL SetSampEnd()
+        IF( nError /= NO_ERROR )GOTO 9999
+
       CASE( 'OUTPUT' ) !Valid keywords denoting specific output time
 
         CALL SetSampOutput()
@@ -232,8 +268,10 @@ IF( n_arg > 2 )THEN
 
     END SELECT
 
+    IF( .NOT.lOptions )THEN
     iarg = iarg + 1
     IF( iarg > n_arg )EXIT
+    END IF
 
   END DO
 
@@ -297,38 +335,16 @@ SamplerLoop : DO
 
 !------ Read sensor output type and name
 
-  lFirstClass = .TRUE.
-
-  DO iSampClass = 1,MAX(nSampClass,1)
-
-    IF( nSampClass > 0 )THEN
-      IF( .NOT.lFirstClass )  THEN
-        nsmp = nsmp + 1
-        CALL CopySampType()
-        CALL CopySampLoc()
-        SampClass => SampClass%next
-      ELSE
-        SampClass => FirstSampClass
-      END IF
-      smp(nsmp)%type = TRIM(SampClass%type)
-      smp(nsmp)%var  = TRIM(SampClass%var)
-    ELSE
   READ(c_arg(iarg+1),'(A)',ERR=9998,END=9998) smp(nsmp)%type
   READ(c_arg(iarg+2),'(A)',ERR=9998,END=9998) smp(nsmp)%var
   IF( iarg+3 <= n_arg )READ(c_arg(iarg+3),'(A)',ERR=9998,END=9998) smp(nsmp)%name
-    END IF
 
 !------ Read waypoints for moving sensor
 
   IF( BTEST(smp(nsmp)%stype,STB_MOVING) )THEN
 
-    IF( lFirstClass )THEN
     CALL SetWayPoints( lun )
     IF( nError /= NO_ERROR )GOTO 9999
-    ELSE
-      CALL CopyWayPoints()
-      IF( nError /= NO_ERROR )GOTO 9999
-    END IF
 
   END IF
 
@@ -341,21 +357,6 @@ SamplerLoop : DO
 
   CALL SetMovingOutput()
   IF( nError /= NO_ERROR )GOTO 9999
-
-!------ Check for valid binary output
-
-IF( lBinOut )THEN
-  SELECT CASE( TRIM(smp(nsmp)%type) )
-    CASE( 'CONC','CONC_ND','DEP','MC','DOS' )
-    CASE DEFAULT
-      nError   = IV_ERROR
-      eRoutine = 'SetSampType'
-      eMessage = 'Invalid sensor type with binary output'
-      eInform  = 'Must be CONC[_ND], DEP or MC'
-      CALL SensorNumStr( nsmp,eInform )
-      GOTO  9999
-  END SELECT
-END IF
 
 !------ Check variable based on type
 
@@ -450,10 +451,6 @@ END IF
     CALL reallocate_smp_vname( i )
     IF( nError /= NO_ERROR )GOTO 9999
   END IF
-    lFirstClass = .FALSE.
-
-  END DO
-
 END DO SamplerLoop
 
 !------ Check for valid combinations when using gridded output
@@ -498,11 +495,13 @@ IF( multicomp .AND. nmc0 == -1 )THEN
   eInform  = 'At least one MC type sampler must have the specified for multicomponent project'
   GOTO 9999
 END IF
+
 9999 CONTINUE
 
 CLOSE( lun,IOSTAT=ios )
 
 IF( ALLOCATED(compName) )DEALLOCATE( compName,STAT=alloc_stat )
+
 RETURN
 
 !------ Set read error
@@ -548,11 +547,14 @@ lAvg     = .FALSE.
 lSmpOut  = .FALSE.
 lGridOut = .FALSE.
 lSmpOutList = .FALSE.
-lBinOut  = .FALSE.
+lBinOut   = .FALSE.
+nSampClass = 0
+NULLIFY( FirstSampClass )
 lOutputVariance = .FALSE.
 lIsSPSOpened    = .FALSE.
 
 tStartSamp = 0.
+tEndSamp   = HUGE(0.)
 tolSmpOut  = 0.
 dtSmpOut   = 0.
 tSmpOut    = 0.

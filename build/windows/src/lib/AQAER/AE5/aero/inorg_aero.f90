@@ -56,27 +56,31 @@ REAL, PARAMETER :: NH4CONV1   = 1.0 / NH4CONV
       
 ! *** ISORROPIA input variables
 
-REAL( 8 ) :: WI( 5 )              ! species array
+REAL( 8 ) :: WI( 8 )              ! species array
 REAL( 8 ) :: RHI                  ! relative humidity
 REAL( 8 ) :: TEMPI                ! temperature
 REAL( 8 ) :: CNTRL( 2 )           ! control parameters 
 
 ! *** ISORROPIA output variables
       
-REAL( 8 ) :: WT( 5 )              ! species output array
+REAL( 8 ) :: WT( 8 )              ! species output array
 REAL( 8 ) :: GAS( 3 )             ! gas-phase   "     " 
-REAL( 8 ) :: AERLIQ( 12 )         ! liq aerosol "     " 
-REAL( 8 ) :: AERSLD( 9 )          ! solid "     "     " 
-REAL( 8 ) :: OTHER( 6 )           ! supplmentary output array
+REAL( 8 ) :: AERLIQ( 15 )         ! liq aerosol "     " 
+REAL( 8 ) :: AERSLD( 19 )         ! solid "     "     " 
+REAL( 8 ) :: OTHER( 9 )           ! supplmentary output array
 CHARACTER( 15 ) :: SCASI          ! subcase number output
 
 ! *** double precision vars for ISORROPIA (mole/m3)
 ! *** assume Na and Cl are negligible
-WI( 1 ) = 1.D-20
+WI( 1 ) = 1.D-30
 WI( 2 ) = cso4 * SO4CONV1
 WI( 3 ) = cnh4 * NH4CONV1 + cnh3 * NH3CONV1
 WI( 4 ) = cno3 * NO3CONV1 + chno3 * HNO3CONV1
-WI( 5 ) = 1.D-20
+WI( 5 ) = 1.D-30
+!temporary set Ca, K, Mg to zero
+WI( 6 ) = 1.D-30 !Ca
+WI( 7 ) = 1.D-30 !K
+WI( 8 ) = 1.D-30 !Mg
 
 TEMPI = tb
 RHI   = rh

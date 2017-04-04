@@ -23,17 +23,22 @@ MODULE precip_fd
   INTEGER, PARAMETER :: NSNOW    =           3 !Maximum Number of Snow groups
   INTEGER, PARAMETER :: NWASH    = NRAIN+NSNOW !Maximum Number of Precip. groups
 
+!-----  Define Rain Precipitation Groups (mm/hr): Rain + Snow
+
+  REAL, DIMENSION(NRAIN+NSNOW), PARAMETER :: PWASH = (/ 0.5,3.5,25.0,5.,20.,100. /)
+
 END MODULE precip_fd
 !=======================================================================
 !    SCIPUFF definitions - puff and puff auxiliary
 !=======================================================================
 MODULE puff_fd
 
-  INTEGER, PARAMETER :: NP_SUM  = 10                   !Puff variables - merged by summing
-  INTEGER, PARAMETER :: NP_RAT  = 10                   !Puff variables - merged by ratio
-  INTEGER, PARAMETER :: NP_INT  =  7                   !Puff variables - integers
-  INTEGER, PARAMETER :: NP_REAL = 16 + NP_SUM + NP_RAT !Puff variables - floating point
-  INTEGER, PARAMETER :: NP_ALL  = NP_REAL + NP_INT     !Puff variables - total
+  INTEGER, PARAMETER :: NP_SUM  = 10                          !Puff variables - merged by summing
+  INTEGER, PARAMETER :: NP_RAT  = 10                          !Puff variables - merged by ratio
+  INTEGER, PARAMETER :: NP_INT  =  7                          !Puff variables - integers
+  INTEGER, PARAMETER :: NP_DBLE =  2                          !Puff variables - double precision
+  INTEGER, PARAMETER :: NP_REAL = 14 + NP_SUM + NP_RAT        !Puff variables - floating point
+  INTEGER, PARAMETER :: NP_ALL  = NP_DBLE + NP_REAL + NP_INT  !Puff variables - total
 
   INTEGER, PARAMETER :: MAXPMAUX  =    5 !Particle material parameters
   INTEGER, PARAMETER :: MAXPMAUXX =    3

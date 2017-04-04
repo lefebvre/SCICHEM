@@ -1,7 +1,7 @@
 RECURSIVE SUBROUTINE process_combo( iwnd_db,MyCmd )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE SCIAPIversion_fd
 USE files_fi
 USE pcscipuf_fi
@@ -140,7 +140,7 @@ END
 SUBROUTINE plot_combo( iwnd_db,id_button,id_level )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE SCIAPIversion_fd
 USE files_fi
 USE param_fd

@@ -149,6 +149,10 @@ C modal sedimentation velocities for number, 2nd, and 3rd moment, or mass:
                                         ! and equatorial values. Source: CRC
                                         ! Handbook (76th Ed) page 14-6.
 
+      REAL, PARAMETER :: VDNMAX = 0.01  ! Max vd for nucleation= 1 cm/s
+      REAL, PARAMETER :: VDAMAX = 0.01  ! Max vd for accumulation = 1 cm/s
+      REAL, PARAMETER :: VDCMAX = 0.04  ! Max vd for coarse = 4 cm/s
+
 C Scalar variables for  VARIABLE standard deviations.
 
       REAL    L2SGAT, L2SGAC    ! see usage
@@ -457,6 +461,8 @@ C  Aitken mode
          VDEP( NCELL,VDMATK ) = VGHAT3N
      &           / ( 1.0 - EXP(-VGHAT3N * ( BLKRA( NCELL ) + RD3N ) ) )
 
+         VDEP( NCELL,VDMATK ) = MIN( VDNMAX, VDEP( NCELL,VDMATK ) )
+
 C accumulation mode
 
          SC3A = NU / DCHAT3A
@@ -468,6 +474,8 @@ C accumulation mode
          VDEP( NCELL,VDMACC ) = VGHAT3A
      &           / ( 1.0 - EXP(-VGHAT3A * ( BLKRA( NCELL ) + RD3A ) ) )
 
+         VDEP( NCELL,VDMACC ) = MIN( VDAMAX, VDEP( NCELL,VDMACC ) )
+
 C coarse mode
 
          SC3C = NU / DCHAT3C
@@ -478,6 +486,8 @@ C coarse mode
 
          VDEP( NCELL,VDMCOR ) = VGHAT3C
      &           / ( 1.0 - EXP(-VGHAT3C * ( BLKRA( NCELL ) + RD3C ) ) )
+
+         VDEP( NCELL,VDMCOR ) = MIN( VDCMAX, VDEP( NCELL,VDMCOR ) )
 
       END DO ! end loop on deposition velocities
 

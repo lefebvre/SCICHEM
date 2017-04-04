@@ -97,12 +97,12 @@ IF( lsrf )THEN
     arg = 0.0
   END IF
   IF( arg > -30.0 )THEN
-    dzexp = EXP(arg)
+    dzexp = DEXP(arg)
   ELSE
     dzexp = 0.0
   END IF
 
-  dvfac = dzexp/SQRT(deth)
+  dvfac = dzexp/DSQRT(deth)
 
 !------ Add surface reflection
 
@@ -110,7 +110,7 @@ IF( lsrf )THEN
     facs = 1.D0
   ELSE
     zs   = -DBLE(zsrf)*denr
-    facs = EXP(0.5D0*zs*DBLE(zsrf-zp)/(asig(7)*deth*denr))
+    facs = DEXP(0.5D0*zs*DBLE(zsrf-zp)/(asig(7)*deth*denr))
   END IF
 
   dvfac = dvfac * (1.D0+facs)
@@ -269,8 +269,8 @@ REAL(8) denr, denx, dhx, dhy
 dhx = DBLE(hx)
 dhy = DBLE(hy)
 
-denr = 1.D0/SQRT(1.D0 + dhx*dhx + dhy*dhy)
-denx = 1.D0/SQRT(1.D0 + dhx*dhx)
+denr = 1.D0/DSQRT(1.D0 + dhx*dhx + dhy*dhy)
+denx = 1.D0/DSQRT(1.D0 + dhx*dhx)
 
 amat = RESHAPE( (/ (denx),    -(dhx*dhy*denr*denx), -(dhx*denr), &
                     0.D0,      (denr/denx),         -(dhy*denr), &

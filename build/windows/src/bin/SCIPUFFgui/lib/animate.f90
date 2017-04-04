@@ -10,7 +10,7 @@ USE dialog_fi
 USE plotdlg_fi
 USE animate_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -246,7 +246,7 @@ USE pcscipuf_fi
 USE dialog_fi
 USE plotdlg_fi
 USE animate_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -471,7 +471,7 @@ USE resource_fd
 USE files_fi
 USE pcscipuf_fi
 USE animate_fi
-USE winAPI
+USE myWinAPI
 USE Pcx
 
 IMPLICIT NONE
@@ -502,7 +502,7 @@ USE pcscipuf_fi
 USE dialog_fi
 USE plotdlg_fi
 USE animate_fi
-USE winAPI_fd
+USE myWinAPI_fd
 
 IMPLICIT NONE
 
@@ -558,7 +558,7 @@ USE files_fi
 USE pcscipuf_fi
 USE animate_fi
 USE dib
-USE winAPI
+USE myWinAPI
 USE Pcx
 
 IMPLICIT NONE

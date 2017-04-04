@@ -8,7 +8,7 @@ USE defineok_fd
 USE reldef_fd
 USE tooluser_fd
 USE param_fd
-USE winAPI
+USE myWinAPI
 
 !     This routine shows/hides the local coordinate items
 
@@ -162,7 +162,7 @@ USE defineok_fd
 USE reldef_fd
 USE tooluser_fd
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 USE GUIparam_fd
 
 !     This routine shows/hides the contour items
@@ -269,7 +269,7 @@ USE defineok_fd
 USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine shows/hides the map items
 
@@ -390,7 +390,7 @@ USE GUItool_fi
 USE GUImatl_fi
 USE files_fi
 USE mettype_fd
-USE winAPI
+USE myWinAPI
 
 !     This routine shows/hides the MEAN/PROB items
 

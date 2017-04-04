@@ -92,7 +92,7 @@ NULLIFY(Var2d%unit)
 
 !------ Setup messaging
 
-message%cString  = 'Reading MEDOC file'
+message%cString = 'Reading MEDOC file'
 
 irv = PostProgressMessage( message )
 
@@ -1140,6 +1140,8 @@ DO iv = 1,fld%gridSource%nVar2d
         END IF
       END DO
 
+      IF( fld%gridSource%Conv2d(iv) > 0. )CALL ScaleArray( fld%gridSource%Conv2d(iv),fld%NextBL%prcp,fld%grid%nXY )
+
     CASE( GVP_CC )
       irv = MEDOCRead2dVar( fld%gridSource,fld%grid,fld%NextBL%cc )
       IF( irv /= SWIMsuccess )GOTO 9999
@@ -1233,16 +1235,23 @@ END IF
 !------ Copy out (accounting for skipping)
 
 DO jj = 1,ny
-  j   = (jj-1)*jskip + src%jStart
+  j   = MIN((jj-1)*jskip + src%jStart,src%jEnd)
   j0  = (j-1)*im
   jj0 = (jj-1)*nx
   DO ii = 1,nx
-    i    = (ii-1)*iskip + src%iStart
+    i    = MIN((ii-1)*iskip + src%iStart,src%iEnd)
     ivar = jj0 + ii
     iwrk = j0  + i
     var(ivar) = wrk(iwrk)
   END DO
 END DO
+
+IF( BTEST(src%type,GSB_PERIODIC) )THEN
+  DO j = 1,ny
+    j0 = (j-1)*nx
+    var(j0+nx) = var(j0+1)
+  END DO
+END IF
 
 MEDOCRead2dVar = SWIMresult
 

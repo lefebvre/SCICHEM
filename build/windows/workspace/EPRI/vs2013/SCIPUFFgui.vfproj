@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectCreator="Intel Fortran" Keyword="Console Application - Converted from CVF" Version="11.0" ProjectIdGuid="{6729D0DD-DE00-4651-AEA5-F863E8B0FC40}">
+	<Platforms>
+		<Platform Name="Win32"/>
+		<Platform Name="x64"/></Platforms>
+	<Configurations>
+		<Configuration Name="Debug|Win32" OutputDirectory="bin\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\bin\SCIPUFFgui" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMETPLOT /DVALIDATION /DWININI" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)" EnableRecursion="true" WarnDeclarations="true" WarnUnusedVariables="true" WarnTruncateSource="true" FloatingPointModel="strict" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" RuntimeChecks="rtChecksNone" BoundsCheck="true" UninitializedVariablesCheck="true"/>
+				<Tool Name="VFLinkerTool" OutputFile="$(OUTDIR)/SCIPUFFgui.exe" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(PlatformName)\$(ConfigurationName),..\..\lib\vendor\$(PlatformName)" IgnoreDefaultLibraryNames="scrnsave.lib;libcd.lib;libcmtd.lib" GenerateDebugInformation="true" ProgramDatabaseFile="$(OUTDIR)\$(TargetName).pdb" GenerateMapFile="true" MapFileName="$(INTDIR)/SCIPUFFgui.map" AdditionalDependencies="Htmlhelp.Lib Messages.lib SCIPUFFlib.lib fdatums.lib ifwin.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" AdditionalIncludeDirectories="..\..\..\src" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/SCIPUFFgui.tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|Win32" OutputDirectory="bin\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\bin\SCIPUFFgui" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMETPLOT /DVALIDATION /DWININI" SuppressStartupBanner="true" OmitFramePointers="false" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)" EnableRecursion="true" Diagnostics="diagnosticsDisableAll" ByteRECL="true" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" RuntimeChecks="rtChecksNone"/>
+				<Tool Name="VFLinkerTool" OutputFile="$(OUTDIR)/SCIPUFFgui.exe" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(PlatformName)\$(ConfigurationName),..\..\lib\vendor\$(PlatformName)" IgnoreDefaultLibraryNames="scrnsave.lib;libcd.lib" GenerateDebugInformation="true" ProgramDatabaseFile="$(OUTDIR)\$(TargetName).pdb" GenerateMapFile="true" MapFileName="$(INTDIR)/SCIPUFFgui.map" AdditionalDependencies="Htmlhelp.Lib Messages.lib SCIPUFFlib.lib fdatums.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="rcEnglishUS" AdditionalIncludeDirectories="..\..\..\src" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/SCIPUFFgui.tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Debug|x64" OutputDirectory="bin\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\bin\SCIPUFFgui" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)" EnableRecursion="true" WarnDeclarations="true" WarnUnusedVariables="true" WarnTruncateSource="true" AlignSEQUENCE="true" ByteRECL="true" FloatingPointModel="source" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" BoundsCheck="true" UninitializedVariablesCheck="true"/>
+				<Tool Name="VFLinkerTool" OutputFile="$(OUTDIR)/SCIPUFFgui.exe" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(PlatformName)\$(ConfigurationName),..\..\lib\vendor\$(PlatformName)" IgnoreDefaultLibraryNames="scrnsave.lib;libcd.lib;libcmtd.lib" GenerateDebugInformation="true" ProgramDatabaseFile="$(OUTDIR)/SCIPUFFgui.pdb" GenerateMapFile="true" MapFileName="$(INTDIR)/SCIPUFFgui.map" AdditionalDependencies="Htmlhelp.Lib Messages.lib SCIPUFFlib.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/SCIPUFFgui.tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|x64" OutputDirectory="bin\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\bin\SCIPUFFgui" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)" EnableRecursion="true" AlignSEQUENCE="true" ByteRECL="true" FloatingPointModel="source" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/"/>
+				<Tool Name="VFLinkerTool" OutputFile="$(OUTDIR)/SCIPUFFgui.exe" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(PlatformName)\$(ConfigurationName),..\..\lib\vendor\$(PlatformName)" IgnoreDefaultLibraryNames="scrnsave.lib;libcd.lib" GenerateDebugInformation="true" ProgramDatabaseFile="" GenerateMapFile="true" MapFileName="$(INTDIR)\$(TargetName).map" AdditionalDependencies="Htmlhelp.Lib Messages.lib SCIPUFFlib.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/SCIPUFFgui.tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration></Configurations>
+	<Files>
+		<Filter Name="Header Files" Filter="h;hpp;hxx;hm;inl;fi;fd"/>
+		<Filter Name="Resource Files" Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe">
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\rc\SCIPUFFgui.rc"/></Filter>
+		<Filter Name="Source Files" Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;f90;for;f;fpp">
+		<Filter Name="ConTri">
+		<Filter Name="inc">
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\ConTri\inc\contri_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\ConTri\inc\contri_fi.f90"/></Filter>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\ConTri\conbck.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\ConTri\condrw.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\ConTri\confun.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\ConTri\conmap.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\ConTri\conovl.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\ConTri\conpal.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\ConTri\conplt.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\ConTri\conpts.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\ConTri\conres.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\ConTri\conrmk.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\ConTri\conset.f90"/></Filter>
+		<Filter Name="lib">
+		<Filter Name="inc">
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\animate_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\commons.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\create_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\create_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\defineok_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\dialog_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\dialog_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\dib_mod.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\guiAPI.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\GUIerror_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\guimatl_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\guimatl_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\GUIparam_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\guistruct_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\guitool_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\guiversion_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\metflag_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\mettype_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\mouse_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\mouse_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\pcscipuf_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\plotdlg_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\plotdlg_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\plotopt_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\pltchoice_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\pltopt_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\printdev_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\project_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\reldef_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\release_gui_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\resource_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\restart_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\SCIAPIversion_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\script_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\script_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\units_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\urban_fd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\inc\urban_fi.f90"/></Filter>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\abort.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\animate.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\audit.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\axes.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\bitmap.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\buildlst.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\buttons.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\checkbox.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\combobox.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\comptime.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\convert_domain.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\convert_inp.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\convert_met.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\convert_mtl.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\convert_scn.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\convert_time.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\dbox_can.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\dbox_chk.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\dbox_ini.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\dbox_sav.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\default.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\dialproc.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\display.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\domdef.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\editbox.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\error.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\filedlg.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\files.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\findfile.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\getinfo.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\hookproc.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\hwndlist.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\incident.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\intbox.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\loadpltcombo.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\mainproc.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\material.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\metdef_p1.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\metdef_p2.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\mouse.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\open_prj.f90">
+			<FileConfiguration Name="Debug|Win32">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMETPLOT /DVALIDATION /DWININI /DSHOWSAM"/></FileConfiguration></File>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\options.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\owndraw.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\plotcas.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\plotproc.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\plotstat.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\plottri.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\plotwind.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\pltchoice.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\print.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\progproc.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\progress.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\radiobtn.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\read_nml.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\readcmd.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\realbox.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\release.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\savefile.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\scipuf_c.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\scipuf_r.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\scrollbar.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\settitle.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\showcntl.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\statproc.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\table.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\timdef.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\toolproc.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\urbdef.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\utility.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\verify.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\lib\version.f90"/></Filter>
+		<Filter Name="NCAR">
+		<Filter Name="inc">
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\inc\lastset_fi.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\inc\ncar_mod.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\inc\ncarlib_fi.f90"/></Filter>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\exitncar.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\getncar.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\gfa_gpl.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\gridal.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\gscr.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\gssetc.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\initncar.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\labmod.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\pens.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\plchhqx.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\set.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\setmap.f90"/>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\NCARlib\setncar.f90"/></Filter>
+		<File RelativePath="..\..\..\src\bin\SCIPUFFgui\SCIPUFFgui.f90"/></Filter></Files>
+	<Globals/></VisualStudioProject>

@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectType="typeDynamicLibrary" ProjectCreator="Intel Fortran" Keyword="Dll - Converted from CVF" Version="11.0" ProjectIdGuid="{CF2C972C-BEC5-44C6-9D53-87F71A90E1FA}">
+	<Platforms>
+		<Platform Name="Win32"/>
+		<Platform Name="x64"/></Platforms>
+	<Configurations>
+		<Configuration Name="Release|Win32" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\dll\SCIPtool" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMETPLOT /DVALIDATION /DWININI" SuppressStartupBanner="true" OmitFramePointers="false" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" EnableRecursion="true" Diagnostics="diagnosticsDisableAll" ByteRECL="true" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" RuntimeChecks="rtChecksNone"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(PlatformName)\$(ConfigurationName)/SCIPtool.dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(PlatformName)\$(ConfigurationName),..\..\lib\vendor\" IgnoreDefaultLibraryNames="libcd.lib;libcp.lib" GenerateDebugInformation="true" ProgramDatabaseFile="$(OUTDIR)\$(TargetName).pdb" GenerateMapFile="true" MapFileName="$(INTDIR)/SCIPtool.map" SubSystem="subSystemWindows" ImportLibrary="$(OUTDIR)/SCIPtool.lib" LinkDLL="true" AdditionalDependencies="kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="NDEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/SCIPtool.tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Debug|Win32" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\dll\SCIPtool" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions=" /DCHEM /DDENSE /DEPA /DEPRI /DINTEL /DLIQUID /DMULT /DOPVIEW /DSAMPAVG /DSCM /DSKEW /DMETPLOT /DVALIDATION /DWININI" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" EnableRecursion="true" WarnDeclarations="true" WarnUnusedVariables="true" WarnTruncateSource="true" FloatingPointModel="strict" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" RuntimeChecks="rtChecksNone" BoundsCheck="true" UninitializedVariablesCheck="true"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(PlatformName)\$(ConfigurationName)/SCIPtool.dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(PlatformName)\$(ConfigurationName),..\..\lib\vendor\" IgnoreDefaultLibraryNames="LIBCMT.lib" GenerateDebugInformation="true" ProgramDatabaseFile="$(OUTDIR)\$(TargetName).pdb" GenerateMapFile="true" MapFileName="$(INTDIR)/SCIPtool.map" ImportLibrary="$(OUTDIR)/SCIPtool.lib" LinkDLL="true" AdditionalDependencies="kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="_DEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/SCIPtool.tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|x64" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\dll\SCIPtool" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" EnableRecursion="true" AlignSEQUENCE="true" ByteRECL="true" FloatingPointModel="source" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(PlatformName)\$(ConfigurationName)/SCIPtool.dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(PlatformName)\$(ConfigurationName),..\..\..\lib\vendor" IgnoreDefaultLibraryNames="libcd.lib;libcp.lib" GenerateDebugInformation="true" ProgramDatabaseFile="" GenerateMapFile="true" MapFileName="$(INTDIR)\$(TargetName).map" SubSystem="subSystemWindows" ImportLibrary="$(OUTDIR)/SCIPtool.lib" LinkDLL="true" AdditionalDependencies="kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="NDEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="NDEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/SCIPtool.tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true" EmbedManifest="false"/></Configuration>
+		<Configuration Name="Debug|x64" OutputDirectory="lib\intel\$(PlatformName)\$(ConfigurationName)" IntermediateDirectory="tmp\intel\$(PlatformName)\$(ConfigurationName)\dll\SCIPtool" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(TargetName).htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" EnableRecursion="true" WarnDeclarations="true" WarnUnusedVariables="true" WarnTruncateSource="true" AlignSEQUENCE="true" ByteRECL="true" FloatingPointModel="source" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(PlatformName)\$(ConfigurationName)\" ObjectFile="$(INTDIR)/" PdbFile="$(OUTDIR)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" BoundsCheck="true" UninitializedVariablesCheck="true"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(PlatformName)\$(ConfigurationName)\SCIPtool.dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(PlatformName)\$(ConfigurationName),..\..\..\lib\vendor" IgnoreDefaultLibraryNames="LIBCMT.lib" GenerateDebugInformation="true" ProgramDatabaseFile="$(OUTDIR)/SCIPtool.pdb" GenerateMapFile="true" MapFileName="$(INTDIR)/SCIPtool.map" ImportLibrary="$(OUTDIR)/SCIPtool.lib" LinkDLL="true" AdditionalDependencies="kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="_DEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/SCIPtool.tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true" EmbedManifest="false"/></Configuration></Configurations>
+	<Files>
+		<Filter Name="Header Files" Filter="h;hpp;hxx;hm;inl;fi;fd"/>
+		<Filter Name="Resource Files" Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
+		<Filter Name="Source Files" Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;f90;for;f;fpp">
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPAdjointFilter.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPButton.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPCheck.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPContour.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPCount.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPCurrent.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPDefault.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPDelete.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPDraw.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPError.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPExcept.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPExitTool.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPField.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPInitTool.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPLoad.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPNewProject.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPPlotList.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPProject.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPRestart.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPRun.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPSubstrate.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPTable.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPTerrain.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\inc\SCIPtool.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPTransform.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPVersion.f90"/>
+		<File RelativePath="..\..\..\src\dll\scip\SCIPtool\SCIPWrite.f90"/></Filter></Files>
+	<Globals/></VisualStudioProject>

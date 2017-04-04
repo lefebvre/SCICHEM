@@ -21,8 +21,6 @@ USE scipuff_fi, ONLY : mat_mc
 
 IMPLICIT NONE
 
-INTEGER nTimerad
-
 !--- Initialize
 
 callerID = USER_ID
@@ -200,7 +198,7 @@ END
 !======================================================================
 SUBROUTINE ToolInitialization()
 
-USE winAPI, ONLY : GetModuleFileName, GetWindowsDirectory
+USE myWinAPI, ONLY : GetModuleFileName, GetWindowsDirectory
 USE basic_fd
 USE tooluser_fd
 USE SCIPtool

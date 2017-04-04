@@ -8,7 +8,8 @@ IMPLICIT NONE
 !DEC$ ATTRIBUTES DLLEXPORT::DtmsInitDatums
 !DEC$ ATTRIBUTES REFERENCE :: pFile
 
-CHARACTER(1) pFile !Dummy file name
+INTEGER, PARAMETER :: PATH_MAXLENGTH = 256
+CHARACTER(PATH_MAXLENGTH) pFile !Dummy file name
 
 !------ For the NAD83/WGS84  Datum
 
@@ -97,8 +98,9 @@ REAL    Sutm
 INTEGER Zone
 INTEGER Rcode
 
-REAL lat, lon, lonW, lonE
-REAL x, y
+REAL    lat, lon, lonW, lonE
+REAL    x, y
+INTEGER izone
 
 lat = 0.5*(Nlla+Slla)
 lonE = Ella
@@ -219,8 +221,8 @@ ENDIF
 
 CALL tmgrid( fi,lam,north,east,conv,kp,er,esq,eps,cm,fe,fn,sf,so,r,a,b,c,u,v,w )
 
-xeast  = east  * 1.E-3
-xnorth = north * 1.E-3
+xeast  = SNGL(east)  * 1.E-3
+xnorth = SNGL(north) * 1.E-3
 
 RETURN
 END
@@ -261,8 +263,8 @@ e = DBLE(xeast)*1.D03
 
 CALL tmgeod( n,e,rlat,rlon,eps,cm,fe,sf,so,r,v0,v2,v4,v6,fn,er,esq,conv,kp )
 
-lat = rlat * rad
-lon = 360. - rlon * rad
+lat = SNGL(rlat*rad)
+lon = 360. - SNGL(rlon*rad)
 IF( lon > 180. ) lon = lon - 360.
 
 RETURN

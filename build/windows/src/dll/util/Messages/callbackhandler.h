@@ -3,6 +3,11 @@
 //$Revision$
 //$Date$
 //*******************************************************************************
+#define PATH_MAXLENGTH 256
+#define GENSIZE 4 + PATH_MAXLENGTH/4
+#ifndef _WIN64
+#include <stdint.h>
+#endif
 
 struct messageT
 {
@@ -25,7 +30,7 @@ struct releaseT
   float horzUnc;
   float vertUnc;
   float pa;
-  int   relData[52];
+  int   relData[GENSIZE];
   char  material[16];
   char  relName[32];
   char  relDisplay[48];
@@ -56,6 +61,15 @@ struct updateRelT
   struct releaseT     release;
   struct environmentT environment;
 };
+struct updateRelMCT
+{
+  int                 mode;
+  float               currentTime;
+  float               nextUpdate;
+  struct releaseT     release;
+  struct environmentT environment;
+  char MCfile[PATH_MAXLENGTH];
+};
 struct computeEffT
 {
   int incidentID;
@@ -71,6 +85,6 @@ typedef long long callbackInt;
 
 #else
 
-typedef int callbackInt;
+typedef uint64_t callbackInt;
 
 #endif

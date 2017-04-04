@@ -5,7 +5,7 @@
 !*******************************************************************************
 SUBROUTINE LoadPlotCombo( curWindow, curLevel, comboID )
 
-USE winAPI
+USE myWinAPI
 USE pltchoice_fi
 USE dialog_fi
 USE pcscipuf_fi
@@ -570,7 +570,7 @@ END
 !*******************************************************************************
 SUBROUTINE MoveControl( curWindow,labelID,controlID,newLableID,newControlID )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

@@ -16,7 +16,7 @@ USE files_fi
 USE pltchoice_fi
 USE write_fd
 USE PlotTrans_fi
-USE winAPI
+USE myWinAPI
 USE AreaMode_fd
 USE datums
 USE charT_fd
@@ -1253,7 +1253,7 @@ USE contri_fi
 USE files_fi
 USE param_fd
 USE script_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

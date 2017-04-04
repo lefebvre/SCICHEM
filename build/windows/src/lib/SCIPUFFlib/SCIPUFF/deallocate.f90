@@ -16,7 +16,7 @@ USE nextRel_fi
 USE type_fi
 USE cont_rel_functions
 USE sciprime_fi
-USE scipuff_fi, ONLY: multicomp
+USE scipuff_fi
 
 IMPLICIT NONE
 
@@ -58,8 +58,10 @@ DO WHILE( .TRUE. )
     IF( ASSOCIATED(nextRel%NextRelease) )THEN
       InstReleaseList%NextRelease => nextRel%NextRelease
     ELSE
+      CALL ClearReleaseSpec( InstReleaseList%NextRelease%relSpec )
       NULLIFY( InstReleaseList%NextRelease )
     END IF
+    CALL ClearReleaseSpec( nextRel%relSpec )
     DEALLOCATE( nextRel,STAT=alloc_stat )
   ELSE
     EXIT
@@ -71,6 +73,7 @@ END DO
 
 IF( ALLOCATED(vwash) )DEALLOCATE( vwash,STAT=alloc_stat )
 IF( ALLOCATED(twash) )DEALLOCATE( twash,STAT=alloc_stat )
+IF( ALLOCATED(dwash) )DEALLOCATE( dwash,STAT=alloc_stat )
 
 !----- Arrays allocated in read_prj (including MetGrid)
 
@@ -198,6 +201,8 @@ USE sampler_fi
 
 IMPLICIT NONE
 
+INTEGER i, alloc_stat
+
 INTERFACE
 
   SUBROUTINE ClearWayPointsList( Point )
@@ -211,8 +216,6 @@ INTERFACE
   END SUBROUTINE ClearSampClassList
 
 END INTERFACE
-
-INTEGER i, alloc_stat
 
 IF( ALLOCATED(smp_vname) )DEALLOCATE( smp_vname,STAT=alloc_stat )
 IF( ALLOCATED(smp_units) )DEALLOCATE( smp_units,STAT=alloc_stat )
@@ -277,6 +280,10 @@ IF( ALLOCATED(smp) )THEN
 
   DEALLOCATE( smp,STAT=alloc_stat )
 
+END IF
+
+IF( ASSOCIATED(FirstSampClass) )THEN
+  CALL ClearSampClassList( FirstSampClass )
 END IF
 
 IF( ALLOCATED(intSPSMaterials) )THEN

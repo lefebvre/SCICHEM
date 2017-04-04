@@ -3,14 +3,16 @@
 !$Revision$
 !$Date$
 !*******************************************************************************
-SUBROUTINE i_release( LogFlag )
+SUBROUTINE i_release( relSpec,LogFlag )
 
 USE scipuff_fi
 USE files_fi
 USE relparam_fd
+USE convert_fd
 
 IMPLICIT NONE
 
+TYPE( releaseSpecT ), INTENT( INOUT ) :: relSpec
 LOGICAL, INTENT( IN ) :: LogFlag    ! Write to log file
 
 REAL    cmass_liq, cmass_vap
@@ -20,8 +22,15 @@ INTEGER i, nsg, nb_rel, naux, jtyp, ifld
 LOGICAL l2phase
 LOGICAL lGroundRel
 INTEGER jfld
+INTEGER subgroup
+INTEGER nSeed
 
-REAL xbar, ybar, zbar, h, xmap, ymap, hx, hy, xx, yy, rxx, ryy, shh
+REAL(8) xbar, ybar
+REAL    zbar, h, xmap, ymap, hx, hy, xx, yy, rxx, ryy, shh
+REAL cmass, mmd, sigma, dryFrac
+REAL sigx,sigy,sigz,sigRxy,sigRxz,sigRyz
+REAL, DIMENSION(3) :: rSpread
+REAL rDir
 
 REAL, DIMENSION(MAXSGP)   :: weight
 REAL, DIMENSION(MAXSGP+1) :: pbounds
@@ -29,11 +38,14 @@ REAL, DIMENSION(MAXSGP+1) :: pbounds
 LOGICAL, EXTERNAL :: chkgrd
 LOGICAL, EXTERNAL :: IsWetParticle, IsLiquid, IsAerosol
 INTEGER, EXTERNAL :: num_puff_types
+REAL,    EXTERNAL :: ScaleReal
+
+CHARACTER(PATH_MAXLENGTH) :: file
 
 !-----  Check release time, and save if necessary
 
-IF( trel > t + 0.01*delt )THEN
-  CALL StoreInstRel()
+IF( ScaleReal(relSpec%release%trel,HCF_HOUR2SEC) > t + 0.01*delt )THEN
+  CALL StoreInstRel(relSpec)
   GOTO 9999
 END IF
 
@@ -47,11 +59,12 @@ mpuf = npuf   !Save old number of puffs
 
 lGroundRel = .FALSE.
 
-IF( name_rel /= ' ' )THEN
+CALL getReleaseFile( relSpec%release,file )
+IF( file /= ' ' )THEN
 
-  nch = LEN_TRIM(name_rel)
+  nch = LEN_TRIM(file)
   nun = lun_tmp
-  CALL add_ext( file_tmp,name_rel(1:nch),'rel' )
+  CALL add_ext( file_tmp,file(1:nch),'rel' )
 
   OPEN(UNIT=nun,FILE=file_tmp,STATUS='OLD',ACTION='READ',IOSTAT=ios)
   IF( ios /= 0 )THEN
@@ -64,28 +77,28 @@ IF( name_rel /= ' ' )THEN
 
   iflg  = 0
 
-  CALL input_puff( nun,iflg,nb_rel )
+  CALL input_puff( relSpec%release,nun,iflg,nb_rel )
   IF( nError /= NO_ERROR )GOTO 9999
 
   IF( nun == lun_tmp )CLOSE(lun_tmp,IOSTAT=ios)
 
   IF( nb_rel == 0 )GOTO 9999
 
-  CALL mapfac( SNGL(xrel),SNGL(yrel),xmap,ymap )
+  CALL mapfac( SNGL(relSpec%release%xrel),SNGL(relSpec%release%yrel),xmap,ymap )
 
   npuf = mpuf
 
   DO i = mpuf+1,mpuf+nb_rel
 
-    xbar = SNGL(xrel) + puff(i)%xbar*xmap
-    ybar = SNGL(yrel) + puff(i)%ybar*ymap
+    xbar = relSpec%release%xrel + puff(i)%xbar*DBLE(xmap)
+    ybar = relSpec%release%yrel + puff(i)%ybar*DBLE(ymap)
 
 !------ Make sure xrel inside domain if global longitude
 
-    IF( global_lon )CALL SetGlobalLon( xbar )
+    IF( global_lon )CALL SetGlobalLonD( xbar )
 
-    xx   = (xbar-xmin)/dxg
-    yy   = (ybar-ymin)/dyg
+    xx   = (SNGL(xbar)-xmin)/dxg
+    yy   = (SNGL(ybar)-ymin)/dyg
     rxx  = puff(i)%sxx*xmap*xmap/(dxg*dxg)
     ryy  = puff(i)%syy*ymap*ymap/(dyg*dyg)
 
@@ -93,12 +106,12 @@ IF( name_rel /= ' ' )THEN
 
       shh = 0.5*(puff(i)%sxx+puff(i)%syy)
 
-      CALL get_topogOut( xbar,ybar,h,hx,hy,shh,ifld )
+      CALL get_topogOut( SNGL(xbar),SNGL(ybar),h,hx,hy,shh,ifld )
 
       CALL setPuffifld( puff(i),ifld )
       CALL setPuffirel( puff(i),0 )
 
-      zbar = zrel + puff(i)%zbar + h
+      zbar = relSpec%release%zrel + puff(i)%zbar + h
       npuf = npuf + 1
 
       IF( i /= npuf )THEN
@@ -116,13 +129,18 @@ IF( name_rel /= ' ' )THEN
 
 !------ set puff for simple puff release (usually from nested model)
 
-ELSE IF( reltyp(2:2) == 'P' )THEN
+ELSE IF( relSpec%release%type == HR_PUFF )THEN
 
-  ityp = puffRelease%ityp
+  !Kind of violates the idea of using passed in structure but its UnloadReleasePuff that fills
+  !in the puff structure referenced here. Leave for now
+ ! CALL UnloadRelease(relSpec%release)
+
+  ityp = relSpec%ityp !puffRelease%ityp
 
 ! --- Check for wet particle release
 
-  CALL check_wet_reltyp( ityp )
+  CALL getReleaseDryFraction( relSpec%release,dryFrac )
+  CALL check_wet_reltyp( ityp,dryFrac )
   IF( nError /= NO_ERROR )GOTO 9999
 
   naux = typeID(ityp)%npaux
@@ -131,36 +149,36 @@ ELSE IF( reltyp(2:2) == 'P' )THEN
 
   npuf = npuf + 1
 
-  puff(npuf) = puffRelease                 !puffRelease has no aux array
+
+  CALL LoadPuffFromPuffRelease( relSpec,puff(npuf) )
 
   shh = 0.5*(puff(npuf)%sxx+puff(npuf)%syy)
 
-  CALL get_topogOut( puffRelease%xbar,puffRelease%ybar,h,hx,hy,shh,ifld )
+  CALL get_topogOut( SNGL(puff(npuf)%xbar),SNGL(puff(npuf)%ybar),h,hx,hy,shh,ifld )
 
   puff(npuf)%zbar = puff(npuf)%zbar + h
 
   CALL setPuffifld( puff(npuf),ifld )
   CALL setPuffirel( puff(npuf),0 )
 
-  CALL set_aux_rel( puff(npuf),naux )
+  !Just to get Aux allocated?
+  CALL set_aux_rel( relSpec,puff(npuf),naux )
 
-!------ Override default with liquid release specification for a liquid puff, if set
+  CALL LoadPuffAuxFromPuffRelease( relSpec,puff(npuf) )
 
-  IF( IsLiquid(typeID(ityp)%icls) .OR. IsWetParticle(typeID(ityp)%icls) )THEN
-    IF( puffRelLiquid%d /= NOT_SET_R )CALL put_liquid( puff(npuf),puffRelLiquid )
-  END IF
-
-!------ Set puff for simple instantaneous release
+  !------ Set puff for simple instantaneous release
 
 ELSE
 
-  lGroundRel = lter .AND. zrel==0.0
-  IF( reltyp(2:2) == 'X' .AND. lGroundRel )lGroundRel = sigRxz==0.0 .AND. sigRyz==0.0
+  CALL getReleaseSigmas( relSpec%release,sigx,sigy,sigz,sigRxy,sigRxz,sigRyz )
 
-  CALL mapfac( SNGL(xrel),SNGL(yrel),xmap,ymap )
+  lGroundRel = lter .AND. relSpec%release%zrel==0.0
+  IF( BTEST(relSpec%release%type,HRB_OFFDIAG) .AND. lGroundRel )lGroundRel = sigRxz==0.0 .AND. sigRyz==0.0
 
-  xbar = SNGL(xrel)
-  ybar = SNGL(yrel)
+  CALL mapfac( SNGL(relSpec%release%xrel),SNGL(relSpec%release%yrel),xmap,ymap )
+
+  xbar = SNGL(relSpec%release%xrel)
+  ybar = SNGL(relSpec%release%yrel)
   xx   = (xbar-xmin)/dxg
   yy   = (ybar-ymin)/dyg
   rxx  = (sigx*xmap/dxg)**2
@@ -170,44 +188,47 @@ ELSE
 
     shh = 0.5*(sigx**2+sigy**2)
 
-    CALL get_topogOut( SNGL(xrel),SNGL(yrel),h,hx,hy,shh,ifld )
+    CALL get_topogOut( SNGL(relSpec%release%xrel),SNGL(relSpec%release%yrel),h,hx,hy,shh,ifld )
 
-    zbar = zrel + h
+    zbar = relSpec%release%zrel + h
 
-    ityp = rel_ityp
+    ityp = relSpec%ityp
 
+    CALL getReleaseDistribution( relSpec%release,subgroup,mmd,sigma )
+    CALL getReleaseMass( relSpec%release,cmass )
+    CALL getReleaseDryFraction( relSpec%release,dryFrac )
 ! --- Check 2-phase liquid release
 
-    CALL check_liquid_reltyp( ityp,zbar,l2phase )
+    CALL check_liquid_reltyp( ityp,relSpec%release%xrel,relSpec%release%yrel,zbar,mmd,dryFrac,l2phase )
     IF( nError /= NO_ERROR )GOTO 9999
 
 ! --- Check for wet particle release
 
-    CALL check_wet_reltyp( ityp )
+    CALL check_wet_reltyp( ityp,dryFrac )
     IF( nError /= NO_ERROR )GOTO 9999
 
     naux = typeID(ityp)%npaux
     imat = typeID(ityp)%imat
 
-    IF( rel_dist <= 0 )THEN   !--- Single size bin release
+    IF( relSpec%distrib <= 0 )THEN   !--- Single size bin release
 
       IF( l2phase )THEN
 
-        cmass_liq = cmass*rel_param(REL_WMFRAC_INDX)
+        cmass_liq = cmass*dryFrac
 
-        CALL set_puff_inst( zbar,cmass_liq,ityp,naux,ifld )
+        CALL set_puff_inst( relSpec,zbar,cmass_liq,ityp,naux,ifld )
         IF( nError /= NO_ERROR )GOTO 9999
 
         ityp_vap  = material(imat)%ioffp + 1
         cmass_vap = cmass - cmass_liq
         naux_vap  = typeID(ityp_vap)%npaux
 
-        CALL set_puff_inst( zbar,cmass_vap,ityp_vap,naux_vap,ifld )
+        CALL set_puff_inst( relSpec,zbar,cmass_vap,ityp_vap,naux_vap,ifld )
         IF( nError /= NO_ERROR )GOTO 9999
 
       ELSE
 
-        CALL set_puff_inst( zbar,cmass,ityp,naux,ifld )
+        CALL set_puff_inst( relSpec,zbar,cmass,ityp,naux,ifld )
         IF( nError /= NO_ERROR )GOTO 9999
 
       END IF
@@ -221,10 +242,9 @@ ELSE
         eAction  = 'It is more efficient to use a single bin release'
         CALL CautionMessage()
       END IF
-      IF( IsWetParticle(typeID(ityp)%icls) )CALL set_wetbin( pbounds,nsg,imat,rel_param(REL_WMFRAC_INDX) )
+      IF( IsWetParticle(typeID(ityp)%icls) )CALL set_wetbin( pbounds,nsg,imat,dryFrac )
 
-		  CALL check_logn( pbounds(1),pbounds(nsg+1),rel_param(REL_MMD_INDX), &
-                                                 rel_param(REL_SIGMA_INDX),rxx )
+		  CALL check_logn( pbounds(1),pbounds(nsg+1),mmd,sigma,rxx )
       IF( rxx > 0.05 )THEN
         nError = WN_ERROR
         WRITE(eMessage,*) NINT(rxx*100.0)
@@ -241,21 +261,21 @@ ELSE
 
 !---- Set relative weights for size bins
 
-      CALL logn_bin( pbounds,nsg,rel_param(REL_MMD_INDX),rel_param(REL_SIGMA_INDX),weight )
+      CALL logn_bin( pbounds,nsg,mmd,sigma,weight )
 
 !---- Check for 2-phase liquid release; reset weights and release vapor puff
 
       IF( l2phase )THEN
 
         DO i = 1,nsg
-          weight(i) = weight(i)*rel_param(REL_WMFRAC_INDX)
+          weight(i) = weight(i)*dryFrac
         END DO
 
-        cmass_vap = cmass*(1.0-rel_param(REL_WMFRAC_INDX))
+        cmass_vap = cmass*(1.0-dryFrac)
         ityp_vap  = material(imat)%ioffp + 1
         naux_vap  = typeID(ityp_vap)%npaux
 
-        CALL set_puff_inst( zbar,cmass_vap,ityp_vap,naux_vap,ifld )
+        CALL set_puff_inst( relSpec,zbar,cmass_vap,ityp_vap,naux_vap,ifld )
         IF( nError /= NO_ERROR )GOTO 9999
 
       END IF
@@ -264,7 +284,7 @@ ELSE
 
       DO i = 1,nsg
         jtyp = ityp + i - 1
-        CALL set_puff_inst( zbar,cmass*weight(i),jtyp,naux,ifld )
+        CALL set_puff_inst( relSpec,zbar,cmass*weight(i),jtyp,naux,ifld )
         IF( nError /= NO_ERROR )GOTO 9999
       END DO
 
@@ -280,9 +300,9 @@ IF( npuf > mpuf )THEN
 
   IF( LogFlag ) THEN
 
-    IF( name_rel /= ' ' )THEN
+    IF( file /= ' ' )THEN
       WRITE(lun_log,114,IOSTAT=ios)'Instantaneous release  at t =', &
-                          t/3600.,'hrs. from file ',TRIM(name_rel), &
+                          t/3600.,'hrs. from file ',TRIM(file), &
                           ' with NPUFF = ',npuf
     ELSE
       WRITE(lun_log,115,IOSTAT=ios)'Instantaneous release  at t =', &
@@ -302,12 +322,14 @@ IF( npuf > mpuf )THEN
 
 !-------- Generate random realizations, if required
 
-  IF( nRandom > 1 )CALL random_puff_loc( mpuf )
+  CALL getReleaseRandomParams( relSpec%release,nRandom,nSeed,rSpread,rDir )
+  IF( nRandom > 1 ) CALL random_puff_loc( mpuf, rSpread )
 
 !-------- Rotate ground releases
 
   IF( lGroundRel )THEN
-    WRITE(lun_log,'(A)')'  Rotating ground puffs from release '//TRIM(relDisplay)//' of '//TRIM(relmat)
+    WRITE(lun_log,'(A)')'  Rotating ground puffs from release '//TRIM(relSpec%release%relDisplay)//&
+                        &' of '//TRIM(relSpec%release%material)
     DO i = mpuf+1,npuf
       WRITE(lun_log,'(A,1P6G13.6)')'  Before rotation',puff(i)%sxx,puff(i)%sxy,puff(i)%sxz,puff(i)%syy,puff(i)%syz,puff(i)%szz
       shh = 0.5*(puff(i)%sxx+puff(i)%syy)
@@ -315,10 +337,10 @@ IF( npuf > mpuf )THEN
       ifld = 1
       DO WHILE( jfld < ifld )
         jfld = ifld
-        CALL get_metFieldID( puff(i)%xbar,puff(i)%ybar,0.0,shh,ifld )
+        CALL get_metFieldID( SNGL(puff(i)%xbar),SNGL(puff(i)%ybar),0.0,shh,ifld )
         IF( nError /= NO_ERROR )GOTO 9999
       END DO
-      CALL get_topogIn( puff(i)%xbar,puff(i)%ybar,h,hx,hy,ifld )
+      CALL get_topogIn( SNGL(puff(i)%xbar),SNGL(puff(i)%ybar),h,hx,hy,ifld )
       CALL dense_rot_norm( 0.,0.,hx,hy,puff(i) )
       WRITE(lun_log,'(A,1P6G13.6)')'  After  rotation',puff(i)%sxx,puff(i)%sxy,puff(i)%sxz,puff(i)%syy,puff(i)%syz,puff(i)%szz
     END DO
@@ -326,25 +348,11 @@ IF( npuf > mpuf )THEN
 
 ELSE
 
-  IF( LogFlag ) THEN
-    WRITE(lun_log,115,IOSTAT=ios)'Instantaneous release  at t =', &
-                                t/3600.,'hrs. outside domain - ignored'
-    IF( ios /= 0 )THEN
-      nError   = WR_ERROR
-      eMessage = 'Error writing SCIPUFF log file'
-      CALL ReportFileName( eInform,'File=',file_log )
-      GOTO 9999
-    END IF
-  END IF
-
-  nError = WN_ERROR
-
-  WRITE(eMessage,*)'Release at t =',t/3600.,'hrs. is outside domain'
-  eInform = 'Release will be ignored'
-
-  CALL WarningMessage( .TRUE. )
-  IF( nError /= NO_ERROR )GOTO 9999
-  nRelOutsideDomain = nRelOutsideDomain + 1
+  nError   = IV_ERROR
+  WRITE(eMessage,'(A,F7.2,A)',IOSTAT=ios)'Instantaneous release  at t =', &
+                              t/3600.,'hrs. outside domain'
+  WRITE(eInform,'(A,F10.4,1X,F10.4)',IOSTAT=ios)'Location: ',relSpec%release%xrel,relSpec%release%yrel
+  GOTO 9999
 
 END IF
 
@@ -359,11 +367,13 @@ END
 
 !===============================================================================
 
-SUBROUTINE StoreInstRel()
+SUBROUTINE StoreInstRel(relSpec)
 
 USE scipuff_fi
 
 IMPLICIT NONE
+
+TYPE( releaseSpecT ), INTENT( INOUT ) :: relSpec
 
 INTEGER alloc_stat
 
@@ -371,9 +381,9 @@ TYPE( StoreReleaseT ), POINTER :: lastRel, nextRel
 
 !--- Save instantaneous release definition for release during large timestep
 
-IF( InstReleaseList%release%trel == NOT_SET_R )THEN
+IF( InstReleaseList%relSpec%release%trel == NOT_SET_R )THEN
 
-  CALL LoadRelease( InstReleaseList%release )
+  CALL copyReleaseSpec(relSpec,InstReleaseList%relSpec)
 
   mxtlev = MAX(mxtlev,7)
 
@@ -393,10 +403,10 @@ ELSE
     eMessage = 'Error allocating instantaneous release list'
     GOTO 9999
   END IF
-
+  CALL InitReleaseSpec( nextRel%relSpec )
   lastRel%NextRelease => nextRel
 
-  CALL LoadRelease( nextRel%release )
+  CALL copyReleaseSpec(relSpec,nextRel%relSpec)
   NULLIFY( nextRel%NextRelease )
 
 END IF
@@ -420,91 +430,70 @@ IMPLICIT NONE
 INTEGER, INTENT( IN    ) :: lev1       ! current time level
 INTEGER, INTENT( INOUT ) :: lev2       ! max time level
 
-REAL    dts, trel_sav
+REAL    dts
 INTEGER alloc_stat, mpuf, i
 INTEGER n1, n2
 
 CHARACTER(128) cmsg,cmsg2,cmsg3
-CHARACTER(8)   ctmp
-
-TYPE( releaseT )rel_save
+CHARACTER(12), EXTERNAL :: FormatPuffs
 
 TYPE( StoreReleaseT ), POINTER :: nextRel
 
-IF( InstReleaseList%release%trel == NOT_SET_R )RETURN
+IF( InstReleaseList%relSpec%release%trel == NOT_SET_R )RETURN
 
 lev2 = MAX(lev2,7)
 dts  = delt * (0.5**lev2)
 
-IF( 3600.*InstReleaseList%release%trel < t+dts )THEN
+IF( 3600.*InstReleaseList%relSpec%release%trel < t+dts )THEN
 
   mpuf = npuf
 
-!----- Save current release (if there is one)
+  DO WHILE( 3600.*InstReleaseList%relSpec%release%trel < t+dts )
 
-  trel_sav = trel
-  IF( trel /= 1.0E+36 .AND. trel /= NOT_SET_R )THEN
-    CALL LoadRelease( rel_save )
-    IF( nError /= NO_ERROR )THEN
-      nError   = IV_ERROR
-      eRoutine = 'CheckInstRelease'
-      eMessage = 'Unable to save release structure'
-      eInform  = 'LoadRelease failure'
-      GOTO 9999
-    END IF
-  END IF
 
-  DO WHILE( 3600.*InstReleaseList%release%trel < t+dts )
+    CALL valid_scn( InstReleaseList%relSpec )
+    IF( nError /= NO_ERROR )GOTO 9999
 
-    CALL UnloadRelease( InstReleaseList%release )
+    !----- initialize for random locations
+
+    CALL init_random_loc( InstReleaseList%relSpec )
+    IF( nError /= NO_ERROR )GOTO 9999
+
+    CALL i_release( InstReleaseList%relSpec,.TRUE. )
+    IF( nError /= NO_ERROR )GOTO 9999
+
+    !----- clear random locations
+
+    CALL clear_random_loc()
+    IF( nError /= NO_ERROR )GOTO 9999
 
     nextRel => InstReleaseList%NextRelease
 
     IF( ASSOCIATED(nextRel) )THEN
-      InstReleaseList%release = nextRel%release
+      CALL copyReleaseSpec( nextRel%relSpec,InstReleaseList%relSpec )
       IF( ASSOCIATED(nextRel%NextRelease) )THEN
         InstReleaseList%NextRelease => nextRel%NextRelease
       ELSE
+        CALL ClearReleaseSpec( InstReleaseList%NextRelease%relSpec )
         NULLIFY( InstReleaseList%NextRelease )
       END IF
+      CALL ClearReleaseSpec( nextRel%relSpec )
       DEALLOCATE( nextRel,STAT=alloc_stat )
     ELSE
-      InstReleaseList%release%trel = NOT_SET_R
+      CALL ClearReleaseSpec(InstReleaseList%relSpec)
     END IF
 
-    CALL valid_scn()
-    IF( nError /= NO_ERROR )GOTO 9999
-
-      CALL i_release( .TRUE. )
-      IF( nError /= NO_ERROR )GOTO 9999
-
-    IF( InstReleaseList%release%trel == NOT_SET_R )EXIT
+    IF( InstReleaseList%relSpec%release%trel == NOT_SET_R )EXIT
 
   END DO
-
-!----- Restore SCIPUFF release if necessary
-
-  trel = trel_sav
-  IF( trel /= 1.0E+36 .AND. trel /= NOT_SET_R )THEN
-    CALL UnloadRelease( rel_save )
-    IF( nError /= NO_ERROR )THEN
-      nError   = IV_ERROR
-      eRoutine = 'CheckInstRelease'
-      eMessage = 'Unable to unload saved release structure'
-      eInform  = 'UnloadRelease failure'
-      GOTO 9999
-    END IF
-  END IF
 
 !------ Set interactions for new releases
 
   IF( npuf > mpuf )THEN
 
-    WRITE(ctmp,'(I8)')npuf-mpuf
-    ctmp  = ADJUSTL(ctmp)
     cmsg  = CHAR(0)
     cmsg2 = CHAR(0)
-    WRITE(cmsg3,'(A)')'Initializing '//TRIM(ctmp)//' new puffs'
+    cmsg3 = 'Initializing '//TRIM(FormatPuffs(npuf-mpuf))//' new puffs'
     CALL write_progress( cmsg,cmsg2,cmsg3 )
 
     n1 = mpuf + 1
@@ -555,12 +544,13 @@ END
 
 !============================================================================
 
-SUBROUTINE set_puff_inst( zbar,xmass,ityp,naux,ifld )
+SUBROUTINE set_puff_inst( relSpec,zbar,xmass,ityp,naux,ifld )
 
 USE scipuff_fi
 
 IMPLICIT NONE
 
+TYPE( releaseSpecT ), INTENT( INOUT ) :: relSpec
 REAL,    INTENT( IN ) :: xmass, zbar
 INTEGER, INTENT( IN ) :: ityp, naux, ifld
 
@@ -571,7 +561,7 @@ IF( nError /= NO_ERROR )GOTO 9999
 
 npuf = npuf + 1
 
-CALL set_puff_rel( puff(npuf),xmass,zbar,ityp,naux,ifld )
+CALL set_puff_rel( relSpec,puff(npuf),xmass,zbar,ityp,naux,ifld )
 
 RETURN
 
@@ -584,14 +574,15 @@ END
 
 !============================================================================
 
-SUBROUTINE random_puff_loc( mpuf )
+SUBROUTINE random_puff_loc( mpuf, rSpread )
 
 USE scipuff_fi
 USE relparam_fd
 
 IMPLICIT NONE
 
-INTEGER, INTENT( IN ) :: mpuf
+INTEGER,            INTENT( IN ) :: mpuf
+REAL, DIMENSION(3), INTENT( IN ) :: rSpread
 
 INTEGER ireal, npufo, nb_rel, i, ipuf, naux, ifld
 REAL    shh, zz, h, hx, hy
@@ -601,7 +592,7 @@ npufo  = npuf
 
 !---- Set release data structure
 
-CALL SetDataRelID( nRandom,rel_param(REL_SPREAD_INDX),puff(npuf) )
+CALL SetDataRelID( nRandom,rSpread(1),puff(npuf) )
 
 !-------- Generate nRandom copies
 
@@ -626,7 +617,7 @@ END DO
 
 IF( lter )THEN
   shh = 0.5*(puff(npuf)%sxx+puff(npuf)%syy)
-  CALL get_topogOut( puff(npuf)%xbar,puff(npuf)%ybar,h,hx,hy,shh,ifld )
+  CALL get_topogOut( SNGL(puff(npuf)%xbar),SNGL(puff(npuf)%ybar),h,hx,hy,shh,ifld )
   zz = MAX(puff(npuf)%zbar-h,0.01*SQRT(puff(npuf)%szz))
 END IF
 
@@ -635,10 +626,10 @@ END IF
 DO ireal = 1,nRandom
   DO i = mpuf+1,npufo
     ipuf = (ireal-1)*nb_rel + i
-    puff(ipuf)%xbar = puff(ipuf)%xbar + xRandom(ireal)
-    puff(ipuf)%ybar = puff(ipuf)%ybar + yRandom(ireal)
+    puff(ipuf)%xbar = puff(ipuf)%xbar + DBLE(xRandom(ireal))
+    puff(ipuf)%ybar = puff(ipuf)%ybar + DBLE(yRandom(ireal))
     IF( lter )THEN
-      CALL get_topogIn( puff(ipuf)%xbar,puff(ipuf)%ybar,h,hx,hy,ifld )
+      CALL get_topogIn( SNGL(puff(ipuf)%xbar),SNGL(puff(ipuf)%ybar),h,hx,hy,ifld )
       puff(ipuf)%zbar = h + MAX(0.,zz + zRandom(ireal))   !Set to constant height AGL + random displacement
     ELSE
       puff(ipuf)%zbar = MAX(0.,puff(ipuf)%zbar + zRandom(ireal))   !Set to constant height AGL + random displacement

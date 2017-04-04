@@ -131,7 +131,14 @@ INTERFACE
   INTEGER FUNCTION SAG_CellFunction( grd,UserFunction )
     USE sagstr_fd
     TYPE( SAGgrid_str ), POINTER  :: grd
-    INTEGER,             EXTERNAL :: UserFunction
+    INTERFACE
+      INTEGER FUNCTION UserFunction( dat,mx,p )
+        USE sagcel_fd
+        INTEGER,             INTENT( IN ) :: mx
+        REAL, DIMENSION(:),  POINTER      :: dat
+        TYPE( SAGcell_str ), INTENT( IN ) :: p
+      END FUNCTION UserFunction
+    END INTERFACE
   END FUNCTION SAG_CellFunction
 END INTERFACE
 
@@ -243,7 +250,14 @@ INTERFACE
   INTEGER FUNCTION SAG_CellFunction( grd,UserFunction )
     USE sagstr_fd
     TYPE( SAGgrid_str ), POINTER  :: grd
-    INTEGER,             EXTERNAL :: UserFunction
+    INTERFACE
+      INTEGER FUNCTION UserFunction( dat,mx,p )
+        USE sagcel_fd
+        INTEGER,             INTENT( IN ) :: mx
+        REAL, DIMENSION(:),  POINTER      :: dat
+        TYPE( SAGcell_str ), INTENT( IN ) :: p
+      END FUNCTION UserFunction
+    END INTERFACE
   END FUNCTION SAG_CellFunction
 END INTERFACE
 
@@ -356,7 +370,14 @@ INTERFACE
   INTEGER FUNCTION SAG_CellFunction( grd,UserFunction )
     USE sagstr_fd
     TYPE( SAGgrid_str ), POINTER  :: grd
-    INTEGER,             EXTERNAL :: UserFunction
+    INTERFACE
+      INTEGER FUNCTION UserFunction( dat,mx,p )
+        USE sagcel_fd
+        INTEGER,             INTENT( IN ) :: mx
+        REAL, DIMENSION(:),  POINTER      :: dat
+        TYPE( SAGcell_str ), INTENT( IN ) :: p
+      END FUNCTION UserFunction
+    END INTERFACE
   END FUNCTION SAG_CellFunction
 END INTERFACE
 
@@ -466,7 +487,14 @@ INTERFACE
   INTEGER FUNCTION SAG_CellFunction( grd,UserFunction )
     USE sagstr_fd
     TYPE( SAGgrid_str ), POINTER  :: grd
-    INTEGER,             EXTERNAL :: UserFunction
+    INTERFACE
+      INTEGER FUNCTION UserFunction( dat,mx,p )
+        USE sagcel_fd
+        INTEGER,             INTENT( IN ) :: mx
+        REAL, DIMENSION(:),  POINTER      :: dat
+        TYPE( SAGcell_str ), INTENT( IN ) :: p
+      END FUNCTION UserFunction
+    END INTERFACE
   END FUNCTION SAG_CellFunction
 END INTERFACE
 
@@ -527,7 +555,14 @@ INTERFACE
   INTEGER FUNCTION SAG_CellFunction( grd,UserFunction )
     USE sagstr_fd
     TYPE( SAGgrid_str ), POINTER  :: grd
-    INTEGER,             EXTERNAL :: UserFunction
+    INTERFACE
+      INTEGER FUNCTION UserFunction( dat,mx,p )
+        USE sagcel_fd
+        INTEGER,             INTENT( IN ) :: mx
+        REAL, DIMENSION(:),  POINTER      :: dat
+        TYPE( SAGcell_str ), INTENT( IN ) :: p
+      END FUNCTION UserFunction
+    END INTERFACE
   END FUNCTION SAG_CellFunction
 END INTERFACE
 

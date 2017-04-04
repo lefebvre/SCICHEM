@@ -631,7 +631,7 @@ INTERFACE
     TYPE( SCIPPlotFieldT ),                    INTENT( IN    ) :: Field        !Field descriptor
     TYPE( SCIPPlotTypeT ),                     INTENT( IN    ) :: PlotType     !Plot definition
     TYPE( SCIPContourHeaderT ),                INTENT( IN    ) :: contourHead  !Contour array header
-    TYPE( SCIPContourElementT ), DIMENSION(*), TARGET, &
+    TYPE( SCIPContourElementT ), DIMENSION(contourHead%number), TARGET, &
                                                INTENT( INOUT ) :: contourList  !Contour array
     TYPE( ARAPDrawT ),                         INTENT( IN    ) :: GUIdraw      !Draw instructions
     INTEGER, EXTERNAL                                          :: UserFill     !Address of User supplied

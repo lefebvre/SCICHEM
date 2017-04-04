@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VisualStudioProject ProjectType="typeDynamicLibrary" ProjectCreator="Intel Fortran" Keyword="Dll - Converted from CVF" Version="11.0" ProjectIdGuid="{3689A064-D483-4E70-BC11-C08A8C45984B}">
+	<Platforms>
+		<Platform Name="Win32"/>
+		<Platform Name="x64"/></Platforms>
+	<Configurations>
+		<Configuration Name="Debug|Win32" OutputDirectory="bin\intel\$(Platform)\$(Configuration)" IntermediateDirectory="tmp\intel\$(Platform)\$(Configuration)\$(ProjectName)" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(ProjectName)_BuildLog.htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/DAEROSOL /DCLIMO /DDEGRADE /DDENSE /DDREAM /DFXPLOT /DHAZARD /DHPAC /DINTERACTIVE /DLIQUID /DMET_PLOT /DMSS /DMULT /DNEST /DNWPN /DOPVIEW /DPOPLIB /DPROCESS /DRAD /DREVERSE /DSKEW /DSWIFT /DUSEDLL /DVSRFEVAP /DWINPAC /DKML /DATTACH_DEBUGGER  /DOMP /DOMP_SWIM /DOMP_SPLIT /DSMOOTHFLD_STEP" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(Platform)\$(Configuration)\" EnableRecursion="true" WarnDeclarations="true" WarnUnusedVariables="true" WarnTruncateSource="true" AlignSEQUENCE="true" ByteRECL="true" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(Platform)\$(Configuration)\" ObjectFile="$(INTDIR)/" PdbFile="$(OutDir)\$(ProjectName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDLL"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(Platform)\$(Configuration),..\..\..\lib\vendor\$(Platform)" GenerateDebugInformation="true" ProgramDatabaseFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).pdb" GenerateMapFile="true" MapFileName="$(INTDIR)/$(ProjectName).map" SubSystem="subSystemWindows" StackReserveSize="67108864" StackCommitSize="65536" ImportLibrary=".\lib\intel\$(Platform)\$(Configuration)\$(ProjectName).lib" LinkDLL="true" AdditionalDependencies="GEDIS_UDC_JE.lib datums.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="_DEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/$(ProjectName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|Win32" OutputDirectory="bin\intel\$(Platform)\$(Configuration)" IntermediateDirectory="tmp\intel\$(Platform)\$(Configuration)\$(ProjectName)" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(ProjectName)_BuildLog.htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/DAEROSOL /DCLIMO /DDEGRADE /DDENSE /DDREAM /DFXPLOT /DHAZARD /DHPAC /DINTERACTIVE /DLIQUID /DMET_PLOT /DMSS /DMULT /DNEST /DNWPN /DOPVIEW /DPOPLIB /DPROCESS /DRAD /DREVERSE /DSKEW /DSWIFT /DUSEDLL /DVSRFEVAP /DWINPAC /DKML   /DOMP /DOMP_SWIM /DOMP_SPLIT /DSMOOTHFLD_STEP" SuppressStartupBanner="true" AdditionalIncludeDirectories="f90mod\intel\$(Platform)\$(Configuration)\" EnableRecursion="true" AlignSEQUENCE="true" ByteRECL="true" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(Platform)\$(Configuration)\" ObjectFile="$(INTDIR)/" AssemblerListingLocation="$(INTDIR)/"/>
+				<Tool Name="VFLinkerTool" AdditionalOptions="/MACHINE:I386" OutputFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(Platform)\$(Configuration),..\..\..\lib\vendor\$(Platform)" ProgramDatabaseFile="$(OUTDIR)/$(ProjectName).pdb" SubSystem="subSystemWindows" ImportLibrary=".\lib\intel\$(Platform)\$(Configuration)\$(ProjectName).lib" LinkDLL="true" AdditionalDependencies="GEDIS_UDC_JE.lib datums.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="NDEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/$(ProjectName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Debug|x64" OutputDirectory="bin\intel\$(Platform)\$(Configuration)" IntermediateDirectory="tmp\intel\$(Platform)\$(Configuration)\$(ProjectName)" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(ProjectName)_BuildLog.htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/DAEROSOL /DCLIMO /DDEGRADE /DDENSE /DDREAM /DFXPLOT /DHAZARD /DHPAC /DINTERACTIVE /DLIQUID /DMET_PLOT /DMSS /DMULT /DNEST /DNWPN /DOPVIEW /DPOPLIB /DPROCESS /DRAD /DREVERSE /DSKEW /DSWIFT /DUSEDLL /DVSRFEVAP /DWINPAC /DKML /DATTACH_DEBUGGER  /DOMP /DOMP_SWIM /DOMP_SPLIT" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(Platform)\$(Configuration)\" EnableRecursion="true" OpenMP="OpenMPParallelCode" DebugParameter="debugParameterAll" WarnDeclarations="true" WarnUnusedVariables="true" WarnTruncateSource="true" AlignSEQUENCE="true" ByteRECL="true" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(Platform)\$(Configuration)\" ObjectFile="$(INTDIR)/" PdbFile="$(IntDir)\$(TargetName).pdb" AssemblerListingLocation="$(INTDIR)/" EmitSourceListing="true" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebug"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(Platform)\$(Configuration),..\..\..\lib\vendor\$(Platform)" GenerateDebugInformation="true" ProgramDatabaseFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).pdb" GenerateMapFile="true" MapFileName="$(INTDIR)/$(ProjectName).map" SubSystem="subSystemWindows" StackReserveSize="67108864" StackCommitSize="65536" ImportLibrary=".\lib\intel\$(Platform)\$(Configuration)\$(ProjectName).lib" LinkDLL="true" AdditionalDependencies="GEDIS_UDC_JE.lib datums.lib "/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="_DEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/$(ProjectName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Release|x64" OutputDirectory="bin\intel\$(Platform)\$(Configuration)" IntermediateDirectory="tmp\intel\$(Platform)\$(Configuration)\$(ProjectName)" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(ProjectName)_BuildLog.htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/DAEROSOL /DCLIMO /DDEGRADE /DDENSE /DDREAM /DFXPLOT /DHAZARD /DHPAC /DINTERACTIVE /DLIQUID /DMET_PLOT /DMSS /DMULT /DNEST /DNWPN /DOPVIEW /DPOPLIB /DPROCESS /DRAD /DREVERSE /DSKEW /DSWIFT /DUSEDLL /DVSRFEVAP /DWINPAC /DKML /DOMP /DOMP_SWIM /DOMP_SPLIT" SuppressStartupBanner="true" AdditionalIncludeDirectories="f90mod\intel\$(Platform)\$(Configuration)\" EnableRecursion="true" OpenMP="OpenMPParallelCode" AlignSEQUENCE="true" ByteRECL="true" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(Platform)\$(Configuration)\" ObjectFile="$(INTDIR)/" AssemblerListingLocation="$(INTDIR)/"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(Platform)\$(Configuration),..\..\..\lib\vendor\$(Platform)" ProgramDatabaseFile="$(OUTDIR)/$(ProjectName).pdb" SubSystem="subSystemWindows" ImportLibrary=".\lib\intel\$(Platform)\$(Configuration)\$(ProjectName).lib" LinkDLL="true" AdditionalDependencies="GEDIS_UDC_JE.lib datums.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="NDEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/$(ProjectName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Test|Win32" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(ProjectName)_BuildLog.htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/DAEROSOL /DCLIMO /DDEGRADE /DDENSE /DDREAM /DFXPLOT /DHAZARD /DHPAC /DINTERACTIVE /DLIQUID /DMET_PLOT /DMSS /DMULT /DNEST /DNWPN /DOPVIEW /DPOPLIB /DPROCESS /DRAD /DREVERSE /DSKEW /DSWIFT /DUSEDLL /DVSRFEVAP /DWINPAC /DKML" SuppressStartupBanner="true" AdditionalIncludeDirectories="f90mod\intel\$(Platform)\$(Configuration)\" EnableRecursion="true" AlignSEQUENCE="true" ByteRECL="true" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(Platform)\$(Configuration)\" ObjectFile="$(INTDIR)/" AssemblerListingLocation="$(INTDIR)/"/>
+				<Tool Name="VFLinkerTool" AdditionalOptions="/MACHINE:I386" OutputFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(Platform)\$(Configuration),..\..\..\lib\vendor\$(Platform)" ProgramDatabaseFile="$(OUTDIR)/$(ProjectName).pdb" SubSystem="subSystemWindows" ImportLibrary=".\lib\intel\$(Platform)\$(Configuration)\$(ProjectName).lib" LinkDLL="true" AdditionalDependencies="GEDIS_UDC_JE.lib datums.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="NDEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/$(ProjectName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Test|x64" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(ProjectName)_BuildLog.htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/DAEROSOL /DCLIMO /DDEGRADE /DDENSE /DDREAM /DFXPLOT /DHAZARD /DHPAC /DINTERACTIVE /DLIQUID /DMET_PLOT /DMSS /DMULT /DNEST /DNWPN /DOPVIEW /DPOPLIB /DPROCESS /DRAD /DREVERSE /DSKEW /DSWIFT /DUSEDLL /DVSRFEVAP /DWINPAC /DKML" SuppressStartupBanner="true" AdditionalIncludeDirectories="f90mod\intel\$(Platform)\$(Configuration)\" EnableRecursion="true" AlignSEQUENCE="true" ByteRECL="true" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(Platform)\$(Configuration)\" ObjectFile="$(INTDIR)/" AssemblerListingLocation="$(INTDIR)/"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(Platform)\$(Configuration),..\..\..\lib\vendor\$(Platform)" ProgramDatabaseFile="$(OUTDIR)/$(ProjectName).pdb" SubSystem="subSystemWindows" ImportLibrary=".\lib\intel\$(Platform)\$(Configuration)\$(ProjectName).lib" LinkDLL="true" AdditionalDependencies="GEDIS_UDC_JE.lib datums.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="NDEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/$(ProjectName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Compare|Win32" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(ProjectName)_BuildLog.htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/DAEROSOL /DCLIMO /DDEGRADE /DDENSE /DDREAM /DFXPLOT /DHAZARD /DHPAC /DINTERACTIVE /DLIQUID /DMET_PLOT /DMSS /DMULT /DNEST /DNWPN /DOPVIEW /DPOPLIB /DPROCESS /DRAD /DREVERSE /DSKEW /DSWIFT /DUSEDLL /DVSRFEVAP /DWINPAC /DKML   /DOMP /DOMP_SWIM /DOMP_SPLIT /DSMOOTHFLD_STEP" SuppressStartupBanner="true" AdditionalIncludeDirectories="f90mod\intel\$(Platform)\$(Configuration)\" EnableRecursion="true" AlignSEQUENCE="true" ByteRECL="true" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(Platform)\$(Configuration)\" ObjectFile="$(INTDIR)/" AssemblerListingLocation="$(INTDIR)/"/>
+				<Tool Name="VFLinkerTool" AdditionalOptions="/MACHINE:I386" OutputFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(Platform)\$(Configuration),..\..\..\lib\vendor\$(Platform)" ProgramDatabaseFile="$(OUTDIR)/$(ProjectName).pdb" SubSystem="subSystemWindows" ImportLibrary=".\lib\intel\$(Platform)\$(Configuration)\$(ProjectName).lib" LinkDLL="true" AdditionalDependencies="GEDIS_UDC_JE.lib datums.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="NDEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/$(ProjectName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Compare|x64" OutputDirectory="bin\intel\$(Platform)\$(Configuration)" IntermediateDirectory="tmp\intel\$(Platform)\$(Configuration)\$(ProjectName)" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(ProjectName)_BuildLog.htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/DAEROSOL /DCLIMO /DDEGRADE /DDENSE /DDREAM /DFXPLOT /DHAZARD /DHPAC /DINTERACTIVE /DLIQUID /DMET_PLOT /DMSS /DMULT /DNEST /DNWPN /DOPVIEW /DPOPLIB /DPROCESS /DRAD /DREVERSE /DSKEW /DSWIFT /DUSEDLL /DVSRFEVAP /DWINPAC /DKML   /DOMP /DOMP_SWIM /DNOSPLITZI" SuppressStartupBanner="true" AdditionalIncludeDirectories="f90mod\intel\$(Platform)\$(Configuration)\" EnableRecursion="true" OpenMP="OpenMPParallelCode" AlignSEQUENCE="true" ByteRECL="true" FloatingPointModel="source" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(Platform)\$(Configuration)\" ObjectFile="$(INTDIR)/" AssemblerListingLocation="$(INTDIR)/"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(Platform)\$(Configuration),..\..\..\lib\vendor\$(Platform)" ProgramDatabaseFile="$(OUTDIR)/$(ProjectName).pdb" SubSystem="subSystemWindows" ImportLibrary=".\lib\intel\$(Platform)\$(Configuration)\$(ProjectName).lib" LinkDLL="true" AdditionalDependencies="GEDIS_UDC_JE.lib datums.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="NDEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/$(ProjectName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Analysis|Win32" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(ProjectName)_BuildLog.htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/DAEROSOL /DCLIMO /DDEGRADE /DDENSE /DDREAM /DFXPLOT /DHAZARD /DHPAC /DINTERACTIVE /DLIQUID /DMET_PLOT /DMSS /DMULT /DNEST /DNWPN /DOPVIEW /DPOPLIB /DPROCESS /DRAD /DREVERSE /DSKEW /DSWIFT /DUSEDLL /DVSRFEVAP /DWINPAC /DKML /DATTACH_DEBUGGER  /DOMP /DOMP_SWIM /DOMP_SPLIT /DSMOOTHFLD_STEP" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(Platform)\$(Configuration)\" EnableRecursion="true" WarnDeclarations="true" WarnUnusedVariables="true" WarnTruncateSource="true" AlignSEQUENCE="true" ByteRECL="true" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(Platform)\$(Configuration)\" ObjectFile="$(INTDIR)/" PdbFile="$(OutDir)\$(ProjectName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDLL"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(Platform)\$(Configuration),..\..\..\lib\vendor\$(Platform)" GenerateDebugInformation="true" ProgramDatabaseFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).pdb" GenerateMapFile="true" MapFileName="$(INTDIR)/$(ProjectName).map" SubSystem="subSystemWindows" StackReserveSize="67108864" StackCommitSize="65536" ImportLibrary=".\lib\intel\$(Platform)\$(Configuration)\$(ProjectName).lib" LinkDLL="true" AdditionalDependencies="GEDIS_UDC_JE.lib datums.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="_DEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/$(ProjectName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration>
+		<Configuration Name="Analysis|x64" OutputDirectory="bin\intel\$(Platform)\$(Configuration)" IntermediateDirectory="tmp\intel\$(Platform)\$(Configuration)\$(ProjectName)" DeleteExtensionsOnClean="*.obj;*.mod;*.pdb;*.asm;*.map;*.dyn;*.dpi;*.tmp;*.log;*.ilk;*.exe;$(TargetPath)" BuildLogFile="$(IntDir)\$(ProjectName)_BuildLog.htm" ConfigurationType="typeDynamicLibrary">
+				<Tool Name="VFFortranCompilerTool" AdditionalOptions="/DAEROSOL /DCLIMO /DDEGRADE /DDENSE /DDREAM /DFXPLOT /DHAZARD /DHPAC /DINTERACTIVE /DLIQUID /DMET_PLOT /DMSS /DMULT /DNEST /DNWPN /DOPVIEW /DPOPLIB /DPROCESS /DRAD /DREVERSE /DSKEW /DSWIFT /DUSEDLL /DVSRFEVAP /DWINPAC /DKML /DATTACH_DEBUGGER  /DOMP /DOMP_SWIM /DOMP_SPLIT /DSMOOTHFLD_STEP" SuppressStartupBanner="true" DebugInformationFormat="debugEnabled" Optimization="optimizeDisabled" AdditionalIncludeDirectories="f90mod\intel\$(Platform)\$(Configuration)\" EnableRecursion="true" OpenMP="OpenMPParallelCode" WarnDeclarations="true" WarnUnusedVariables="true" WarnTruncateSource="true" AlignSEQUENCE="true" ByteRECL="true" ExternalNameInterpretation="extNameUpperCase" CallingConvention="callConventionCRef" StringLengthArgPassing="strLenArgsMixed" ModulePath="f90mod\intel\$(Platform)\$(Configuration)\" ObjectFile="$(INTDIR)/" PdbFile="$(OutDir)\$(ProjectName).pdb" AssemblerListingLocation="$(INTDIR)/" Traceback="true" RuntimeChecks="rtChecksNone" BoundsCheck="true" RuntimeLibrary="rtMultiThreadedDebugDLL"/>
+				<Tool Name="VFLinkerTool" OutputFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).dll" LinkIncremental="linkIncrementalNo" SuppressStartupBanner="true" AdditionalLibraryDirectories="lib\intel\$(Platform)\$(Configuration),..\..\..\lib\vendor\$(Platform)" GenerateDebugInformation="true" ProgramDatabaseFile="bin\intel\$(Platform)\$(Configuration)/$(ProjectName).pdb" GenerateMapFile="true" MapFileName="$(INTDIR)/$(ProjectName).map" SubSystem="subSystemWindows" StackReserveSize="67108864" StackCommitSize="65536" ImportLibrary=".\lib\intel\$(Platform)\$(Configuration)\$(ProjectName).lib" LinkDLL="true" AdditionalDependencies="GEDIS_UDC_JE.lib datums.lib "/>
+				<Tool Name="VFResourceCompilerTool" PreprocessorDefinitions="_DEBUG" Culture="rcEnglishUS" ResourceOutputFileName="$(INTDIR)/$(InputName).res"/>
+				<Tool Name="VFMidlTool" PreprocessorDefinitions="_DEBUG" MkTypLibCompatible="true" SuppressStartupBanner="true" TargetEnvironment="midlTargetAMD64" HeaderFileName="" DLLDataFileName="" TypeLibraryName="$(OUTDIR)/$(ProjectName).tlb"/>
+				<Tool Name="VFCustomBuildTool"/>
+				<Tool Name="VFPreLinkEventTool"/>
+				<Tool Name="VFPreBuildEventTool"/>
+				<Tool Name="VFPostBuildEventTool"/>
+				<Tool Name="VFManifestTool" SuppressStartupBanner="true"/></Configuration></Configurations>
+	<Files>
+		<Filter Name="Header Files" Filter="h;hpp;hxx;hm;inl;fi;fd"/>
+		<Filter Name="Resource Files" Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"/>
+		<Filter Name="Source Files" Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;f90;for;f;fpp">
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\adjOutFlow.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\coeff.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\drag_urban.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\gedis_fd.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\movex.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\p_iter.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\pressure_fft.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\psrce.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\set_dif.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\set_sb.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\setww.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\SmoothFilter.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\source.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\step1.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\step2.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\stepq.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\stept.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\tau.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\TerFile_fi.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWM_fd.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWM_fi.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWM_mod.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWMallocField.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWMfield_fd.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWMgetFields.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWMhalt.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWMinit.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWMinitMG.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWMinterpMG.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWMlogMessage.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWMparam_fd.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWMreallocFields.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWMsetRunParam.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\UWMversion.f90"/>
+		<File RelativePath="..\..\..\src\dll\SCIPUFF\uwm\wall_bc.f90"/></Filter></Files>
+	<Globals/></VisualStudioProject>

@@ -24,11 +24,13 @@ TYPE( PuffMetRequest ) :: Request
 
 INTEGER ifld, i
 REAL    L, tref, zp, pr, dum, tdum, thstar
+REAL    pr1, pr2, dtdz, hsx
 
 TYPE( MetField ), POINTER :: fld
 
 INTEGER, EXTERNAL :: SetMetField
 REAL,    EXTERNAL :: UstarDep, tlog, LfromInvL
+REAL,    EXTERNAL :: StndHumid
 
 SWIMcurrentSrfMet = SWIMfailure
 
@@ -68,6 +70,7 @@ i = (my%i-1)*fld%grid%nX + mx%i
 !------ Set boundary layer variables
 
 Met%BL%MixingHt = fld%BL%zi(i)
+Met%BL%Zsl      = fld%BLaux%Zsl(i)
 Met%BL%Ustar2   = fld%BLaux%ustr2(i)
 Met%BL%Wstar2   = fld%BLaux%wstr2(i)
 Met%BL%HeatFlux = fld%BL%HeatFlux(i)
@@ -115,6 +118,23 @@ END IF
 thstar = thstar * pr**KAPPA !Convert to actual temperature
 
 Met%Mean%T = tref - thstar/VONK*tlog( fld%BLaux%zsl(i),Met%BL%zruf,L )
+
+IF( BTEST(fld%type,FTB_P) )THEN
+  zp = fld%grid%terrain%H(i) + Met%BL%Zsl + Prj%Hmin
+  CALL stnd_atmos( zp,pr1,tdum,dtdz,1 )
+  zp = fld%grid%terrain%H(i) + Prj%Hmin
+  CALL stnd_atmos( zp,pr2,tdum,dtdz,1 )
+  pr = pr * (pr2/pr1)
+END IF
+
+Met%Mean%Press = pr * PSURF
+
+IF( BTEST(fld%type,FTB_H) )THEN
+  CALL sat_humid( Met%Mean%T,Met%Mean%Press,hsx )
+  Met%Mean%Humid = MAX(fld%Field%Humid(i)/100.*hsx,HSTRAT)
+ELSE
+  Met%Mean%Humid = StndHumid( Met%Mean%Press,Met%Mean%T )
+END IF
 
 SWIMcurrentSrfMet = SWIMresult
 

@@ -155,6 +155,7 @@ END
 SUBROUTINE pickOutputFile( file, openIt )
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -168,72 +169,63 @@ CHARACTER(128) string
 INTEGER, EXTERNAL :: SYSDELETEFILE
 
 300 CONTINUE
-IF( output3D .OR. extractMethod == CONTOURS )THEN
-  WRITE(6,'(/,A,$)')'Output file prefix : '
-ELSE
-  WRITE(6,'(/,A,$)')'Output file : '
-ENDIF
-READ(lun_in,'(A)')file%string
-file%string = ADJUSTL(file%string)
-IF( output3D )THEN
-  IF( LEN_TRIM(file%string) <= 0 )file%string = 'Output3d'
-ELSE IF ( nativeSAG )THEN
-  IF( LEN_TRIM(file%string) <= 0 )file%string = 'test.sag'
-  INQUIRE(FILE=file%string,EXIST=lExist)
-  IF( lExist )THEN
-    WRITE(6,'(A)')'File already exists'
-    WRITE(6,'(A)')'File='//TRIM(file%string)
-    WRITE(6,'(A,$)')'(O)verwrite, (A)ppend or (R)eselect name : '
-    string = 'R'
-    READ(lun_in,'(A)',IOSTAT=irv)string
-    CALL cupper(string)
-    string = ADJUSTL(string)
-    IF( string(1:1) == 'O' )THEN
-      irv = SYSDELETEFILE(TRIM(file%string))
-      IF( irv == SCIPfailure )THEN
+
+IF( iFld > 0 )THEN
+
+  IF( iOut > 0 )THEN
+    lun_out = lun_ext
+    irv = INDEX(outFile,'.',BACK=.TRUE.)
+    IF(  irv > 0 )THEN
+      ! Use user provided file name
+      file%string = TRIM(outFile)
+    ELSE
+      contourExt = '.txt'
+      IF( LEN_TRIM(extType) > 0 )THEN
+        SELECT CASE( TRIM(extType) )
+        CASE( 'sag','ntv' )
+          contourExt = '.ntv'
+        CASE( 'ovl' )
+          contourExt = '.ovl'
+        END SELECT
+      END IF
+      file%string = TRIM(outFile)//TRIM(contourExt)
+    END IF
+    IF ( openIt )THEN
+      OPEN(UNIT=lun_out,FILE=TRIM(file%string),STATUS='NEW',IOSTAT=irv)
+      IF( irv /= 0 )THEN
         nError = UK_ERROR
         eRoutine = 'pickOutputFile'
-        eMessage = 'Error deleting existing output file'
-        WRITE(eInform,'(A)')'file='//TRIM(file%string)
+        WRITE(eInform,'(A,I0)')'Error opening output file. IOSTAT=',irv
+        WRITE(eInform,'("Verify that file = ",A," does not exist")')TRIM(file%string)
         GO TO 9999
-      ELSE
-        WRITE(6,'(A)')'File successfully deleted'
-        append = .FALSE.
       END IF
-    ELSE IF( string(1:1) == 'A')THEN
-      append = .TRUE.
-    ELSE
-      GOTO 300
     END IF
   ELSE
-    append = .FALSE.
-  END IF
+    ! Output written to standard output
+    GO TO 9999
+  ENDIF
 ELSE
-  IF( LEN_TRIM(file%string) <= 0 )THEN
-   lun_out = 6
+  IF( output3D .OR. extractMethod == CONTOURS )THEN
+    WRITE(6,'(/,A,$)')'Output file prefix : '
   ELSE
-    IF( extractMethod == CONTOURS )THEN
-      file%string = TRIM(file%string)//contourExt
-    END IF
-    WRITE(6,'(/,"Output will be written to ",A,/)')TRIM(file%string)
-    lun_out = 106
+    WRITE(6,'(/,A,$)')'Output file : '
+  ENDIF
+  READ(lun_in,'(A)')file%string
+  file%string = ADJUSTL(file%string)
+  IF( output3D )THEN
+    IF( LEN_TRIM(file%string) <= 0 )file%string = 'Output3d'
+  ELSE IF ( nativeSAG )THEN
+    IF( LEN_TRIM(file%string) <= 0 )file%string = 'test.sag'
     INQUIRE(FILE=file%string,EXIST=lExist)
     IF( lExist )THEN
       WRITE(6,'(A)')'File already exists'
       WRITE(6,'(A)')'File='//TRIM(file%string)
-      SELECT CASE( overWrite )
-        CASE( 1)                !always over write file
-          string = 'Y'
-        CASE(-1)                !never over write file
-          string = 'N'
-        CASE DEFAULT            !Prompt user
-          WRITE(6,'(A,$)')'OK to overwrite? (Y/N) : '
-          string = 'Y'
-          READ(lun_in,'(A)',IOSTAT=irv)string
-          CALL cupper(string)
-          string = ADJUSTL(string)
-      END SELECT
-      IF( string(1:1) /= 'N' )THEN
+      WRITE(6,'(A,$)')'(O)verwrite, (A)ppend or (R)eselect name : '
+      string = 'R'
+      READ(lun_in,'(A)',IOSTAT=irv)string
+      CALL cupper(string)
+      string = ADJUSTL(string)
+      IF( string(1:1) == 'O' )THEN
         irv = SYSDELETEFILE(TRIM(file%string))
         IF( irv == SCIPfailure )THEN
           nError = UK_ERROR
@@ -243,26 +235,72 @@ ELSE
           GO TO 9999
         ELSE
           WRITE(6,'(A)')'File successfully deleted'
+          append = .FALSE.
         END IF
+      ELSE IF( string(1:1) == 'A')THEN
+        append = .TRUE.
       ELSE
-        IF( overWrite == 0 )THEN
-          GO TO 300
+        GOTO 300
+      END IF
+    ELSE
+      append = .FALSE.
+    END IF
+  ELSE
+    IF( LEN_TRIM(file%string) <= 0 )THEN
+     lun_out = 6
+    ELSE
+      IF( extractMethod == CONTOURS )THEN
+        file%string = TRIM(file%string)//contourExt
+      END IF
+      WRITE(6,'(/,"Output will be written to ",A,/)')TRIM(file%string)
+      lun_out = 106
+      INQUIRE(FILE=file%string,EXIST=lExist)
+      IF( lExist )THEN
+        WRITE(6,'(A)')'File already exists'
+        WRITE(6,'(A)')'File='//TRIM(file%string)
+        SELECT CASE( overWrite )
+          CASE( 1)                !always over write file
+            string = 'Y'
+          CASE(-1)                !never over write file
+            string = 'N'
+          CASE DEFAULT            !Prompt user
+            WRITE(6,'(A,$)')'OK to overwrite? (Y/N) : '
+            string = 'Y'
+            READ(lun_in,'(A)',IOSTAT=irv)string
+            CALL cupper(string)
+            string = ADJUSTL(string)
+        END SELECT
+        IF( string(1:1) /= 'N' )THEN
+          irv = SYSDELETEFILE(TRIM(file%string))
+          IF( irv == SCIPfailure )THEN
+            nError = UK_ERROR
+            eRoutine = 'pickOutputFile'
+            eMessage = 'Error deleting existing output file'
+            WRITE(eInform,'(A)')'file='//TRIM(file%string)
+            GO TO 9999
+          ELSE
+            WRITE(6,'(A)')'File successfully deleted'
+          END IF
         ELSE
+          IF( overWrite == 0 )THEN
+            GO TO 300
+          ELSE
+            GO TO 9999
+          END IF
+        END IF
+      END IF
+      IF( openIt )THEN
+        OPEN(UNIT=lun_out,FILE=TRIM(file%string),STATUS='NEW',IOSTAT=irv)
+        IF( irv /= 0 )THEN
+          nError = UK_ERROR
+          eRoutine = 'pickOutputFile'
+          WRITE(eInform,'(A,I0)')'Error opening output file. IOSTST=',irv
+          WRITE(eInform,'(A)')'file='//TRIM(file%string)
           GO TO 9999
         END IF
-      END IF
-    END IF
-    IF( openIt )THEN
-      OPEN(UNIT=lun_out,FILE=TRIM(file%string),STATUS='NEW',IOSTAT=irv)
-      IF( irv /= 0 )THEN
-        nError = UK_ERROR
-        eRoutine = 'pickOutputFile'
-        WRITE(eInform,'(A,I0)')'Error opening output file. IOSTST=',irv
-        WRITE(eInform,'(A)')'file='//TRIM(file%string)
-        GO TO 9999
-      END IF
+      ENDIF
     ENDIF
-  ENDIF
+  END IF
 END IF
 
 9999 CONTINUE

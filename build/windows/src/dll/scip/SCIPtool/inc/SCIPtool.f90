@@ -883,16 +883,16 @@ MODULE SCIPtool
 !DEC$ ENDIF
 
 !DEC$ IF DEFINED (DUALBUILD)
-    INTEGER FUNCTION SCIPGetProjectPuffOMP( CallerID,puff,timeID,transform,puffList,auxData,typeList,mcList )
+    INTEGER FUNCTION SCIPGetProjectPuffOMP( CallerID,puff,timeID,flag,puffList,auxData,typeList,mcList )
 !DEC$ ELSE
-    INTEGER FUNCTION SCIPGetProjectPuff( CallerID,puff,timeID,transform,puffList,auxData,typeList,mcList )
+    INTEGER FUNCTION SCIPGetProjectPuff( CallerID,puff,timeID,flag,puffList,auxData,typeList,mcList )
 !DEC$ ENDIF
       USE tooluser_fd
       USE mcstruct_fd
       INTEGER,                                   INTENT( IN    ) :: CallerID    !USER ID Tag
       TYPE( ppuffHeadT ),                        INTENT( INOUT ) :: puff        !Project ID
       INTEGER,                                   INTENT( IN    ) :: timeID      !time ID
-      INTEGER,                                   INTENT( IN    ) :: transform   !SCIPtrue => transform to LLA
+      INTEGER,                                   INTENT( IN    ) :: flag        !Bit to transform to LLA, MSL, terrain slope
       TYPE( puffT ),        DIMENSION(*),        INTENT( OUT   ) :: puffList    !puff data
       REAL,                 DIMENSION(*),        INTENT( OUT   ) :: auxData     !puff auxiliary data
       TYPE( puffTypeT ),    DIMENSION(*),        INTENT( OUT   ) :: typeList    !Puffs types
@@ -1200,6 +1200,22 @@ MODULE SCIPtool
 !DEC$ ENDIF
 
 !DEC$ IF DEFINED (DUALBUILD)
+    INTEGER FUNCTION SCIPLoadReleaseMCFOMP( CallerID,release,relList,relMCList )
+!DEC$ ELSE
+    INTEGER FUNCTION SCIPLoadReleaseMCF( CallerID,release,relList,relMCList )
+!DEC$ ENDIF
+      USE relstruct_fd
+      INTEGER,                                   INTENT( IN    ) :: CallerID     !USER ID tag
+      TYPE( preleaseT ),                         INTENT( INOUT ) :: release
+      TYPE( releaseT  ), DIMENSION(*),           INTENT( INOUT ) :: relList
+      TYPE( releaseMCT), DIMENSION(*),           INTENT( INOUT ) :: relMCList
+!DEC$ IF DEFINED (DUALBUILD)
+    END FUNCTION SCIPLoadReleaseMCFOMP
+!DEC$ ELSE
+    END FUNCTION SCIPLoadReleaseMCF
+!DEC$ ENDIF
+
+!DEC$ IF DEFINED (DUALBUILD)
     INTEGER FUNCTION SCIPLoadRunFOMP( CallerID,end )
 !DEC$ ELSE
     INTEGER FUNCTION SCIPLoadRunF( CallerID,end )
@@ -1225,21 +1241,6 @@ MODULE SCIPtool
     END FUNCTION SCIPLoadStartFOMP
 !DEC$ ELSE
     END FUNCTION SCIPLoadStartF
-!DEC$ ENDIF
-
-!DEC$ IF DEFINED (DUALBUILD)
-    INTEGER FUNCTION SCIPLoadStatusFOMP( CallerID,status,statList )
-!DEC$ ELSE
-    INTEGER FUNCTION SCIPLoadStatusF( CallerID,status,statList )
-!DEC$ ENDIF
-      USE statstruct_fd
-      INTEGER,                                   INTENT( IN    ) :: CallerID     !USER ID tag
-      TYPE( pstatusT ),                          INTENT( INOUT ) :: status
-      INTEGER, DIMENSION(*),                     INTENT( INOUT ) :: statList
-!DEC$ IF DEFINED (DUALBUILD)
-    END FUNCTION SCIPLoadStatusFOMP
-!DEC$ ELSE
-    END FUNCTION SCIPLoadStatusF
 !DEC$ ENDIF
 
 !DEC$ IF DEFINED (DUALBUILD)
@@ -1728,6 +1729,23 @@ MODULE SCIPtool
 !DEC$ ENDIF
 
 !DEC$ IF DEFINED (DUALBUILD)
+    INTEGER FUNCTION SCIPWriteReleaseMCFOMP( CallerID,release,relList,nMC,relMCList )
+!DEC$ ELSE
+    INTEGER FUNCTION SCIPWriteReleaseMCF( CallerID,release,relList,nMC,relMCList )
+!DEC$ ENDIF
+      USE relstruct_fd
+      INTEGER,                                   INTENT( IN ) :: CallerID     !USER ID tag
+      TYPE( preleaseT ),                         INTENT( IN ) :: release
+      TYPE( releaseT  ), DIMENSION(*),           INTENT( IN ) :: relList
+      INTEGER,                                   INTENT( IN ) :: nMC
+      TYPE( releaseMCT ), DIMENSION(*),          INTENT( IN ) :: relMCList
+!DEC$ IF DEFINED (DUALBUILD)
+    END FUNCTION SCIPWriteReleaseMCFOMP
+!DEC$ ELSE
+    END FUNCTION SCIPWriteReleaseMCF
+!DEC$ ENDIF
+
+!DEC$ IF DEFINED (DUALBUILD)
     INTEGER FUNCTION SCIPWriteRunFOMP( CallerID,end )
 !DEC$ ELSE
     INTEGER FUNCTION SCIPWriteRunF( CallerID,end )
@@ -1753,21 +1771,6 @@ MODULE SCIPtool
     END FUNCTION SCIPWriteStartFOMP
 !DEC$ ELSE
     END FUNCTION SCIPWriteStartF
-!DEC$ ENDIF
-
-!DEC$ IF DEFINED (DUALBUILD)
-    INTEGER FUNCTION SCIPWriteStatusFOMP( CallerID,status,statList )
-!DEC$ ELSE
-    INTEGER FUNCTION SCIPWriteStatusF( CallerID,status,statList )
-!DEC$ ENDIF
-      USE statstruct_fd
-      INTEGER,                                   INTENT( IN ) :: CallerID     !USER ID tag
-      TYPE( pstatusT ),                          INTENT( IN ) :: status
-      INTEGER, DIMENSION(*),                     INTENT( IN ) :: statList
-!DEC$ IF DEFINED (DUALBUILD)
-    END FUNCTION SCIPWriteStatusFOMP
-!DEC$ ELSE
-    END FUNCTION SCIPWriteStatusF
 !DEC$ ENDIF
 
 !DEC$ IF DEFINED (DUALBUILD)
@@ -1797,7 +1800,6 @@ MODULE SCIPtool
 !DEC$ ELSE
     END FUNCTION SCIPWriteWeatherF
 !DEC$ ENDIF
-
 
 !DEC$ IF DEFINED (DUALBUILD)
     INTEGER FUNCTION SCIPWriteSAGIDOMP( UserID,grdI,file,append )

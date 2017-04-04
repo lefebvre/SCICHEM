@@ -154,8 +154,6 @@ ELSE
 
   END SELECT
 
-  CALL AdjustLongitude( lon )
-
 !------ Convert from lat/lon to output coordinates
 
   SELECT CASE( coordO%type )
@@ -385,6 +383,109 @@ END DO
 DO WHILE( lon < -180. )
   lon = lon + 360.
 END DO
+
+RETURN
+END
+
+!==============================================================================
+
+SUBROUTINE AdjustLongitudeDom( lon,dlon )
+
+!------ Add/subtract 360 to maximize domain extent with respect to project
+
+USE SWIM_fi
+USE coordinate_fd
+USE checkErr_fd
+
+REAL, INTENT( INOUT ) :: lon
+REAL, INTENT( IN    ) :: dlon
+
+INTEGER mode
+REAL    lon1, x1, x2, lon0
+REAL    dx0, dxm, dxp
+LOGICAL lTest
+INTEGER, DIMENSION(1) :: i
+
+LOGICAL, EXTERNAL :: SpecialValueReal, HasPrjReference
+
+!------ Only adjust if project domain is set
+
+mode = IBSET(0,DEFAULT_BIT); mode = IBSET(mode,NOTSET_BIT); mode = IBSET(mode,DEFER_BIT)
+IF( .NOT.(SpecialValueReal(mode,prj%Xmin) .OR. SpecialValueReal(mode,prj%Xmax) .OR. &
+          SpecialValueReal(mode,prj%Ymin) .OR. SpecialValueReal(mode,prj%Ymax)) )THEN
+
+!------ Base on distance from project reference longitude if no extent is given
+
+  IF( dlon == NOT_SET_R )THEN
+
+    IF( HasPrjReference() )THEN
+      lon0 = Prj%Lon0
+    ELSE IF( Prj%coord == I_LATLON )THEN
+      lon0 = 0.5*(prj%Xmin+prj%Xmax)
+    ELSE
+      RETURN !Don't do anything if there's no project longitude
+    END IF
+
+    IF( lon-lon0 > 180. )THEN
+      lon = lon - 360.
+    ELSE IF( lon-lon0 < -180. )THEN
+      lon = lon + 360.
+    END IF
+
+!------ Define origin that results in largest (positive) extent
+
+  ELSE IF( Prj%coord == I_LATLON )THEN
+
+    lon1 = lon + dlon
+    dx0  = MIN(lon1,prj%Xmax) - MAX(lon,prj%Xmin)
+
+    IF( dx0 < 0.999*dlon )THEN
+
+      dxp = MIN(lon1+360.,prj%Xmax) - MAX(lon+360.,prj%Xmin)
+      dxm = MIN(lon1-360.,prj%Xmax) - MAX(lon-360.,prj%Xmin)
+
+      i =  MAXLOC((/dxm,dx0,dxp/))
+      SELECT CASE( i(1) )
+        CASE( 1 )
+          lon = lon - 360.
+        CASE( 3 )
+          lon = lon + 360.
+      END SELECT
+
+    END IF
+
+  ELSE  !UTM or Cartesian
+
+    IF( Prj%coord == I_UTM .AND. (Prj%UTMZone >= 1 .AND. Prj%UTMZone <= 60) )THEN
+      x1 = -183. + FLOAT(Prj%UTMZone)*6.  !Central longitude of zone
+      lTest = .TRUE.
+    ELSE IF( HasPrjReference() )THEN
+      x1 = Prj%Lon0
+      lTest = .TRUE.
+    ELSE
+      lTest = .FALSE.
+    END IF
+
+    IF( lTest )THEN
+      x2   = x1 + 9.    !Test with "extended zone" of -/+9 deg.
+      x1   = x1 - 9.
+      lon1 = lon + dlon
+      dx0  = MIN(lon1     ,x2) - MAX(lon     ,x1)
+      dxp  = MIN(lon1+360.,x2) - MAX(lon+360.,x1)
+      dxm  = MIN(lon1-360.,x2) - MAX(lon-360.,x1)
+
+      i =  MAXLOC((/dxm,dx0,dxp/))
+      SELECT CASE( i(1) )
+        CASE( 1 )
+          lon = lon - 360.
+        CASE( 3 )
+          lon = lon + 360.
+      END SELECT
+    END IF
+
+  END IF
+
+END IF
 
 RETURN
 END

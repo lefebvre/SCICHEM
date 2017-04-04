@@ -11,7 +11,7 @@ USE pcscipuf_fi
 USE files_fi
 USE script_fi
 USE animate_fi
-USE winAPI
+USE myWinAPI
 
 !     This is the message handler for the progress dialog box.
 
@@ -119,7 +119,7 @@ SUBROUTINE AbortScipuff()
 USE tooluser_fd
 USE pcscipuf_fi
 USE GUItool_fi
-USE winAPI
+USE myWinAPI
 USE SCIPtool
 
 !     This routine sets the SCIPUFF Abort parameter

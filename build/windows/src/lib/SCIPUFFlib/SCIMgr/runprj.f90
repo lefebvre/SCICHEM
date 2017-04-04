@@ -60,7 +60,7 @@ IF( irv /= SCIPsuccess )GOTO 9999
 
 !==== Set CallBack routine
 
-CALL setSWIMcallback(  GetMessageHandler(),userID,clockDelay,clockUpdate )
+CALL setSWIMcallback( GetMessageHandler(),userID,clockDelay,clockUpdate )
 
 !==== Set file names
 
@@ -170,10 +170,10 @@ CHARACTER(PATH_MAXLENGTH) string1, string2, string3
 
 LOGICAL lexist
 
-INTEGER, EXTERNAL :: sysDeleteFile, sysGetLastError
-INTEGER, EXTERNAL :: Write_Run
-INTEGER, EXTERNAL :: Check_End
-INTEGER, EXTERNAL :: GetMessageHandler
+INTEGER,              EXTERNAL :: sysDeleteFile, sysGetLastError
+INTEGER,              EXTERNAL :: Write_Run
+INTEGER,              EXTERNAL :: Check_End
+INTEGER(LEN_ADDRESS), EXTERNAL :: GetMessageHandler
 
 CHARACTER(PATH_MAXLENGTH), EXTERNAL :: AddExtension
 CHARACTER(PATH_MAXLENGTH), EXTERNAL :: StripExtension

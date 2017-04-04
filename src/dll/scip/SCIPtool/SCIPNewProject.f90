@@ -20,13 +20,15 @@ TYPE( materialT ),DIMENSION(*),  INTENT( INOUT ) :: mtlList !Material list
 TYPE( releaseT ), DIMENSION(*),  INTENT( INOUT ) :: relList !Release list
 
 INTERFACE
-  INTEGER FUNCTION NewProject( UserID,createNew,mtlList,relList,lWrite )
+  INTEGER FUNCTION NewProject( UserID,createNew,mtlList,relList,nMC,relMCList,lWrite )
     USE SCIMgr_fd
-    INTEGER,                                    INTENT( IN )    :: UserID !USER ID Tag
+    INTEGER,                                    INTENT( IN    ) :: UserID    !USER ID Tag
     TYPE( createNewT ),                 TARGET, INTENT( INOUT ) :: createNew !Project ID
-    TYPE( materialT ),  DIMENSION(*),   TARGET, INTENT( INOUT ) :: mtlList !Material list
-    TYPE( releaseT ),   DIMENSION(*),   TARGET, INTENT( INOUT ) :: relList !Release list
-    LOGICAL,                          OPTIONAL, INTENT( IN )    :: lWrite    !Write input files
+    TYPE( materialT ),  DIMENSION(*),   TARGET, INTENT( INOUT ) :: mtlList   !Material list
+    TYPE( releaseT ),   DIMENSION(*),   TARGET, INTENT( INOUT ) :: relList   !Release list
+    INTEGER,                          OPTIONAL, INTENT( IN    ) :: nMC       !Size of relMCList
+    TYPE( releaseMCT ), DIMENSION(*), OPTIONAL, INTENT( IN    ) :: relMCList !Release multicomponent list
+    LOGICAL,                          OPTIONAL, INTENT( IN    ) :: lWrite    !Write input files
   END FUNCTION NewProject
 END INTERFACE
 
@@ -86,17 +88,54 @@ TYPE( materialT ),DIMENSION(*),  INTENT( INOUT ) :: mtlList !Material list
 TYPE( releaseT ), DIMENSION(*),  INTENT( INOUT ) :: relList !Release list
 
 INTERFACE
-  INTEGER FUNCTION NewProject( UserID,createNew,mtlList,relList,lWrite )
+  INTEGER FUNCTION NewProject( UserID,createNew,mtlList,relList,nMC,relMCList,lWrite )
     USE SCIMgr_fd
-    INTEGER,                                    INTENT( IN    ) :: UserID !USER ID Tag
+    INTEGER,                                    INTENT( IN    ) :: UserID    !USER ID Tag
     TYPE( createNewT ),                 TARGET, INTENT( INOUT ) :: createNew !Project ID
-    TYPE( materialT ),  DIMENSION(*),   TARGET, INTENT( INOUT ) :: mtlList !Material list
-    TYPE( releaseT ),   DIMENSION(*),   TARGET, INTENT( INOUT ) :: relList !Release list
+    TYPE( materialT ),  DIMENSION(*),   TARGET, INTENT( INOUT ) :: mtlList   !Material list
+    TYPE( releaseT ),   DIMENSION(*),   TARGET, INTENT( INOUT ) :: relList   !Release list
+    INTEGER,                          OPTIONAL, INTENT( IN    ) :: nMC       !Size of relMCList
+    TYPE( releaseMCT ), DIMENSION(*), OPTIONAL, INTENT( IN    ) :: relMCList !Release multicomponent list
     LOGICAL,                          OPTIONAL, INTENT( IN    ) :: lWrite    !Write input files
   END FUNCTION NewProject
 END INTERFACE
 
 ProcessNewProject = NewProject( UserID,createNew,mtlList,relList,lWrite=.FALSE. )
+
+RETURN
+END
+!*******************************************************************************
+!            Create a Multicomponent Project
+!*******************************************************************************
+INTEGER FUNCTION ProcessNewProjectMC( UserID,createNew,mtlList,relList,nMC,relMCList )
+
+USE SCIMgr_fd
+
+IMPLICIT NONE
+
+!DEC# ATTRIBUTES DLLEXPORT :: ProcessNewProjectMC
+
+INTEGER,                          INTENT( IN    ) :: UserID !USER ID Tag
+TYPE( createNewT ),               INTENT( INOUT ) :: createNew !Project ID
+TYPE( materialT ),  DIMENSION(*), INTENT( INOUT ) :: mtlList !Material list
+TYPE( releaseT ),   DIMENSION(*), INTENT( INOUT ) :: relList !Release list
+INTEGER,                          INTENT( IN    ) :: nMC       !Size of relMCList
+TYPE( releaseMCT ), DIMENSION(*), INTENT( IN    ) :: relMCList !Release multicomponent list
+
+INTERFACE
+  INTEGER FUNCTION NewProject( UserID,createNew,mtlList,relList,nMC,relMCList,lWrite )
+    USE SCIMgr_fd
+    INTEGER,                                    INTENT( IN    ) :: UserID    !USER ID Tag
+    TYPE( createNewT ),                 TARGET, INTENT( INOUT ) :: createNew !Project ID
+    TYPE( materialT ),  DIMENSION(*),   TARGET, INTENT( INOUT ) :: mtlList   !Material list
+    TYPE( releaseT ),   DIMENSION(*),   TARGET, INTENT( INOUT ) :: relList   !Release list
+    INTEGER,                          OPTIONAL, INTENT( IN    ) :: nMC       !Size of relMCList
+    TYPE( releaseMCT ), DIMENSION(*), OPTIONAL, INTENT( IN    ) :: relMCList !Release multicomponent list
+    LOGICAL,                          OPTIONAL, INTENT( IN    ) :: lWrite    !Write input files
+  END FUNCTION NewProject
+END INTERFACE
+
+ProcessNewProjectMC = NewProject( UserID,createNew,mtlList,relList,nMC,relMCList,lWrite=.FALSE. )
 
 RETURN
 END

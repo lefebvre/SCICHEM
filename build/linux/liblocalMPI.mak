@@ -8,40 +8,49 @@ BD =../${PSrcDir}/src
 
 SRCS_f90 = dll/stub/MPI/stubMPI.f90
 
-OBJS_f90 := $(notdir $(subst .f90,.o,$(SRCS_f90)))
+OBJS_f90 := $(subst .f90,.o,$(SRCS_f90))
 
 SRCS_F90 = dll/stub/MPI/localMPI.F90
 
-OBJS_F90 := $(notdir $(subst .F90,.o,$(SRCS_F90)))
+OBJS_F90 := $(subst .F90,.o,$(SRCS_F90))
 
 SRCS_c = dll/stub/MPI/stubMPIc.c
 
-OBJS_c := $(notdir $(subst .c,.o,$(SRCS_c)))
+OBJS_c := $(subst .c,.o,$(SRCS_c))
 
 OBJS :=  $(OBJS_f90)  $(OBJS_F90)  $(OBJS_c) 
 
-all: $(PROG) separator
+DIRS = dll/stub/MPI
+
+all: $(DIRS) $(PROG) separator
 
 separator:
 	@echo ==========================================================================
+
+$(DIRS): FORCE
+	$(shell [ -d "$@" ] || mkdir -p "$@")
+
+FORCE:
 
 $(PROG): $(OBJS) $(LIBDEPENDS)
 	$(LB) $(LBFLAGS) $(PROG) $(OBJS)
 
 $(OBJS_f90): %.o:$(filter /\%.f90,$(SRCS_f90))
-	$(FC) $(FCFLAGS) $< 
+	$(FC) -o $@ $(FCFLAGS) $< 
 
 $(OBJS_F90): %.o:$(filter /\%.F90,$(SRCS_F90))
-	$(FC) $(FCFLAGS) $< $(CPPFLAGS) 
+	$(FC) -o $@ $(FCFLAGS) $< $(CPPFLAGS) 
 
 $(OBJS_c): %.o:$(filter /\%.c,$(SRCS_c))
-	$(CC) $(CCFLAGS) $< 
+	$(CC) -o $@ $(CCFLAGS) $<
 
-stubMPI.o:$(BD)/dll/stub/MPI/stubMPI.f90 
 
-localMPI.o:$(BD)/dll/stub/MPI/localMPI.F90  stubMPI.o $(INCMOD)
+dll/stub/MPI/stubMPI.o:$(BD)/dll/stub/MPI/stubMPI.f90 
 
-stubMPIc.o:$(BD)/dll/stub/MPI/stubMPIc.c 
+dll/stub/MPI/localMPI.o:$(BD)/dll/stub/MPI/localMPI.F90  \
+	  dll/stub/MPI/stubMPI.o $(INCMOD)
+
+dll/stub/MPI/stubMPIc.o:$(BD)/dll/stub/MPI/stubMPIc.c 
 
 
 # Entry for " make clean " to get rid of all object and module files 

@@ -121,45 +121,18 @@ MODULE nextRel_fi
 
   SAVE
 
-  INTEGER, DIMENSION(SCIPUFF_STATUS_ARRAY_SIZE) :: opmod
-  INTEGER, DIMENSION(TIME_STATUS_ARRAY_SIZE)    :: time_status
-  INTEGER, DIMENSION(DOMAIN_STATUS_ARRAY_SIZE)  :: domain_status
-
-  INTEGER opid
-  INTEGER relStatus
-  INTEGER subgroup ,rel_dist, rel_ityp
-
   INTEGER init_source
   INTEGER nsrc_prime
 
-  REAL     trel, zrel, cmass, size_rel, tdur
-  REAL(8)  xrel, yrel
-  REAL  sigx, sigy, sigz, urel, vrel, wrel, wmom, buoy
-  REAL  sigRxy, sigRxz, sigRyz
-  REAL umom,vmom
-  REAL kyprm, kzprm
-
-  REAL, DIMENSION(SCIPUFF_MAXRELPARAM) :: rel_param
 
   INTEGER nRandom
   REAL(8), DIMENSION(:), ALLOCATABLE :: xRandom, yRandom
   REAL,    DIMENSION(:), ALLOCATABLE :: zRandom
 
-  CHARACTER(4)   reltyp
-  CHARACTER(16)  relmat
-  CHARACTER(PATH_MAXLENGTH) name_rel
-  CHARACTER(32)  relName
-  CHARACTER(192) relDisplay
-
   LOGICAL ActiveSource
-  LOGICAL wake
-  LOGICAL prise
+  LOGICAL wake, prise
 
-  TYPE( FirstMCrel ) :: RelMC
-  TYPE( releaseMCT ), DIMENSION(:), ALLOCATABLE :: CurrentRelMC
-  TYPE( releaseT ) currentRelease
-  TYPE( puff_str ) puffRelease
-  TYPE( puff_liquid ) puffRelLiquid
+  TYPE( releaseSpecT ) currentSpec
   TYPE( StoreReleaseT ), TARGET :: InstReleaseList
 
 END MODULE nextRel_fi
@@ -173,28 +146,9 @@ MODULE scnRel_fi
 
   SAVE
 
-  INTEGER, DIMENSION(SCIPUFF_STATUS_ARRAY_SIZE) :: opmod_scn
-
-  INTEGER opid_scn
-  INTEGER relStatus_scn
-  INTEGER subgroup_scn ,rel_dist_scn
-
-  REAL, DIMENSION(SCIPUFF_MAXRELPARAM) :: rel_param_scn
 
   INTEGER numRelID
   TYPE( Data_relID ), DIMENSION(:), ALLOCATABLE :: releaseID
-
-  REAL     trel_scn, zrel_scn, cmass_scn ,size_scn, tdur_scn
-  REAL(8)  xrel_scn, yrel_scn
-  REAL  sigx_scn, sigy_scn, sigz_scn, urel_scn, vrel_scn, wrel_scn, wmom_scn, buoy_scn
-  REAL  sigRxy_scn, sigRxz_scn, sigRyz_scn
-  REAL umom_scn,vmom_scn
-
-  CHARACTER(4)   reltyp_scn
-  CHARACTER(PATH_MAXLENGTH) name_rel_scn
-  CHARACTER(16)  relmat_scn
-  CHARACTER(32)  relName_scn
-  CHARACTER(192) relDisplay_scn
 
 END MODULE scnRel_fi
 
@@ -242,6 +196,7 @@ MODULE type_fi
   REAL,             DIMENSION(:),   ALLOCATABLE :: buoy_fac
   REAL,             DIMENSION(:),   ALLOCATABLE :: vwash
   REAL,             DIMENSION(:,:), ALLOCATABLE :: twash
+  REAL,             DIMENSION(:),   ALLOCATABLE :: dwash
 
   INTEGER ntyps,    ntypd
   INTEGER nskp_dyn, nskp_dyn_gas
@@ -283,3 +238,33 @@ MODULE scipuff_fi
   USE type_fi
   USE time_fi
 END MODULE scipuff_fi
+
+MODULE release_fi
+  USE param_fd
+  INTEGER relStatus
+  INTEGER subgroup ,rel_dist, rel_ityp
+  REAL     trel, zrel, cmass, size_rel, tdur
+  REAL(8)  xrel, yrel
+  REAL  sigx, sigy, sigz, urel, vrel, wrel, wmom, buoy
+  REAL  sigRxy, sigRxz, sigRyz
+  REAL umom,vmom
+
+  REAL, DIMENSION(SCIPUFF_MAXRELPARAM) :: rel_param
+
+  CHARACTER(4)   reltyp
+  CHARACTER(16)  relmat
+  CHARACTER(PATH_MAXLENGTH) name_rel
+  CHARACTER(32)  relName
+  CHARACTER(192) relDisplay
+END MODULE release_fi
+
+MODULE puffRelease_fi
+  USE struct_fd
+
+  TYPE( puff_str ) puffRelease
+  TYPE( puff_liquid ) puffRelLiquid
+
+  REAL  puffWmom, puffBuoy
+
+
+END MODULE puffRelease_fi

@@ -6,7 +6,7 @@ SUBROUTINE init_DC( iwnd,jdc )
 USE resource_fd
 USE default_fd
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 USE pcscipuf_fi, ONLY: NULL_POINTER
 
 ! This routine creates a Device Context compatible with a window
@@ -80,7 +80,7 @@ SUBROUTINE dele_DC( jdc )
 
 USE resource_fd
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 !
 !     This routine deletes a compatible DC
 !
@@ -114,7 +114,7 @@ SUBROUTINE copy_bmp( iwnd,ihbmp,jwid,jhgt,iflg )
 USE resource_fd
 USE default_fd
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 USE pcscipuf_fi, ONLY: NULL_POINTER
 
 ! This routine copies the window image to a bitmap
@@ -284,7 +284,7 @@ SUBROUTINE bmp_clipboard( iwnd,ihbmp )
 
 USE resource_fd
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 !
 !     This routine copies a bitmap image to the clipboard
 !
@@ -347,7 +347,7 @@ SUBROUTINE save_bmp( ihbmp,filename )
 USE resource_fd
 USE errorParam_fd
 USE dib
-USE winAPI
+USE myWinAPI
 USE DefSize_fd
 USE pcscipuf_fi, ONLY: NULL_POINTER
 
@@ -422,7 +422,7 @@ USE errorParam_fd
 USE GUIerror_fi
 USE pcscipuf_fi
 USE animate_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine copies the bitmap image back to the window
 !
@@ -510,7 +510,7 @@ USE resource_fd
 USE errorParam_fd
 USE pcscipuf_fi
 USE animate_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine copies the bitmap image back to the window
 !
@@ -558,7 +558,7 @@ SUBROUTINE load_bmp( iwnd,ihbmp,filename )
 USE resource_fd
 USE errorParam_fd
 USE GUIerror_fi
-USE winAPI
+USE myWinAPI
 USE pcscipuf_fi, ONLY: NULL_POINTER
 !
 !     This routine reads a bitmap from a file
@@ -711,7 +711,7 @@ SUBROUTINE load_pcx( iwnd,ihbmp,filename )
 
 USE resource_fd
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 USE Pcx
 !
 !     This routine reads a bitmap from a file
@@ -782,7 +782,7 @@ USE resource_fd
 USE errorParam_fd
 USE default_fd
 USE dib
-USE winAPI
+USE myWinAPI
 USE Pcx
 USE pcscipuf_fi, ONLY: NULL_POINTER
 

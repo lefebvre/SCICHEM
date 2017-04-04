@@ -43,9 +43,11 @@ SELECT CASE( TRIM(carg(ikwrd)) )
 
     BACKSPACE(lun,IOSTAT=ios)
 
-!------ Re-read line to handle files names with spaces
+!------ Re-read line "as is" since case matters for path and file names on Linux
+!       and to handle files names with spaces
 
     CALL get_next_data( lun,line,nch,kwrd,narg,carg,MAXN,lerr )
+
 
     metInp(nMet)%file = TRIM(BuildFileNameAERMOD(carg(ikwrd+1),line,path_in))
     metInp(nMet)%type = MET_AERSRF
@@ -56,7 +58,7 @@ SELECT CASE( TRIM(carg(ikwrd)) )
       WRITE(*,'(A)') 'Insufficient ME PROFFILE input'
       GOTO 9999
     ELSE IF( narg-ikwrd > 1 )THEN
-      WRITE(*,'(A)') 'Too much ME SURFFILE input'
+      WRITE(*,'(A)') 'Too much ME PROFFILE input'
       WRITE(*,'(A)') 'Only file name should be specified'
       GOTO 9999
     END IF
@@ -185,9 +187,11 @@ SELECT CASE( TRIM(carg(ikwrd)) )
 
     BACKSPACE(lun,IOSTAT=ios)
 
-!------ Re-read line to handle files names with spaces
+!------ Re-read line "as is" since case matters for path and file names on Linux
+!       and to handle files names with spaces
 
     CALL get_next_data( lun,line,nch,kwrd,narg,carg,MAXN,lerr )
+
 
     metInp(nMet)%file = TRIM(BuildFileNameAERMOD(carg(ikwrd+1),line,path_in))
     metInp(nMet)%type = MET_ASOS1M
@@ -353,6 +357,7 @@ SELECT CASE( TRIM(carg(ikwrd)) )
 
     BACKSPACE(lun,IOSTAT=ios)
     CALL get_next_data( lun,line,nch,kwrd,narg,carg,MAXN,lerr )
+    CALL cupper( carg(2) )
 
     SELECT CASE( TRIM(carg(ikwrd+1)) )
       CASE( 'MEDOC' )

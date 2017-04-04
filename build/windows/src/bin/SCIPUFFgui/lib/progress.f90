@@ -7,7 +7,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE files_fi
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 USE guiAPI
 USE cfocus_pb
 
@@ -78,7 +78,7 @@ SUBROUTINE kill_progress()
 USE resource_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 USE cfocus_pb
 
 !     This routine kills the progress box
@@ -114,7 +114,7 @@ SUBROUTINE enable_halt( iflag )
 USE resource_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine enables the halt button in the progress box
 
@@ -184,7 +184,7 @@ SUBROUTINE disable_halt( iflag )
 USE resource_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine disables the halt button in the progress box
 
@@ -238,7 +238,7 @@ SUBROUTINE check_messages()
 USE resource_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine checks for progress box messages
 
@@ -298,7 +298,7 @@ SUBROUTINE post_write_progress( m1,m2,m3 )
 USE resource_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine updates the progress box display
 
@@ -346,7 +346,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE files_fi
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 
 !     This routine positions the progress box
 
@@ -478,7 +478,7 @@ END
 !***********************************************************************
 SUBROUTINE pause_progress()
 
-USE winAPI
+USE myWinAPI
 
 !     This routine sleeps for 2 seconds - Only works in NT
 
@@ -496,7 +496,7 @@ SUBROUTINE show_progress( jflg,iflg )
 USE resource_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine creates the progress box
 
@@ -525,7 +525,7 @@ SUBROUTINE post_write_progress_bar( m )
 USE resource_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine updates the progress box display
 
@@ -565,7 +565,7 @@ SUBROUTINE init_progressbar()
 
 USE resource_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -586,7 +586,7 @@ SUBROUTINE set_progressbar(ib)
 
 USE resource_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 INTEGER, INTENT(IN) :: ib
 

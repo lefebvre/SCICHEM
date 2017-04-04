@@ -86,20 +86,6 @@ MODULE multcomp_fd
   INTEGER, PARAMETER :: ATB_MEDOC      = 0 !MEDOC ambient file
   INTEGER, PARAMETER :: ATB_BINARY     = 4 !Binary file
 
-!------ Multi-component data structures
-
-TYPE MCrelData
-  SEQUENCE
-  CHARACTER(16)              :: MCname
-  REAL                       :: MCmass
-  TYPE( MCrelData ), POINTER :: next
-END TYPE MCrelData
-
-TYPE FirstMCrel
-  SEQUENCE
-  INTEGER nList
-  TYPE( MCrelData ), POINTER :: rel
-END TYPE FirstMCrel
 
 TYPE ChemSpecies_str
   SEQUENCE
@@ -120,6 +106,11 @@ TYPE ChemSpecies_str
   REAL          :: tauwet         !
   REAL          :: nit            ! Number of nitrogen molecules for balance
   REAL          :: lim            ! Volume limit for species
+  REAL          :: Henry0  !EPRI model Henry's law constant for species at 298 K
+  REAL          :: TpFac   !EPRI model temperature factor for Henry's law constant
+  REAL          :: RxFac   !EPRI model reactivity factor
+  REAL          :: SrfRFac !EPRI surface resistance scaling factor
+  LOGICAL       :: ldrydep !EPRI dry deposition flag
 
 !---- Working storage
   REAL    mass
@@ -276,10 +267,12 @@ TYPE ChemMC_str
 
   INTEGER nFast         !No. of fast species
   INTEGER nSlow         !No. of slow species
+  INTEGER nGaseous      !No. of gaseous species
   INTEGER nParticle     !No. of particle species
   INTEGER nEquilibrium  !No. of equilibrium species
   TYPE( ChemSpecies_ptr ), DIMENSION(:), POINTER :: fast
   TYPE( ChemSpecies_ptr ), DIMENSION(:), POINTER :: slow
+  TYPE( ChemSpecies_ptr ), DIMENSION(:), POINTER :: gaseous
   TYPE( ChemSpecies_ptr ), DIMENSION(:), POINTER :: particle
   TYPE( ChemSpecies_ptr ), DIMENSION(:), POINTER :: equil
 

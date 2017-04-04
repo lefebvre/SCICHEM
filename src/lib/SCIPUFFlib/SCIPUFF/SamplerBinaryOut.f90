@@ -22,7 +22,7 @@ INTEGER, EXTERNAL :: WriteBinaryInt, WriteBinaryInt8
 CALL init_binary_sampler()
 IF( nError /= NO_ERROR )GOTO 9999
 
-nError = WR_ERROR
+nError   = WR_ERROR
 eRoutine = 'out_smp'
 eMessage = 'Error writing output time to binary sampler file'
 
@@ -61,7 +61,6 @@ USE SamplerGridOuput
 IMPLICIT NONE
 
 INTEGER ios, alloc_stat
-LOGICAL lSPS
 INTEGER i, j
 INTEGER ni, nj
 INTEGER mcID, iv
@@ -90,13 +89,29 @@ IF( .NOT.lIsSPSOpened )THEN
 
   lIsSPSOpened = .TRUE.
 
+  IF( lLOSSmp )THEN
+    DO is = 1,nsmp
+      IF( .NOT.BTEST(smp(is)%stype,STB_LOS) )THEN
+        nError   = IV_ERROR
+        eMessage = 'Mixing LOS and non-LOS sensorS with binary output'
+        eInform  = 'Must be all LOS or none'
+        eAction  = 'Try ASCII output'
+        GOTO 9999
+      END IF
+    END DO
+  END IF
+
 ! **************************************
 ! BINARY SAMPLER OUTPUT FILE MAIN HEADER
 ! **************************************
 
   isps = 1  !Record count
 
-  strSPSString = "SCIPUFF Samplers"
+  IF( lLOSSmp )THEN
+    strSPSString = "SCIPUFF Concentration LOS Samplers"
+  ELSE
+    strSPSString = "SCIPUFF Samplers"
+  END IF
   ios = WriteBinaryString( lun_sps,isps,strSPSString ); IF( ios /= 0 )GOTO 9999
 
   sngSPS = 1.4     !SPS file version
@@ -203,7 +218,6 @@ IF( .NOT.lIsSPSOpened )THEN
         ELSE
           sngSPS = smp(is)%x
         END IF
-        IF( xref /= NOT_SET_R )sngSPS = sngSPS + xref
         IF( lKmToM )sngSPS = sngSPS * 1000.
         ios = WriteBinaryReal( lun_sps,isps,sngSPS ); IF( ios /= 0 )GOTO 9999
 
@@ -212,12 +226,20 @@ IF( .NOT.lIsSPSOpened )THEN
         ELSE
           sngSPS = smp(is)%y
         END IF
-        IF( yref /= NOT_SET_R )sngSPS = sngSPS + yref
         IF( lSouthern )sngSPS = sngSPS + 10000  !Only for UTM - assumed in KM
         IF( lKmToM )sngSPS = sngSPS * 1000.
         ios = WriteBinaryReal( lun_sps,isps,sngSPS ); IF( ios /= 0 )GOTO 9999
         sngSPS = smp(is)%z + hmin
         ios = WriteBinaryReal( lun_sps,isps,sngSPS ); IF( ios /= 0 )GOTO 9999
+
+        IF( lLOSSmp )THEN
+          sngSPS = smp(is)%az
+          ios = WriteBinaryReal( lun_sps,isps,sngSPS ); IF( ios /= 0 )GOTO 9999
+          sngSPS = smp(is)%el
+          ios = WriteBinaryReal( lun_sps,isps,sngSPS ); IF( ios /= 0 )GOTO 9999
+          sngSPS = smp(is)%dist
+          ios = WriteBinaryReal( lun_sps,isps,sngSPS ); IF( ios /= 0 )GOTO 9999
+        END IF
 
       END DO
     END  DO
@@ -234,18 +256,21 @@ IF( .NOT.lIsSPSOpened )THEN
   END IF
 
   DO is = 1,nSampClass     !Set units based on first nSampClass samplers (at first location); set class string too
-    SELECT CASE( smp(is)%type )
-      CASE DEFAULT  !Assumes material-based (should be ok based on previous checks)
-        intSPSMaterial = typeID(smp(is)%is)%imat
+        IF( BTEST(smp(is)%stype,STB_DEP) )THEN
+          intSPSMaterial = smp(is)%npts
+        ELSE
+          intSPSMaterial = typeID(smp(is)%is)%imat
+        END IF
         units = TRIM(material(intSPSMaterial)%unit) !Mass units
         class = TRIM(material(intSPSMaterial)%ccls) !Material class
-    END SELECT
-    IF( BTEST(smp(is)%stype,STB_DEP) )THEN
-      units = TRIM(units)//'/m^2'
-    ELSE
-      units = TRIM(units)//'/m^3'
-    END IF
-    IF( BTEST(smp(is)%stype,STB_INTEGRATE) )units = TRIM(units)//'-sec'
+        IF( BTEST(smp(is)%stype,STB_DEP) )THEN
+          units = TRIM(units)//'/m^2'
+        ELSE IF( lLOSSmp )THEN
+          units = TRIM(units)//'/m^2'
+        ELSE
+          units = TRIM(units)//'/m^3'
+        END IF
+        IF( BTEST(smp(is)%stype,STB_INTEGRATE) )units = TRIM(units)//'-sec'
     unitsStr(is) = TRIM(units)
     classStr(is) = TRIM(class)
   END DO
@@ -257,6 +282,10 @@ IF( .NOT.lIsSPSOpened )THEN
   DO is = 1,nSampClass
     intSPS = intSPS + 1
     IF( lOutputVariance )intSPS = intSPS + 1
+    IF( BTEST(smp(is)%stype,STB_DEP) .AND. smp(is)%ie == -1 )THEN
+      intSPS = intSPS + 1
+      IF( lOutputVariance )intSPS = intSPS + 1
+    END IF
   END DO
   ios = WriteBinaryInt( lun_sps,isps,intSPS ); IF( ios /= 0 )GOTO 9999
 
@@ -288,6 +317,25 @@ IF( .NOT.lIsSPSOpened )THEN
       units = '('//TRIM(units)//')^2'
       ios = WriteBinaryString( lun_sps,isps,units ); IF( ios /= 0 )GOTO 9999
     END IF
+
+    IF( BTEST(smp(intSPSLoop)%stype,STB_DEP) .AND. smp(intSPSLoop)%ie == -1 )THEN
+      units = TRIM(unitsStr(intSPSLoop))
+      strSPSString = TRIM(strSave)//" surface"
+      ios = WriteBinaryString( lun_sps,isps,strSPSString ); IF( ios /= 0 )GOTO 9999
+      strSPSString = TRIM(classStr(intSPSLoop))
+      ios = WriteBinaryString( lun_sps,isps,strSPSString ); IF( ios /= 0 )GOTO 9999
+      ios = WriteBinaryString( lun_sps,isps,units ); IF( ios /= 0 )GOTO 9999
+      IF( lOutputVariance )THEN
+        strSPSString = TRIM(strSave)//" surface variance"
+        ios = WriteBinaryString( lun_sps,isps,strSPSString ); IF( ios /= 0 )GOTO 9999
+        strSPSString = TRIM(classStr(intSPSLoop))
+        ios = WriteBinaryString( lun_sps,isps,strSPSString ); IF( ios /= 0 )GOTO 9999
+        units = '('//TRIM(units)//')^2'
+        ios = WriteBinaryString( lun_sps,isps,units ); IF( ios /= 0 )GOTO 9999
+      END IF
+    END IF
+
+
   END DO
 
 !------ Save current file position so we can come back to write number of times in the file
@@ -477,6 +525,29 @@ DO intSPSLoop = 1,intSPSMaterialCount
     END DO
   END IF
 
+  IF( lDepS )THEN
+
+    DO is = iFirstSmp,nsmp,intSPSMaterialCount
+      IF( BTEST(smp(is)%stype,STB_DEP) .AND. smp(is)%ie == -1 )THEN  !Deposition remaining on surface
+        sngSPS = smp(is)%dsmp(3)*fac
+        ios = WriteBinaryReal( lun_sps,isps,sngSPS ); IF( ios /= 0 )GOTO 9999
+      END IF
+    END DO
+
+    IF( lOutputVariance )THEN                                    !Scale variance
+      DO is = iFirstSmp,nsmp,intSPSMaterialCount
+        IF( BTEST(smp(is)%stype,STB_DEP) .AND. smp(is)%ie == -1 )THEN  !Deposition remaining on surface
+          IF( smp(is)%dsmp(1) > 0. .AND. smp(is)%dsmp(3) > 0. )THEN
+            sngSPS = smp(is)%dsmp(2)*fac**2 * smp(is)%dsmp(3)/smp(is)%dsmp(1)
+          ELSE
+            sngSPS = 0.
+          END IF
+          ios = WriteBinaryReal( lun_sps,isps,sngSPS ); IF( ios /= 0 )GOTO 9999
+        END IF
+      END DO
+    END IF
+
+  END IF
 END DO
 
 CALL init_error()

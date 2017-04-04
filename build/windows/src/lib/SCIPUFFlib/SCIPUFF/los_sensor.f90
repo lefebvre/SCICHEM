@@ -86,24 +86,24 @@ IF( cfac(1) > SMALL )THEN
   IF( los%r > 0. )sl = MIN(sl,los%r)
   cfac(2) = sl*MAX(cfac(2),0.)
 
-  CALL mapfac( p%xbar,p%ybar,xmap,ymap )
+!---- Set puff centroid as origin
+
+  xbar = SNGL(p%xbar)
+  ybar = SNGL(p%ybar)
+  zbar = p%zbar
+  zc   = p%zc - zbar
+  lcap = zc >= 0.
+
+  CALL mapfac( xbar,ybar,xmap,ymap )
 
 !---- Set terrain parameters
 
   IF( lter )THEN
     ifld = getPuffifld(p)
-    CALL get_topogIn( p%xbar,p%ybar,hz,hx,hy,ifld )
+    CALL get_topogIn( xbar,ybar,hz,hx,hy,ifld )
   ELSE
     hx = 0.; hy = 0.; hz = 0.
   END IF
-
-!---- Set puff centroid as origin
-
-  xbar = p%xbar
-  ybar = p%ybar
-  zbar = p%zbar
-  zc   = p%zc - zbar
-  lcap = zc >= 0.
 
 !---- Set sensor location relative to puff centroid
 
@@ -393,18 +393,17 @@ IMPLICIT NONE
 TYPE( los_str ), INTENT( IN  ) :: los !LOS structure
 REAL,            INTENT( OUT ) :: s   !Distance along LOS to intersection with ground
 
-REAL    xmap, ymap
+INTEGER irv, nxb, nyb
+INTEGER i1, j1, i2, j2, ip, jp, inc
+REAL    xmin1, ymin1, dxb, dyb
 REAL    x1, y1, z1, x2, y2
+REAL    xb1, xb2, yb1, yb2
+REAL    xp, yp, xmap, ymap
 REAL    lx, ly, lz, fx, fy
 REAL    sx, sy, s0, ds
-REAL    xb1, xb2, yb1, yb2
-REAL    xp, yp, xb, yb
-REAL    xmin1, ymin1, dxb, dyb
 LOGICAL lcnv
-INTEGER irv
-INTEGER nxb, nyb
-INTEGER i1, j1, i2, j2, ip, jp, inc
 
+REAL, DIMENSION(2) :: LOSdir, xmet
 REAL, DIMENSION(4) :: h
 
 LOGICAL, EXTERNAL :: intersect_los
@@ -430,19 +429,26 @@ x1 = los%x ;  y1 = los%y ; z1 = los%z
 
 IF( lcnv )THEN
   irv = SWIMcnvCoord( x1,y1,PrjCoord,xp,yp,MetGrid(1)%coord )
-  CALL SWIMmapfac( MetGrid(1)%coord,xp,yp,xmap,ymap )
 ELSE
   xp = x1; yp = y1
-  CALL mapfac( x1,y1,xmap,ymap )
 END IF
 
 i1 = INT((xp-xmin1)/dxb) + 1 ; j1 = INT((yp-ymin1)/dyb) + 1
 
-!----- Point to next terrain grid location
+!------ Roate LOS direction into met coordinates
 
-lx = SIGN(MAX(ABS(los%lx),1.e-10),los%lx); ip = NINT(SIGN(1.,lx))
-ly = SIGN(MAX(ABS(los%ly),1.e-10),los%ly); jp = NINT(SIGN(1.,ly))
-lz = los%lz
+lx = los%lx; ly = los%ly; lz = los%lz
+
+IF( lcnv )THEN
+  LOSdir = (/los%lx,los%ly/); xmet = (/xp,yp/)
+  CALL RotateLOS( LOSdir,xmet,MetGrid(1)%coord )
+  lx = LOSdir(1); ly = LOSdir(2)
+END IF
+
+!----- Point to next terrain grid cell
+
+ip = NINT(SIGN(1.,lx))
+jp = NINT(SIGN(1.,ly))
 
 !----- Set grid indices for stepping along LOS
 
@@ -455,8 +461,7 @@ xb2 = xmin1 + FLOAT(i2-1)*dxb
 yb2 = ymin1 + FLOAT(j2-1)*dyb
 
 IF( lcnv )THEN
-  irv = SWIMcnvCoord( xb2,yb2,MetGrid(1)%coord,xp,yp,PrjCoord )
-  xb2 = xp; yb2 = yp
+  x1 = xp; y1 = yp  !Met coordinates
 END IF
 
 !----- Check for special case where x or y lie exactly on xb(i2) or yb(j2)
@@ -475,22 +480,12 @@ s = 0.
 
 DO
 
+!------ Setup bounding cell (met coordinates)
+
   xb1 = xmin1 + FLOAT(i1-1)*dxb
   xb2 = xmin1 + FLOAT(i2-1)*dxb
   yb1 = ymin1 + FLOAT(j1-1)*dyb
   yb2 = ymin1 + FLOAT(j2-1)*dyb
-
-  IF( lcnv )THEN
-    xb = xb1 + 0.5*dxb; yb = yb1 + 0.5*dyb
-    irv = SWIMcnvCoord( xb1,yb,MetGrid(1)%coord,xp,yp,PrjCoord )
-    xb1 = xp
-    irv = SWIMcnvCoord( xb2,yb,MetGrid(1)%coord,xp,yp,PrjCoord )
-    xb2 = xp
-    irv = SWIMcnvCoord( xb,yb1,MetGrid(1)%coord,xp,yp,PrjCoord )
-    yb1 = yp
-    irv = SWIMcnvCoord( xb,yb2,MetGrid(1)%coord,xp,yp,PrjCoord )
-    yb2 = yp
-  END IF
 
 !----- Terminate if outside terrain domain
 
@@ -499,13 +494,23 @@ DO
     EXIT
   END IF
 
-  CALL mapfac( x1,y1,xmap,ymap )
-
 !----- Find distance along LOS to intersection with next x- and y-grid locations
 
-  sx = (xb2-x1)/(lx*xmap); sy = (yb2-y1)/(ly*ymap)
+  IF( lcnv )THEN
+    LOSdir = (/los%lx,los%ly/); xmet = (/x1,y1/)
+    CALL RotateLOS( LOSdir,xmet,MetGrid(1)%coord )
+    lx = LOSdir(1); ly = LOSdir(2)
+    CALL SWIMmapfac( MetGrid(1)%coord,x1,y1,xmap,ymap )
+  ELSE
+    CALL mapfac( x1,y1,xmap,ymap )
+  END IF
 
-!----- Use closest
+  fx = SIGN(MAX(ABS(lx),1.E-10),lx)*xmap
+  fy = SIGN(MAX(ABS(ly),1.E-10),ly)*ymap
+
+  sx = (xb2-x1)/fx; sy = (yb2-y1)/fy
+
+!----- Use closest intersection
 
   IF( sx < sy )THEN
     s0 = sx
@@ -521,9 +526,8 @@ DO
     inc = 0
   END IF
 
-!----- Setup input for finding intersection
-
-!----- Terrain elevations of bounding cell
+!----- Setup input for finding intersection:
+!      Terrain elevations of bounding cell
 
   h(1) = MetGrid(1)%H((j1-1)*nxb+i1)
   h(2) = MetGrid(1)%H((j1-1)*nxb+i2)
@@ -532,13 +536,13 @@ DO
 
 !----- Factors for converting x,y to distance along LOS
 
-  IF( lcnv )CALL SWIMmapfac( MetGrid(1)%coord,xb,yb,xmap,ymap )
   fx = FLOAT(ip)*lx*xmap/dxb; fy = FLOAT(jp)*ly*ymap/dyb
 
-!----- Look for intersection
+!----- Look for intersection (and termination of LOS)
 
   IF( intersect_los(x1,y1,z1,s0,xb1,xb2,yb1,yb2,fx,fy,lz,h,ds) )THEN
-    s = s + ds; EXIT
+    s = s + ds  !; EXIT
+    exit
   END IF
 
 !----- None found; increment grid indices
@@ -563,7 +567,7 @@ END
 
 !===============================================================================
 
-LOGICAL FUNCTION intersect_los( x1,y1,z1,ds,xb1,xb2,yb1,yb2,fx,fy,fz,h,s )
+LOGICAL FUNCTION intersect_los( x1,y1,z1,s4,xb1,xb2,yb1,yb2,fx4,fy4,fz4,h,s )
 
 !------ Find intersection of LOS through (x1,y1,z1),
 !       with direction determined by fx,fy & fz
@@ -572,19 +576,20 @@ USE constants_fd
 
 IMPLICIT NONE
 
-REAL,               INTENT( IN  ) :: x1,y1,z1 !Starting point
-REAL,               INTENT( IN  ) :: ds       !Maximum length along LOS
-REAL,               INTENT( IN  ) :: xb1,xb2  !x-coordinates of bounding grid cell
-REAL,               INTENT( IN  ) :: yb1,yb2  !y-coordinates of bounding grid cell
-REAL,               INTENT( IN  ) :: fx,fy,fz !Factors for converting distance to project coordinates
-REAL, DIMENSION(4), INTENT( IN  ) :: h        !Array of elevation at corners of bounding grid cell
-REAL,               INTENT( OUT ) :: s        !Distance from (x1,y1,z1) to terrain intersection
+REAL,               INTENT( IN  ) :: x1,y1,z1    !Starting point
+REAL,               INTENT( IN  ) :: s4          !Maximum length along LOS
+REAL,               INTENT( IN  ) :: xb1,xb2     !x-coordinates of bounding grid cell
+REAL,               INTENT( IN  ) :: yb1,yb2     !y-coordinates of bounding grid cell
+REAL,               INTENT( IN  ) :: fx4,fy4,fz4 !Factors for converting distance to met coordinates
+REAL, DIMENSION(4), INTENT( IN  ) :: h           !Array of elevation at corners of bounding grid cell
+REAL,               INTENT( OUT ) :: s           !Distance from (x1,y1,z1) to terrain intersection
 
-REAL h1, h2, h3, h4
-REAL dx, dy
-REAL x0, y0
-REAL dh, aq, bq, c, d, f, sqrtd
-REAL s1, s2
+REAL(8) h1, h2, h3, h4
+REAL(8) dx, dy
+REAL(8) x0, y0
+REAL(8) dh, aq, bq, c, d, f, sqrtd
+REAL(8) s1, s2
+REAL(8) s0, fx, fy, fz
 
 !------ Initialize to false
 
@@ -593,47 +598,49 @@ intersect_los = .FALSE.; s = 1.e+36
 !------ Setup for solving quadratic equation, i.e,
 !       LOS elevation minus terrain as function of distance along LOS
 
-h1 = h(1)
-h2 = h(2) - h1; h3 = h(3) - h1; h4 = h(4) - h1
+h1 = DBLE(h(1))
+h2 = DBLE(h(2)) - h1; h3 = DBLE(h(3)) - h1; h4 = DBLE(h(4)) - h1
 dh = h3 - h2 - h4
 
-dx = xb2-xb1;     dy = yb2-yb1
-x0 = (x1-xb1)/dx; y0 = (y1-yb1)/dy
+dx = DBLE(xb2)-DBLE(xb1);     dy = DBLE(yb2)-DBLE(yb1)
+x0 = (DBLE(x1)-DBLE(xb1))/dx; y0 = (DBLE(y1)-DBLE(yb1))/dy
+
+s0 = DBLE(s4); fx = DBLE(fx4); fy = DBLE(fy4); fz = DBLE(fz4)
 
 aq = -fx*fy*dh
 bq = fz - (fx*h2 + fy*h4 + (x0*fy+y0*fx)*dh)
-c  = z1 - (h1 + x0*h2 + y0*h4 + x0*y0*dh)
+c  = DBLE(z1) - (h1 + x0*h2 + y0*h4 + x0*y0*dh)
 
 !------ Check if intersection is possible
 
-f = aq*ds*ds + bq*ds + c      !Function at endpoint (assume always > 0 at start pt.)
+f = aq*s0*s0 + bq*s0 + c      !Function at endpoint (assume always > 0 at start pt.)
 
 IF( f > 0. )THEN              !No intersection possible unless a
                               !minimum exists along the LOS
   IF(  aq <= 0.       )RETURN !No minimum possible
   IF(  bq >= 0.       )RETURN !No positive s intersection possible
-  IF( -bq >= 2.*aq*ds )RETURN !Minimum outside range
+  IF( -bq >= 2.*aq*s0 )RETURN !Minimum outside range
 
 END IF
 
 !------ Solve quadratic equation
 
-IF( ABS(aq*c) > SPACING(bq*bq) )THEN
+IF( DABS(aq*c) > SPACING(bq*bq) )THEN
 
   d = bq*bq - 4.*aq*c
   IF( d >= 0. )THEN
-    sqrtd = SQRT(d)
+    sqrtd = DSQRT(d)
     s1 = (-bq - sqrtd)/(2.*aq); s2 = (-bq + sqrtd)/(2.*aq)
     IF( s1 > 0. .AND. s2 > 0. )THEN
-      s = MIN( s1,s2 )
-      IF( s > ds )THEN
-        s = 1.e+36
+      s = DMIN1( s1,s2 )
+      IF( s > s0 )THEN
+        s = 1.E+36
         RETURN
       END IF
-    ELSE IF( s1 >= 0. .AND. s1 <= ds )THEN
-      s = s1
-    ELSE IF( s2 >= 0. .AND. s2 <= ds )THEN
-      s = s2
+    ELSE IF( s1 >= 0. .AND. s1 <= s0 )THEN
+      s = SNGL(s1)
+    ELSE IF( s2 >= 0. .AND. s2 <= s0 )THEN
+      s = SNGL(s2)
     ELSE
       RETURN
     END IF
@@ -643,11 +650,11 @@ IF( ABS(aq*c) > SPACING(bq*bq) )THEN
 
 !------ Solve linear equation
 
-ELSE IF( ABS(bq) > SMALL )THEN
+ELSE IF( DABS(bq) > SMALL )THEN
 
   s1 = -c/bq
-  IF( s1 > 0. .AND. s1 <= ds )THEN
-    s = s1
+  IF( s1 > 0. .AND. s1 <= s0 )THEN
+    s = SNGL(s1)
   ELSE
     RETURN
   END IF
@@ -663,3 +670,114 @@ intersect_los = .TRUE.
 RETURN
 END
 
+!==============================================================================
+
+SUBROUTINE RotateLOS( LOSdir,x,coordI )
+
+!------ Rotate LOS direction unit vector in ENU coordinates to met coordinates
+!       N.B. No rotation for lat/lon, UTM or Cartesian met grid
+!
+!       N.B. Not valid for latitudes > 89
+
+USE SWIMparam_fd
+USE MapCoord_fd
+USE coordinate_fd
+USE constants_fd
+
+IMPLICIT NONE
+
+REAL, DIMENSION(2),  INTENT( INOUT ) :: LOSdir
+REAL, DIMENSION(2),  INTENT( IN    ) :: x
+TYPE( MapCoord    ), INTENT( IN    ) :: coordI
+
+INTEGER irv
+REAL    lat, lon
+REAL    rot, s, c, lx, ly
+
+TYPE( MapCoord ) :: coordO
+
+INTEGER, EXTERNAL :: SWIMcnvCoord
+REAL,    EXTERNAL :: sind, cosd
+
+!------ Get lat/lon
+
+CALL SetLLcordStr( coordO )
+irv = SWIMcnvCoord( x(1),x(2),coordI,lon,lat,coordO )
+
+IF( ABS(lat) > 89. )GOTO 9999
+
+!------ Set rotation for "special" map types
+
+SELECT CASE( coordI%type )
+  CASE( I_LAMBERT,I_POLAR,I_RPOLAR,I_ROTLL )
+
+    IF( coordI%type == I_RPOLAR )THEN
+      rot = SIND(lat)
+      c   = 1. + rot**2
+      s   = (c*coordI%sp0 + coordI%cp0**2*rot)*SIND(lon-coordI%Lon0)
+      c   = c*COSD(lon-coordI%Lon0) + coordI%cp0*COSD(lat)
+      rot = ATAN2(s,c)
+    ELSE IF( coordI%type == I_ROTLL )THEN
+      c   = coordI%cp0*COSD(lat) - coordI%sp0*SIND(lat)*COSD(lon) !N.B. lat,lon on rotated sphere
+      s   = coordI%sp0*SIND(lon)
+      rot = ATAN2(s,c)
+    ELSE
+      rot = (lon - coordI%Lon0)*PI180 * coordI%n
+    END IF
+
+    IF( ABS(rot) < 0.001 )GOTO 9999
+
+    c  = COS(rot)
+    s  = SIN(rot)
+
+!------ Rotate horizontal velocity components
+
+    lx = c*LOSdir(1) - s*LOSdir(2)
+    ly = s*LOSdir(1) + c*LOSdir(2)
+
+    LOSdir(1) = lx; LOSdir(2)= ly
+
+END SELECT
+
+9999 CONTINUE
+
+RETURN
+END
+
+!==============================================================================
+
+SUBROUTINE SetLLcordStr( coord )
+
+USE default_fd
+USE coordinate_fd
+USE MapCoord_fd
+
+TYPE( MapCoord ), INTENT( OUT ) :: coord
+
+coord%type          = I_LATLON
+coord%zone          = NOT_SET_I
+coord%reference%x   = NOT_SET_R
+coord%reference%y   = NOT_SET_R
+coord%reference%lat = NOT_SET_R
+coord%reference%lon = NOT_SET_R
+
+coord%Lat0   = NOT_SET_R
+coord%Lon0   = NOT_SET_R
+coord%Lat1   = NOT_SET_R
+coord%Lat2   = NOT_SET_R
+coord%Rearth = NOT_SET_R
+coord%n      = NOT_SET_R
+coord%f      = NOT_SET_R
+coord%m0     = NOT_SET_R
+coord%y0     = NOT_SET_R
+coord%sp0    = NOT_SET_R
+coord%cp0    = NOT_SET_R
+coord%sl0    = NOT_SET_R
+coord%cl0    = NOT_SET_R
+coord%cc0    = NOT_SET_R
+coord%sc0    = NOT_SET_R
+coord%cs0    = NOT_SET_R
+coord%ss0    = NOT_SET_R
+
+RETURN
+END

@@ -875,7 +875,7 @@ DoMeanField : IF( lMean )THEN
             CALL set_fsl( zInfl,zslu, hcu ,alpu, zrufu,Lu, f, fsl  )
             facp = fp/f
 
-            IF( Z(1)*du < zInflp )THEN
+            IF( Z(1)*du <= zInflp )THEN
               k = 1
               DO
                 IF( Z(k)*du >= zInflp )EXIT
@@ -937,7 +937,7 @@ DoMeanField : IF( lMean )THEN
             CALL set_fsl( zInfl,zslv, hcv ,alpv, zrufv,Lv, f, fsl  )
             facp = fp/f
 
-            IF( Z(1)*dv < zInflp )THEN
+            IF( Z(1)*dv <= zInflp )THEN
               k = 1
               DO
                 IF( Z(k)*dv >= zInflp )EXIT

@@ -19,7 +19,6 @@ INTEGER, EXTERNAL :: StartArg, FindRelName
 REAL,    EXTERNAL :: sind, cosd
 
 ParseDataRE = FAILURE
-MCList      = ''
 
 SELECT CASE( TRIM(carg(ikwrd)) )
 

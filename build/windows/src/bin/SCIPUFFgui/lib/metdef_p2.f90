@@ -432,7 +432,7 @@ SELECT CASE (id_button)
         eInform = 'Boundary Layer option Profile must use Upper Air'
       END IF
     ELSE IF( idbcmbo(2,id_level)+bl_offset == BL_MEDOC )THEN
-      IF( .NOT.ANY(idbcmbo(1,id_level)+met_offset == (/MET_MEDOC,MET_WRF/)) )THEN
+      IF( .NOT.ANY(idbcmbo(1,id_level)+met_offset == (/MET_MEDOC,MET_ASSIM,MET_WRF,MET_MEDLIS/)) )THEN
         nError = IV_ERROR
         eMessage = 'Invalid Choice : '//StripNull(dbcmbo(2,id_level))
         eInform = 'Boundary Layer option MEDOC must use MEDOC gridded'
@@ -520,7 +520,7 @@ SUBROUTINE meteorology_radio(iwnd_db,igroup,id_level)
 USE resource_fd
 USE mettype_fd
 USE pcscipuf_fi
-USE winAPI_fd
+USE myWinAPI_fd
 
 !     This routine processes RADIOBUTTONs from METDEF Dialog Box
 
@@ -575,7 +575,7 @@ USE pcscipuf_fi
 USE files_fi
 USE dialog_fi
 USE randef
-USE winAPI_fd
+USE myWinAPI_fd
 
 !
 !     This routine initializes the new material Dialog Box
@@ -768,13 +768,13 @@ END IF
 
 IF( lcheck(2,jd_level) .OR. lAssim)THEN
   IF( .NOT.lAssim )THEN
-  lcheck(8,jd_level) = lcheck(5,id_level)
-  lcheck(9,jd_level) = lcheck(6,id_level)
-  lcheck(10,jd_level) = lcheck(7,id_level)
-  lcheck(11,jd_level) = lcheck(8,id_level)
-  lcheck(12,jd_level) = lcheck(9,id_level)
-  dbtext(7,jd_level) = TRIM(dbtext(1,id_level))
-  dbtext(8,jd_level) = TRIM(dbtext(2,id_level))
+    lcheck(8,jd_level) = lcheck(5,id_level)
+    lcheck(9,jd_level) = lcheck(6,id_level)
+    lcheck(10,jd_level) = lcheck(7,id_level)
+    lcheck(11,jd_level) = lcheck(8,id_level)
+    lcheck(12,jd_level) = lcheck(9,id_level)
+    dbtext(7,jd_level) = TRIM(dbtext(1,id_level))
+    dbtext(8,jd_level) = TRIM(dbtext(2,id_level))
   END IF
 
   dbreal(16,jd_level) = dbreal(1,id_level)
@@ -856,7 +856,7 @@ USE mettype_fd
 USE pcscipuf_fi
 USE plotdlg_fi
 USE create_fi
-USE winAPI_fd
+USE myWinAPI_fd
 
 !     This routine processes PUSHBUTTONs from CONTOUR Dialog Box
 
@@ -1153,7 +1153,7 @@ USE mettype_fd
 USE files_fi
 USE pcscipuf_fi
 USE dialog_fi
-USE winAPI
+USE myWinAPI
 !
 !
 !

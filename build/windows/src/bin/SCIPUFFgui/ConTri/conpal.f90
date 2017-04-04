@@ -65,7 +65,7 @@ end
 
 subroutine setpal(lprint)
 
-USE winAPI_fd, ONLY: POINTER_LEN
+USE myWinAPI_fd, ONLY: POINTER_LEN
 
 IMPLICIT NONE
 
@@ -117,7 +117,7 @@ end
 !----------------------------------------------------------------------
 
 subroutine ResetPalette(idc)
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

@@ -360,22 +360,6 @@ MODULE winAPI
 
 
 
-!==============================================================================
-! IARGC
-!==============================================================================
-    FUNCTION IARGC()
-!DEC# ATTRIBUTES DEFAULT :: iargc
-      USE winAPI_fd
-      INTEGER(SINT) :: IARGC
-    END FUNCTION
-
-	  SUBROUTINE GETARG(N, BUFFER, STATUS)
-!DEC# ATTRIBUTES DEFAULT :: GETARG
-	    INTEGER(2) N
-	    CHARACTER*(*) BUFFER
-	    INTEGER(2), OPTIONAL :: STATUS
-	  END SUBROUTINE
-
   END INTERFACE
 
 !==============================================================================

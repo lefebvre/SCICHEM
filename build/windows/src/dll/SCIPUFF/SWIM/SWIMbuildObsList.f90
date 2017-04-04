@@ -17,7 +17,7 @@ USE constants_fd
 IMPLICIT NONE
 
 REAL,             INTENT( IN    ) :: t
-TYPE( MetGrid  ), INTENT( IN    ) :: grid
+TYPE( MetGrid  ), INTENT( INOUT ) :: grid
 TYPE( FirstObs ), INTENT( INOUT ) :: Obs
 LOGICAL,          INTENT( IN    ) :: lAssm
 
@@ -102,12 +102,6 @@ INTERFACE
     TYPE( ObsMet   ),         POINTER         :: CurrentObs
   END SUBROUTINE PutObsInCell
 
-  INTEGER FUNCTION SWIMconvPrjCoord( First,Obs )
-    USE SWIMobs_fd
-    TYPE( FirstObs ), INTENT( IN ) :: First
-    TYPE( ObsMet   ), POINTER      :: Obs
-  END FUNCTION SWIMconvPrjCoord
-
   SUBROUTINE SWIMnullifyObs( obs )
     USE SWIMobs_fd
     TYPE( ObsMet ), POINTER :: obs
@@ -120,7 +114,7 @@ INTEGER, EXTERNAL :: SWIMnullifyInterpPrf, SWIMallocAvgObs
 INTEGER, EXTERNAL :: SWIMbinAvgObs, SWIMgenAvgObs
 INTEGER, EXTERNAL :: PostProgressMessage
 INTEGER, EXTERNAL :: SWIMaddLogMessage
-INTEGER, EXTERNAL :: SWIMcnvCoord
+INTEGER, EXTERNAL :: SWIMcnvCoord, CheckLon
 LOGICAL, EXTERNAL :: HasPrjReference, CheckInDomain
 INTEGER, EXTERNAL :: PostCautionMessage
 
@@ -166,7 +160,6 @@ ELSE
   END IF
 
 END IF
-
 
 !------ Allocate array for reading data
 
@@ -326,6 +319,9 @@ DO WHILE( ASSOCIATED(CurrentObs) )
     x = CurrentObs%x; y = CurrentObs%y
     irv = SWIMcnvCoord( x,y,ObsCoord,CurrentObs%x,CurrentObs%y,grid%coord )
     IF( irv /= SWIMsuccess )GOTO 9999
+  ELSE IF( grid%coord%type == I_LATLON )THEN
+    irv = CheckLon( CurrentObs%x,grid%xmin,grid%xmax )
+    IF( irv /= SWIMsuccess )GOTO 9999
   END IF
 
 !------ Check if assimilation obs are within field domain
@@ -361,7 +357,7 @@ DO WHILE( ASSOCIATED(CurrentObs) )
       CALL SWIMnullifyObs( CurrentObs )
 
       IF( Obs%numObs == 0 )THEN
-        caution%iParm = 0; caution%jParm = 0; caution%routine = 'SWIMbuildObsList'
+        caution%iParm = 0; caution%jParm = 0; caution%routine = 'SWIMbuilObsList'
         caution%aString = 'No valid velocity observations within assimilation domain'
         lymd = .NOT.( Prj%julStart == 0 .OR. Prj%julStart == NOT_SET_I )
         CALL TimeConvert( Obs%time,Prj%local,lymd,hour,min,sec,year,month,day,string )
@@ -1485,7 +1481,7 @@ LoopOverVar : DO i = n1,n2
         GOTO 9999
       END IF
       END IF
-      Obs%varSrf%prcp = SNGL(var8(i))
+      Obs%varSrf%prcp = SNGL(var8(i))*First%Conv(i)
 
     CASE( OVP_CC )
 
@@ -1618,15 +1614,17 @@ REAL ptem, ptmm
 irv = SWIMresult
 
 IF( k > 1 )THEN
-  IF( pObs(k) >= pObs(k-1) )THEN
-    ptmm = EXP(pObs(k-1))*PSURF
-    ptem = EXP(pObs(k))*PSURF
-    irv = SWIMfailure
-    error%Number = IV_ERROR
-    error%Routine = 'CheckObsPressure'
-    WRITE(error%Message,'(A)') 'Station='//TRIM(ID)//': Pressure cannot increase with height'
-    WRITE(error%Inform,'(A,2ES12.4,A)') 'Height/Pressure =',zObs(k-1),ptmm,' mb'
-    WRITE(error%Action,'(A,2ES12.4,A)') 'Height/Pressure =',zObs(k),ptem,' mb'
+  IF( zObs(k) > zObs(k-1) + 1. )THEN
+    IF( pObs(k) > pObs(k-1) )THEN
+      ptmm = EXP(pObs(k-1))*PSURF
+      ptem = EXP(pObs(k))*PSURF
+      irv = SWIMfailure
+      error%Number = IV_ERROR
+      error%Routine = 'CheckObsPressure'
+      WRITE(error%Message,'(A)') 'Station='//TRIM(ID)//': Pressure cannot increase with height'
+      WRITE(error%Inform,'(A,2ES12.4,A)') 'Height/Pressure =',zObs(k-1),ptmm,' mb'
+      WRITE(error%Action,'(A,2ES12.4,A)') 'Height/Pressure =',zObs(k),ptem,' mb'
+    END IF
   END IF
 END IF
 
@@ -2081,7 +2079,7 @@ IF( Obs%BL%surface%hc == OBP_NODATA )THEN
 ELSE IF( BTEST(First%type,OTB_ALPH) )THEN
   IF( Obs%BL%surface%alpha == OBP_NODATA )THEN
     IF( Obs%BL%surface%adens /= OBP_NODATA )THEN
-      Obs%BL%surface%alpha = Obs%BL%surface%adens / AREA_DENSITY_TO_ALPHA
+      Obs%BL%surface%alpha = Obs%BL%surface%adens * AREA_DENSITY_TO_ALPHA
     ELSE
       Obs%BL%surface%hc    = 0.
       Obs%BL%surface%alpha = 0.
@@ -2090,7 +2088,7 @@ ELSE IF( BTEST(First%type,OTB_ALPH) )THEN
 
 ELSE IF( BTEST(First%type,OTB_ACNP) )THEN
   IF( Obs%BL%surface%adens /= OBP_NODATA )THEN
-    Obs%BL%surface%alpha = Obs%BL%surface%adens / AREA_DENSITY_TO_ALPHA
+    Obs%BL%surface%alpha = Obs%BL%surface%adens * AREA_DENSITY_TO_ALPHA
   ELSE
     Obs%BL%surface%hc    = 0.
     Obs%BL%surface%alpha = 0.

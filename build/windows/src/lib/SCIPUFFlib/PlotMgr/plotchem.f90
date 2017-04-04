@@ -25,13 +25,16 @@ DO i = 1,nmc
 END DO
 
 nkind = nmc   !CONCENTRATION plots
-nkind = nkind + ndep
-!Group dep output + individual species
-IF( chemMC(ID)%nOutGroup > 0 )&
-  nkind = nkind + 2*chemMC(ID)%nOutGroup
-nkind = nkind + ndos
-IF( chemMC(ID)%nOutGroup > 0 )&
-  nkind = nkind + chemMC(ID)%nOutGroup  !Group dose output + individual species
+IF( chemMC(ID)%nOutGroup > 0 )THEN
+  nkind = nkind + ndep + 2*chemMC(ID)%nOutGroup  !Group dep output + individual species
+ELSE
+  IF( ndep < nmc )nkind = nkind + ndep           !Otherwise, point to concentration kinds
+END IF
+IF( chemMC(ID)%nOutGroup > 0 )THEN
+  nkind = nkind + ndos + chemMC(ID)%nOutGroup  !Group dose output + individual species
+ELSE
+  IF( ndos < nmc )nkind = nkind + ndos         !Otherwise, point to concentration kinds
+END IF
 
 RETURN
 END

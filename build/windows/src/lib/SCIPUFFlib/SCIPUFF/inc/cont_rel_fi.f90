@@ -128,7 +128,8 @@ MODULE cont_rel_fd
     TYPE( cont_release_def ),                POINTER :: nextDef
     TYPE( cont_release_def ),                POINTER :: prevDef
     LOGICAL                                          :: update
-    TYPE( releaseT ),                        POINTER :: release
+    LOGICAL                                          :: extraUpdate  !nextUpdtTime (if defined) /= DEF_VAL_R
+    TYPE( releaseSpecT )                             :: relSpec
   END TYPE cont_release_def
 
   TYPE cont_release_col

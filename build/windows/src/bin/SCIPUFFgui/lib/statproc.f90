@@ -3,7 +3,7 @@
 !***********************************************************************
 RECURSIVE FUNCTION STATWNDPROC(HWND, MESSAGE, WPARAM, LPARAM)
 !DEC$ ATTRIBUTES STDCALL, DECORATE, ALIAS : 'STATWNDPROC' :: STATWNDPROC
-USE winAPI
+USE myWinAPI
 USE resource_fd
 USE pcscipuf_fi
 

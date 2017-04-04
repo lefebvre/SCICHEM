@@ -1,6 +1,6 @@
 MODULE mouse_fi
 USE mouse_fd
-USE winAPI
+USE myWinAPI
 
 TYPE( T_POINT ) MousePnt
 

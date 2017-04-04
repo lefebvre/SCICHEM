@@ -130,7 +130,7 @@ IF( Field%choice > ntypm )THEN
     chem => chemMC(n)
     IF( chem%lStepAmb )THEN
 
-      CALL InitChemStepAmb( .TRUE. )
+!      CALL InitChemStepAmb( .TRUE. )
       IF( nError /= NO_ERROR )GOTO 9999
 
     ELSE IF( chem%lAmbFile )THEN
@@ -694,6 +694,7 @@ INTEGER,              DIMENSION(*), INTENT( IN ) :: stype ! dezone types
 
 INTEGER i, ityp
 REAL    crat, cratt, dum
+LOGICAL lmask
 
 REAL, DIMENSION(ISRF_TOT) :: sdat
 
@@ -705,10 +706,16 @@ IF( sblk(1)%type == SBLK_PLOT_MC )THEN
   IF( nError /= NO_ERROR )GOTO 9999
 END IF
 
-mask%xmin = slice%xminS
-mask%ymin = slice%yminS
-mask%xmax = slice%xmaxS
-mask%ymax = slice%ymaxS
+!lmask = slice%xminS /= NOT_SET_R .AND. slice%yminS /= NOT_SET_R .AND. &
+!        slice%xmaxS /= NOT_SET_R .AND. slice%ymaxS /= NOT_SET_R
+lmask = .NOT.(slice%xminS == NOT_SET_R .OR. slice%yminS == NOT_SET_R .OR. &
+              slice%xmaxS == NOT_SET_R .OR. slice%ymaxS == NOT_SET_R)
+IF( lmask )THEN
+  mask%xmin = slice%xminS
+  mask%ymin = slice%yminS
+  mask%xmax = slice%xmaxS
+  mask%ymax = slice%ymaxS
+END IF
 
 !------ Loop over puffs
 
@@ -734,7 +741,11 @@ PuffLoop : DO i = 1,npuf
    CALL set_sdep( sdat,puff(i)%sr,crat,cratt,puff(i)%si, &
                                     puff(i)%cc/puff(i)%c,1.,1.,1. )
 
-   CALL surface_dose( puff(i),sdat,grdI,0.,sblk,spuff,stype,mask )
+    IF( lmask )THEN
+      CALL surface_dose( puff(i),sdat,grdI,0.,sblk,spuff,stype,mask )
+    ELSE
+      CALL surface_dose( puff(i),sdat,grdI,0.,sblk,spuff,stype )
+    END IF
    IF( nError /= NO_ERROR )GOTO 9999
 
   END IF
@@ -824,6 +835,8 @@ REAL, DIMENSION(ISRF_TOT) :: sdat
 
 TYPE( srf_gauss_str ) :: s
 
+CHARACTER(16), DIMENSION(1) :: pnames
+
 INTERFACE
 
   SUBROUTINE SliceGaussHoriz( srf,p,s,ng,ig,cfac,zslice )
@@ -910,11 +923,7 @@ END DO PuffLoop
 
 !------ Set special value on cells below terrain
 
-IF( lter )THEN
-
-  CALL horizontal_topography_spv( zslice,srf )
-
-END IF
+IF( lter )CALL horizontal_topography_spv( zslice,srf )
 
 9999 CONTINUE
 

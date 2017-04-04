@@ -9,7 +9,7 @@ USE param_fd
 USE pcscipuf_fi
 USE plotdlg_fi
 USE contri_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -128,7 +128,7 @@ USE pcscipuf_fi
 USE plotdlg_fi
 USE files_fi
 USE param_fd
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the NewSetup Dialog Box
 !
@@ -225,7 +225,7 @@ USE plotdlg_fi
 USE files_fi
 USE param_fd
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 !
 !     This routine save the Table Dialog Box
 !
@@ -314,7 +314,7 @@ END
 SUBROUTINE show_edit_xytab(iwnd_db,showit,addit)
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 !
 !     This routine shows/hides the Tbale edit controls
 !
@@ -368,7 +368,7 @@ END
 SUBROUTINE show_calc_xytab(iwnd_db,showit,gridit)
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 !
 !     This routine shows/hides the Tbale edit controls
 !
@@ -437,7 +437,7 @@ END
 SUBROUTINE update_buttons_xytab(iwnd_db,id_level,showit)
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE pcscipuf_fi
 USE param_fd
 !
@@ -773,7 +773,7 @@ END
 SUBROUTINE save_edit_xytab(iwnd_db,id_level)
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE pcscipuf_fi
 USE files_fi
 USE errorParam_fd
@@ -1076,7 +1076,7 @@ SUBROUTINE save_calc_xytab(iwnd_db,id_level)
 USE resource_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 USE xytabcmn
 
 !     This routine saves edit boxes
@@ -1167,7 +1167,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE files_fi
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 USE script_fi
 USE plotdlg_fi
 USE param_fd
@@ -1287,7 +1287,7 @@ USE plotdlg_fi
 USE files_fi
 USE errorParam_fd
 USE param_fd
-USE winAPI
+USE myWinAPI
 !
 !     This routine sorts the xytable entries
 !

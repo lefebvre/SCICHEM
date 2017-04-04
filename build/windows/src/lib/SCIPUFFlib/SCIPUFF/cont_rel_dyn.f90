@@ -25,9 +25,12 @@ IF( countDefinitions() == 0 )GOTO 9999
 
 !==== Update releases (active cDefinition)
 
-IF( runUpdates )THEN
+IF( runUpdates )THEN            !Start of a step
   runUpdates = .FALSE.
-  CALL UpdateContinuousReleases()
+  CALL UpdateContinuousReleases( tstep )
+  IF( nError /= NO_ERROR )GOTO 9999
+ELSE                            !Extra updates
+  CALL UpdateContinuousReleasesExtra( t+0.5*dts,tstep,lev1 )
   IF( nError /= NO_ERROR )GOTO 9999
 END IF
 
@@ -86,7 +89,7 @@ END
 !*******************************************************************************
 !  UpdateContinuousReleases
 !*******************************************************************************
-SUBROUTINE UpdateContinuousReleases()
+SUBROUTINE UpdateContinuousReleases( tstep )
 
 USE scipuff_fi
 USE cont_rel_fi
@@ -94,64 +97,15 @@ USE cont_rel_functions
 
 IMPLICIT NONE
 
+REAL, INTENT( IN ) :: tstep      ! end time for current large timestep
+
 INTEGER idef
-
-TYPE( releaseT ) newRelease
-
-TYPE( releaseT ), EXTERNAL :: UpdateRelease
 
 DO idef = 1,numDefinition
   IF( (cDefinition(idef)%state == CR_ACTIVE) .AND. cDefinition(idef)%update )THEN
 
-!==== Get updated release
-
-    newRelease = UpdateRelease( cDefinition(idef)%release )
+    CALL ProcessUpdateRelease( idef,tstep )
     IF( nError /= NO_ERROR )GOTO 9999
-
-!==== Move new release into memory
-
-    CALL UnloadRelease( newRelease )
-    IF( nError /= NO_ERROR )THEN
-      nError   = IV_ERROR
-      eRoutine = 'UpdateReleaseContinuous'
-      eMessage = 'Unable to unload updated release structure'
-      eInform  = 'UnloadRelease failure'
-      GOTO 9999
-    END IF
-
-!==== Check the new release (mainly to call set_rel_type)
-
-    CALL valid_scn()
-    IF( nError /= NO_ERROR )GOTO 9999
-
-!==== Save the new Release defintion
-
-    cDefinition(idef)%release = newRelease
-
-!==== Process the new release
-
-    CALL process_scn_cont( CRMODE_UPDATE,defIN=idef )
-    IF( nError /= NO_ERROR )GOTO 9999
-
-!==== Set update cc flag
-
-    cCollection(cDefinition(idef)%cID)%update_cc = .NOT.cCollection(cDefinition(idef)%cID)%isPool
-
-!==== put current release back into memory if necessary
-
-    IF( currentRelease%trel /= DEF_VAL_R )THEN
-      CALL UnloadRelease( currentRelease )
-      IF( nError /= NO_ERROR )THEN
-        nError   = IV_ERROR
-        eRoutine = 'UpdateReleaseContinuous'
-        eMessage = 'Unable to unload current release structure'
-        eInform  = 'UnloadRelease failure'
-        GOTO 9999
-      END IF
-    ELSE
-      trel = 1.E+36
-      tdur = 1.E+36
-    END IF
 
   END IF
 END DO
@@ -160,6 +114,98 @@ END DO
 
 RETURN
 END
+
+!*******************************************************************************
+!  UpdateContinuousReleasesExtra
+!*******************************************************************************
+SUBROUTINE UpdateContinuousReleasesExtra( time,tstep,lev )
+
+USE scipuff_fi
+USE cont_rel_fi
+USE cont_rel_functions
+
+IMPLICIT NONE
+
+REAL,    INTENT( IN ) :: time       ! current time
+REAL,    INTENT( IN ) :: tstep      ! end time for current large timestep
+INTEGER, INTENT( IN ) :: lev        ! Curent time level
+
+INTEGER idef, ilev
+
+REAL updateTime
+
+REAL, EXTERNAL :: GetNextUpdtTime
+
+DO idef = 1,numDefinition
+  IF( (cDefinition(idef)%state == CR_ACTIVE) .AND. cDefinition(idef)%extraUpdate )THEN
+    updateTime = 3600.0*GetNextUpdtTime( cDefinition(idef) )
+    ilev = cDefinition(idef)%rSet%tlev
+    IF( time >= updateTime .AND. ilev >= lev )THEN
+      CALL ProcessUpdateRelease( idef,tstep )
+      IF( nError /= NO_ERROR )GOTO 9999
+    END IF
+  END IF
+END DO
+
+9999 CONTINUE
+
+RETURN
+END
+
+!*******************************************************************************
+!  ProcessUpdateRelease
+!*******************************************************************************
+SUBROUTINE ProcessUpdateRelease( idef, tstep )
+
+USE scipuff_fi
+USE cont_rel_fi
+USE cont_rel_functions
+
+IMPLICIT NONE
+
+INTEGER, INTENT( IN ) :: idef      ! definition index
+REAL,    INTENT( IN ) :: tstep     ! end time for current large timestep
+
+REAL, EXTERNAL :: GetNextUpdtTime
+
+TYPE( releaseSpecT ) :: relSpec
+TYPE( releaseSpecT ) :: oldSpec
+
+TYPE( releaseSpecT ), EXTERNAL :: UpdateRelease
+
+!==== Get updated release
+
+CALL InitReleaseSpec(relSpec)
+CALL InitReleaseSpec(oldSpec)
+
+CALL copyReleaseSpec(cDefinition(idef)%relSpec,oldSpec)
+
+relSpec = UpdateRelease( oldSpec,tstep )
+IF( nError /= NO_ERROR )GOTO 9999
+
+!==== Check the new release (mainly to call set_rel_type)
+
+CALL valid_scn(relSpec)
+IF( nError /= NO_ERROR )GOTO 9999
+
+!==== Process the new release
+
+CALL process_scn_cont( relSpec,CRMODE_UPDATE,defIN=idef )
+IF( nError /= NO_ERROR )GOTO 9999
+
+!==== Set update cc flag
+
+cCollection(cDefinition(idef)%cID)%update_cc = .NOT.cCollection(cDefinition(idef)%cID)%isPool
+
+!==== reset extraUpdate flag
+
+cDefinition(idef)%extraUpdate = cDefinition(idef)%update .AND. (GetNextUpdtTime(cDefinition(idef)) /= DEF_VAL_R)
+
+9999 CONTINUE
+
+RETURN
+END
+
 !*******************************************************************************
 !  ActivateContinuousReleases
 !*******************************************************************************
@@ -320,6 +366,7 @@ LOGICAL,                  INTENT( OUT   ) :: allActive
 INTEGER irel, jrel, jrels
 INTEGER colNrel, irelC, jrelC
 INTEGER imat, jmat, ityp, jtyp, ilev, ifld, icls, ios
+INTEGER ilev_updt
 REAL    del, faci, facj, facij, tem, um2, wb2, vel
 REAL    xbar, ybar, zbar, sxx, syy, szz, del_tot
 REAL    umovi, vmovi, wmovi
@@ -340,6 +387,7 @@ LOGICAL, EXTERNAL :: IsGas
 LOGICAL, EXTERNAL :: IsLiquid
 LOGICAL, EXTERNAL :: IsMulti
 INTEGER, EXTERNAL :: getPuffifld
+INTEGER, EXTERNAL :: GetNextUpdtTimeLevel
 
 !---- Initialize pointers
 
@@ -424,11 +472,21 @@ IF( multicomp )THEN
   CALL InitInterMC( 1,colNrel )
   IF( nError /= NO_ERROR )GOTO 9999
 END IF
-
 irelC = 0
+
 defi => col%firstDef
 DO WHILE( ASSOCIATED(defi) )
   IF( defi%state == CR_ACTIVE .OR. doAll )THEN
+
+    IF( defi%extraUpdate )THEN
+      ilev_updt = GetNextUpdtTimeLevel(defi%relSpec,t/3600.)
+      IF( nError /= NO_ERROR )THEN
+        eRoutine = 'InteractReleaseDefs:'//TRIM(eRoutine)
+        GOTO 9999
+      END IF
+    ELSE
+      ilev_updt = 0
+    END IF
 
     umovi = defi%vel%x
     vmovi = defi%vel%y
@@ -439,15 +497,26 @@ DO WHILE( ASSOCIATED(defi) )
 
       pufi => seti%rels(irel)%basePuff
 
-      IF( pufi%syy <= 0. .OR. pufi%c == 0. )CYCLE  !Mainly to skip zero-mass releases from building wakes
-
       irelC = irelC + 1
 
-      xbar = pufi%xbar
-      ybar = pufi%ybar
+      xbar = SNGL(pufi%xbar)
+      ybar = SNGL(pufi%ybar)
       zbar = pufi%zbar
 
       CALL mapfac( xbar,ybar,xmap_i,ymap_i )
+
+!------ Get time level for zero-mass release (ignoring any dynamics) and skip out
+
+      IF( pufi%syy <= 0. .OR. pufi%c == 0. )THEN
+        IF( dynamic )CALL get_dynamics( seti%rels(irel)%basePuff,pdi )
+        seti%rels(irel)%basePuff%axx = 0.0   !Flag for init_tlev
+        CALL init_tlev( seti%rels(irel)%basePuff,pdi,ilev,xmap_i,ymap_i )
+        IF( nError /= NO_ERROR )GOTO 9999
+        pufi%idtl = ilev
+        seti%tlev = MAX(seti%tlev,ilev)
+        mxtlev    = MAX(mxtlev,ilev)
+        CYCLE
+      END IF
 
       ifld = getPuffifld( seti%rels(irel)%basePuff )
       ityp = pufi%ityp
@@ -474,7 +543,6 @@ DO WHILE( ASSOCIATED(defi) )
       IF( lmc     )CALL GetInterMC1(  seti%rels(irel)%basePuff )
 
       jrelC = irelC - seti%nrel
-
       defj => defi
       jrels = irel
       ldef = .TRUE.
@@ -515,8 +583,8 @@ DO WHILE( ASSOCIATED(defi) )
 
             lstatic = ldef .AND. (irel == jrel)
 
-            del = ((xbar - pufj%xbar)/xmap_i)**2 + &
-                  ((ybar - pufj%ybar)/ymap_i)**2 + &
+            del = (SNGL(pufi%xbar - pufj%xbar)/xmap_i)**2 + &
+                  (SNGL(pufi%ybar - pufj%ybar)/ymap_i)**2 + &
                    (zbar - pufj%zbar)**2
 
             del = SQRT(del)
@@ -719,6 +787,7 @@ DO WHILE( ASSOCIATED(defi) )
         ilev = 1
       END IF
 
+      ilev = MAX(ilev,ilev_updt)
       pufi%idtl = ilev
       seti%tlev = MAX(seti%tlev,ilev)
       mxtlev    = MAX(mxtlev,ilev)
@@ -892,7 +961,7 @@ INTEGER, EXTERNAL :: getPuffifld
 ifld = getPuffifld( p )
 shh  = 0.5*(p%sxx+p%syy)
 
-CALL get_met( p%xbar,p%ybar,p%zbar,p%szz,p%zc,0,inField=ifld,Shh=shh )
+CALL get_met( SNGL(p%xbar),SNGL(p%ybar),p%zbar,p%szz,p%zc,0,inField=ifld,Shh=shh )
 
 frac = SkewFraction( p%zbar )
 
@@ -1020,12 +1089,14 @@ IMPLICIT NONE
 REAL,                     INTENT( IN    ) :: dts        ! current timestep
 INTEGER,                  INTENT( IN    ) :: lev1       ! current time level
 INTEGER,                  INTENT( INOUT ) :: lev2       ! max time level
-TYPE( cont_release_def ), INTENT( INOUT ) :: def        ! continuous release defintion to step
+TYPE( cont_release_def ), INTENT( INOUT ) :: def        ! continuous release definition to step
 
 INTEGER irel
 LOGICAL stepped
 REAL    rtime, xmap, ymap
 REAL(8) dtm
+
+INTEGER, EXTERNAL :: GetNextUpdtTimeLevel
 
 rtime   = HUGE(rtime)
 
@@ -1042,6 +1113,14 @@ IF( def%rSet%nrel > 0 )THEN
       def%rSet%tlev = MAX(def%rSet%tlev,def%rSet%rels(irel)%basePuff%idtl)
       rtime = MIN(rtime,def%rSet%rels(irel)%time)
     END DO
+    IF( def%extraUpdate )THEN
+      def%rSet%tlev = MAX(def%rSet%tlev,GetNextUpdtTimeLevel(def%relSpec,t/3600.))
+      IF( nError /= NO_ERROR )THEN
+        eRoutine = 'ReleaseContinuousRelease:'//TRIM(eRoutine)
+        GOTO 9999
+      END IF
+      mxtlev    = MAX(mxtlev,def%rSet%tlev)
+    END IF
   END IF
 END IF
 
@@ -1053,7 +1132,7 @@ IF( rtime < HUGE(rtime) )THEN
     CALL mapfac( SNGL(def%loc%x),SNGL(def%loc%y),xmap,ymap )
     def%loc%x = def%loc%x + dtm*DBLE(def%vel%x*xmap)
     def%loc%y = def%loc%y + dtm*DBLE(def%vel%y*ymap)
-    def%loc%z = DBLE(SNGL(def%loc%z) + dtm*def%vel%z)
+    def%loc%z = def%loc%z + dtm*DBLE(def%vel%z)
   END IF
   def%time = rtime
 END IF
@@ -1077,7 +1156,7 @@ IMPLICIT NONE
 REAL,                        INTENT( IN    ) :: dts        ! current timestep
 INTEGER,                     INTENT( IN    ) :: lev1       ! current time level
 INTEGER,                     INTENT( INOUT ) :: lev2       ! max time level
-TYPE( cont_release_def ),    INTENT( INOUT ) :: def        ! continuous release defintion
+TYPE( cont_release_def ),    INTENT( INOUT ) :: def        ! continuous release definition
 TYPE( cont_release_rel ),    INTENT( INOUT ) :: rel        ! continuous release to step
 TYPE( cont_release_static ), INTENT( IN    ) :: stat       ! statics
 LOGICAL,                     INTENT( INOUT ) :: stepped    !
@@ -1131,15 +1210,17 @@ DO istp = 1,nstp
                                   dt,dtr,lev1,lev2,rel%plen,(ipuf==1) )
       IF( nError /= NO_ERROR )GOTO 9999
       idtl = MAX(idtl,lev)
+    ELSE
+      idtl = MAX(idtl,rel%relPuff(ipuf)%idtl)
     END IF
 
 !==== Update moving release locations for the relPuff
 
     IF( def%isMoving )THEN
       IF( def%vel%x /= 0.0 )rel%relPuff(ipuf)%xbar = &
-        (rel%relPuff(ipuf)%xbar - rel%basePuff%xbar) + SNGL(rel%loc%x)
+        (rel%relPuff(ipuf)%xbar - rel%basePuff%xbar) + rel%loc%x
       IF( def%vel%y /= 0.0 )rel%relPuff(ipuf)%ybar = &
-        (rel%relPuff(ipuf)%ybar - rel%basePuff%ybar) + SNGL(rel%loc%y)
+        (rel%relPuff(ipuf)%ybar - rel%basePuff%ybar) + rel%loc%y
       IF( def%vel%z /= 0.0 )rel%relPuff(ipuf)%zbar = &
         (rel%relPuff(ipuf)%zbar - rel%basePuff%zbar) + SNGL(rel%loc%z)
     END IF
@@ -1162,9 +1243,9 @@ DO istp = 1,nstp
 
       IF( def%isMoving )THEN
         IF( def%vel%x /= 0.0 )rel%vapPuff(ipuf)%xbar = &
-          (rel%vapPuff(ipuf)%xbar - rel%basePuff%xbar) + SNGL(rel%loc%x)
+          (rel%vapPuff(ipuf)%xbar - rel%basePuff%xbar) + rel%loc%x
         IF( def%vel%y /= 0.0 )rel%vapPuff(ipuf)%ybar = &
-          (rel%vapPuff(ipuf)%ybar - rel%basePuff%ybar) + SNGL(rel%loc%y)
+          (rel%vapPuff(ipuf)%ybar - rel%basePuff%ybar) + rel%loc%y
         IF( def%vel%z /= 0.0 )rel%vapPuff(ipuf)%zbar = &
           (rel%vapPuff(ipuf)%zbar - rel%basePuff%zbar) + SNGL(rel%loc%z)
       END IF
@@ -1177,8 +1258,8 @@ DO istp = 1,nstp
 !==== Update moving release locations for the basePuff
 
   IF( def%isMoving )THEN
-    IF( def%vel%x /= 0.0 )rel%basePuff%xbar = SNGL(rel%loc%x)
-    IF( def%vel%y /= 0.0 )rel%basePuff%ybar = SNGL(rel%loc%y)
+    IF( def%vel%x /= 0.0 )rel%basePuff%xbar = rel%loc%x
+    IF( def%vel%y /= 0.0 )rel%basePuff%ybar = rel%loc%y
     IF( def%vel%z /= 0.0 )rel%basePuff%zbar = SNGL(rel%loc%z)
   END IF
 
@@ -1205,11 +1286,11 @@ IF( isStatic .AND. def%isMoving )THEN
   mdy = def%vel%y*dt
   mdz = def%vel%z*dt
   DO ipuf = 1,rel%npuff
-    CALL mapfac( rel%relPuff(ipuf)%xbar,rel%relPuff(ipuf)%ybar,xmap,ymap )
+    CALL mapfac( SNGL(rel%relPuff(ipuf)%xbar),SNGL(rel%relPuff(ipuf)%ybar),xmap,ymap )
     jpuf = rel%relPuff(ipuf)%inxt
     DO WHILE( jpuf > 0 )
-      puff(jpuf)%xbar = puff(jpuf)%xbar + mdx*xmap
-      puff(jpuf)%ybar = puff(jpuf)%ybar + mdy*ymap
+      puff(jpuf)%xbar = puff(jpuf)%xbar + DBLE(mdx*xmap)
+      puff(jpuf)%ybar = puff(jpuf)%ybar + DBLE(mdy*ymap)
       puff(jpuf)%zbar = puff(jpuf)%zbar + mdz
       CALL get_static( puff(jpuf),ps )
       jpuf = ps%isnxt
@@ -1217,7 +1298,7 @@ IF( isStatic .AND. def%isMoving )THEN
   END DO
 END IF
 
-!---------- Update release defintion time
+!---------- Update release definition time
 
 rel%time = MIN(t+dts,def%end)
 
@@ -1237,7 +1318,7 @@ USE cont_rel_functions
 
 IMPLICIT NONE
 
-TYPE( cont_release_def ),    INTENT( INOUT ) :: def        ! continuous release defintion
+TYPE( cont_release_def ),    INTENT( INOUT ) :: def        ! continuous release definition
 TYPE( cont_release_rel ),    INTENT( INOUT ) :: rel        ! continuous release to step
 LOGICAL,                     INTENT( IN    ) :: vapor      ! vapor flag
 INTEGER,                     INTENT( IN    ) :: idtl       ! new time level
@@ -1336,7 +1417,7 @@ IMPLICIT NONE
 REAL,                     INTENT( IN    ) :: dts        ! current timestep
 INTEGER,                  INTENT( IN    ) :: lev1       ! current time level
 INTEGER,                  INTENT( INOUT ) :: lev2       ! max time level
-TYPE( cont_release_def ), INTENT( INOUT ) :: def        ! continuous release defintion to step
+TYPE( cont_release_def ), INTENT( INOUT ) :: def        ! continuous release definition to step
 
 INTEGER irel
 LOGICAL stepped
@@ -1397,7 +1478,7 @@ INTEGER, EXTERNAL :: CreateContinuousPuff
 
 IF( rel%basePuff%idtl < lev1 )GOTO 9999
 
-  IF( rel%naux < SCIPUFF_POOLSRCPARAM )GOTO 9999 !Pool has completed
+IF( rel%naux < SCIPUFF_POOLSRCPARAM )GOTO 9999 !Pool has completed
 
 IF( rel%npuff > 1 )THEN
   nError   = UK_ERROR
@@ -1747,8 +1828,8 @@ END IF
 
 !----- Initial location
 
-pnew%xbar = pnew%xbar + ub*dtr*xmap
-pnew%ybar = pnew%ybar + vb*dtr*ymap
+pnew%xbar = pnew%xbar + DBLE(ub*dtr*xmap)
+pnew%ybar = pnew%ybar + DBLE(vb*dtr*ymap)
 pnew%zbar = pnew%zbar + wb*dtr
 
 IF( .NOT.isStatic )THEN
@@ -1828,7 +1909,7 @@ pnew%wo = wb
 !----- Set inversion parameters
 
 pnew%zi = zinv
-CALL set_zcap_rel( ifld,pnew%xbar,pnew%ybar,pnew%zbar, &
+CALL set_zcap_rel( ifld,SNGL(pnew%xbar),SNGL(pnew%ybar),pnew%zbar, &
                         pnew%szz,zinv,dtdzs,pnew%zc,lbl )
 
 !-----  Set auxiliary variables
@@ -1935,7 +2016,7 @@ USE error_fi
 USE met_fi
 USE srfevap_fi
 USE cont_rel_fi
-USE pool_fi, ONLY:pool_offset, pool_age
+USE pool_fi, ONLY:pool_offset, pool_age, tp
 
 IMPLICIT NONE
 
@@ -1945,7 +2026,7 @@ REAL,             INTENT( OUT   ) :: syy
 REAL,             INTENT( OUT   ) :: rhop   !Vapor release density
 
 INTEGER  ityp, imat, ifld
-REAL     sigze, tp, dp, ua, wp, dtp
+REAL     sigze, dp, ua, wp, dtp
 REAL     ub2, vb2, rate_p
 
 INTEGER, EXTERNAL :: getPuffifld
@@ -1953,7 +2034,7 @@ LOGICAL, EXTERNAL :: IsMulti
 
 !---- Get local wind speed
 
-CALL get_srf_met( p%xbar,p%ybar )
+CALL get_srf_met( SNGL(p%xbar),SNGL(p%ybar) )
 IF( nError /= NO_ERROR )GOTO 9999
 
 ub2 = ubsrf**2
@@ -2020,7 +2101,7 @@ sigze = MAX(sigze,MIN(VONK*ustr/A/rate_p,0.8*zisrf))
 
 ifld = getPuffifld( p )
 
-CALL get_met( p%xbar,p%ybar,sigze,0.,0.,1,inField=ifld )
+CALL get_met( SNGL(p%xbar),SNGL(p%ybar),sigze,0.,0.,1,inField=ifld )
 
 9999 CONTINUE
 
@@ -2101,7 +2182,7 @@ IF( def%rSet%nrel > 0 )THEN
   END DO
 END IF
 
-IF( inactive )THEN                                      !Just deactivate this release defintion
+IF( inactive )THEN                                      !Just deactivate this release definition
   def%time  = DEF_VAL_R                                 !because we need the source aux on a restart
   def%state = CR_READY                                  !to know that the pool has completed
   CALL removeFromCollection( def )                      !Remove it from the pool collection

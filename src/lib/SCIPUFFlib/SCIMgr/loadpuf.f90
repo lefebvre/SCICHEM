@@ -56,7 +56,7 @@ IF( .NOT.MemoryField )THEN
 
   IF( Aborted() )GOTO 9999
 
-  tID = CheckPuffTime(timeID)
+  tID = CheckPuffTime( timeID )
   IF( nError /= NO_ERROR )GOTO 9999
 
   IF( Aborted() )GOTO 9999
@@ -122,20 +122,21 @@ END
 !*******************************************************************************
 !            Get Project Puff
 !*******************************************************************************
-INTEGER FUNCTION GetProjectPuff( UserID,puffHead,timeID,transFlag,puffList,auxData,typeList,mcList )
+INTEGER FUNCTION GetProjectPuff( UserID,puffHead,timeID,flag,puffList,auxData,typeList,mcList )
 
 USE SCIMgr_fd
 USE scipuff_fi
 USE SCIMgrState
 USE SCIPresults_fd
 USE abort
+USE met_fi
 
 IMPLICIT NONE
 
 INTEGER,                           INTENT( IN    ) :: UserID      !USER ID Tag
 TYPE( ppuffHeadT ),                INTENT( INOUT ) :: puffHead    !Project ID
 INTEGER,                           INTENT( IN    ) :: timeID      !Time ID for reading puffs
-INTEGER,                           INTENT( IN    ) :: transFlag   !SCIPtrue => transform to LLA
+INTEGER,                           INTENT( IN    ) :: flag        !Bits to transform to LLA, MSL, terrain slope
 TYPE( puffT ),       DIMENSION(*), INTENT( OUT   ) :: puffList    !Puffs
 REAL,                DIMENSION(*), INTENT( OUT   ) :: auxData     !Puff auxiliary data
 TYPE( puffTypeT ),   DIMENSION(*), INTENT( OUT   ) :: typeList    !Puffs types
@@ -313,14 +314,27 @@ IF( puffHead%puff%maxType > 0 )THEN
   END IF
 END IF
 
-!------ Adjust p%zbar, p%zc and p%zi to be above ground instead of above hmin
+!------ Adjust p%zbar, p%zc and p%zi to be above ground (instead of above hmin) or above MSL
+!       Put terrain elevation (MSL) in puff element SR
+!       Optionlly, put terrain slopes (hx,hy) in p%axx and p%ayy
 
-IF ( doPuffs .AND. lter )THEN
+IF ( doPuffs )THEN
   DO i = 1,npuf
-    CALL get_topogIn( puff(i)%xbar,puff(i)%ybar,h,hx,hy,getPuffifld(puff(i)) )
-    puffList(i)%zbar = MAX(puffList(i)%zbar-h,0.0)
-    IF( puffList(i)%zc > 0 )puffList(i)%zc = MAX(puffList(i)%zc-h,0.0)
-    IF( puffList(i)%zi > 0 )puffList(i)%zi = MAX(puffList(i)%zi-h,0.0)
+    CALL get_topogIn( SNGL(puff(i)%xbar),SNGL(puff(i)%ybar),h,hx,hy,getPuffifld(puff(i)) )
+    IF( BTEST(flag,PPB_MSL) )THEN
+        puffList(i)%zbar = puffList(i)%zbar+hmin
+        IF( puffList(i)%zc > 0 )puffList(i)%zc = puffList(i)%zc+hmin
+        IF( puffList(i)%zi > 0 )puffList(i)%zi = puffList(i)%zi+hmin
+    ELSE
+      puffList(i)%zbar = MAX(puffList(i)%zbar-h,0.0)
+      IF( puffList(i)%zc > 0 )puffList(i)%zc = MAX(puffList(i)%zc-h,0.0)
+      IF( puffList(i)%zi > 0 )puffList(i)%zi = MAX(puffList(i)%zi-h,0.0)
+    END IF
+    puffList(i)%sr = h + hmin
+    IF( BTEST(flag,PPB_SLOPE) )THEN
+      puffList(i)%axx = hx
+      puffList(i)%ayy = hy
+    END IF
   END DO
 END IF
 
@@ -328,7 +342,7 @@ IF( Aborted() )GOTO 9999
 
 !------ Transform to LLA if asked for
 
-IF( doPuffs .AND. (transFlag == SCIPtrue) )THEN
+IF( doPuffs .AND. BTEST(Flag,PPB_TRANS) )THEN
   LLACoordinate%mode          = HD_LATLON
   LLACoordinate%UTMZone       = NOT_SET_I
   LLACoordinate%reference%x   = NOT_SET_R

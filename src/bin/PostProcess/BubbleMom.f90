@@ -123,7 +123,7 @@ ALLOCATE( rdata(MAXN,nTimePuff),STAT=ios )
 
 DO it = 1,nTimePuff
 
-  irv = GetProjectPuffs( ToolUserID,puffHead,it,.TRUE.,.FALSE. )
+  irv = GetProjectPuffs( ToolUserID,puffHead,it,.TRUE.,.FALSE.,0 )
   IF( irv /= SCIPSuccess )THEN
     WRITE(6,*)' Error reading puff at time break ',it
     GOTO 9999
@@ -181,7 +181,7 @@ END
 
 !----------------------------------------------------------------------
 
-SUBROUTINE get_mom(p,mass,xfac,xbar,xmom)
+SUBROUTINE get_mom( p,mass,xfac,xbar,xmom )
 
 USE struct_fd
 
@@ -193,8 +193,8 @@ REAL xcent(3), sig(6)
 
 INTEGER j,k, m
 
-xcent(1) = p%xbar
-xcent(2) = p%ybar
+xcent(1) = SNGL(p%xbar)
+xcent(2) = SNGL(p%ybar)
 xcent(3) = p%zbar
 sig(1)   = p%sxx
 sig(2)   = p%sxy

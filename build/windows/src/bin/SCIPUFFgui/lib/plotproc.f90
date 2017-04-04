@@ -6,7 +6,7 @@ RECURSIVE FUNCTION PLOTWNDPROC(HWND, MESSAGE, WPARAM, LPARAM)
 USE resource_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     This is the message handler for the plot window.
 
@@ -133,7 +133,7 @@ END
 SUBROUTINE split_param(iparam,ilo,ihi)
 
 !     Splits a word into hi and low parts
-USE winAPI_fd
+USE myWinAPI_fd
 
 IMPLICIT NONE
 
@@ -158,7 +158,7 @@ END
 SUBROUTINE split_paramX(iparam,ilo,ihi)
 
 !     Splits a word into hi and low parts
-USE winAPI_fd
+USE myWinAPI_fd
 
 IMPLICIT NONE
 
@@ -182,7 +182,7 @@ SUBROUTINE make_param(iparam,ilo,ihi)
 
 !     Makes a word from hi and low parts
 
-USE winAPI_fd
+USE myWinAPI_fd
 USE ifwbase
 
 IMPLICIT NONE

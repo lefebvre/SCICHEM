@@ -2,7 +2,7 @@ SUBROUTINE set( pxmn,pxmx,pymn,pymx,xmnd,xmxd,ymnd,ymxd,iflg )
 
 USE ncarlib_fi
 USE lastset_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

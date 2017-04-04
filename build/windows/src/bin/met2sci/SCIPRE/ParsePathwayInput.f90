@@ -105,6 +105,34 @@ SELECT CASE( TRIM(carg(1)) )
 
     lUAQ = carg(2)(1:1) == 'T' .OR. carg(2)(1:1) == 'Y'
     
+  CASE( 'RANDOM' )
+
+    IF( narg < 2 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for RANDOM'
+      error%bString = 'Must specify true or false'
+      GOTO 9999
+    END IF
+
+    lRandUA = carg(2)(1:1) == 'T' .OR. carg(2)(1:1) == 'Y'
+    
+    IF( narg > 2 )THEN
+      READ(carg(3),*,IOSTAT=ios ) dRanUA
+      IF( ios /= 0 )THEN
+        error%Number  = RD_ERROR
+        error%aString = 'Error reading angle precision for adding random component'
+        error%bString = 'Must specify a positive real number'
+        GOTO 9999
+      END IF
+      IF( dRanUA < 1. )THEN
+        error%Number  = IV_ERROR
+        error%aString = 'Invalid value for random angle precision'
+        error%bString = 'Must specify be 1 or greater'
+        GOTO 9999
+      END IF
+      dRanUA = dRanUA / dRan0
+    END IF
+
   CASE( 'XDATES' )
 
     IF( narg < 3 )THEN
@@ -121,7 +149,7 @@ SELECT CASE( TRIM(carg(1)) )
       GOTO 9999
     END IF
 
-    ios = ParseDate( carg(narg),yearEndUA, monthEndUA,dayEndUA )
+    ios = ParseDate( carg(narg),yearEndUA,monthEndUA,dayEndUA )
     IF( ios /= SUCCESS )THEN
       error%Number  = RD_ERROR
       error%aString = 'Error reading end date from UA XDATES'
@@ -163,7 +191,7 @@ SELECT CASE( TRIM(carg(1)) )
     END IF
  
     IF( narg > 5 )THEN
-      READ(carg(5),*,IOSTAT=ios) currentFile%elev
+      READ(carg(6),*,IOSTAT=ios) currentFile%elev
       IF( ios /= 0 )THEN
         error%Number  = RD_ERROR
         error%aString = 'Error reading UA LOCATION elevation'
@@ -261,6 +289,41 @@ SELECT CASE( TRIM(carg(1)) )
 
     lSFQ = carg(2)(1:1) == 'T' .OR. carg(2)(1:1) == 'Y'
     
+  CASE( 'RANDOM' )
+
+    IF( narg < 2 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for RANDOM'
+      error%bString = 'Must specify true or false'
+      GOTO 9999
+    END IF
+
+    lRandSFC = carg(2)(1:1) == 'T' .OR. carg(2)(1:1) == 'Y'
+
+    IF( narg > 2 )THEN
+      READ(carg(3),*,IOSTAT=ios ) dRanSFC
+      IF( ios /= 0 )THEN
+        error%Number  = RD_ERROR
+        error%aString = 'Error reading angle precision for adding random component'
+        error%bString = 'Must specify a positive real number'
+        GOTO 9999
+      END IF
+      IF( ios /= 0 )THEN
+        error%Number  = RD_ERROR
+        error%aString = 'Error reading angle precision for adding random component'
+        error%bString = 'Must specify a positive real number'
+        GOTO 9999
+      END IF
+      IF( dRanSFC < 1. )THEN
+        error%Number  = IV_ERROR
+        error%aString = 'Invalid value for random angle precision'
+        error%bString = 'Must specify be 1 or greater'
+        GOTO 9999
+      END IF
+      dRanSFC = dRanSFC / dRan0
+
+    END IF
+
   CASE( 'XDATES' )
 
     IF( narg < 3 )THEN
@@ -319,7 +382,7 @@ SELECT CASE( TRIM(carg(1)) )
     END IF
  
     IF( narg > 5 )THEN
-      READ(carg(5),*,IOSTAT=ios) currentFile%elev
+      READ(carg(6),*,IOSTAT=ios) currentFile%elev
       IF( ios /= 0 )THEN
         error%Number  = RD_ERROR
         error%aString = 'Error reading SFC LOCATION elevation'
@@ -354,6 +417,363 @@ SELECT CASE( TRIM(carg(1)) )
 END SELECT
 
 irv = SUCCESS
+
+9999 CONTINUE
+
+RETURN
+END
+
+!==============================================================================
+
+INTEGER FUNCTION ParseOnsiteInput() RESULT( irv )
+
+USE met2sci_fi
+
+IMPLICIT NONE
+
+INTEGER nrec
+
+INTEGER, EXTERNAL :: ParseDate, ParseLocation
+
+irv = FAILURE
+
+error%Routine = 'ParseOnsiteInput'
+
+SELECT CASE( TRIM(carg(1)) )
+
+  CASE( 'DATA' )
+
+    IF( narg < 2 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for DATA'
+      error%bString = 'ONSITE file name'
+      GOTO 9999
+    END IF
+
+    INQUIRE( FILE=TRIM(carg(2)),EXIST=lexist )
+    IF( .NOT.lexist )THEN
+      error%Number  = NF_ERROR
+      error%aString = 'ONSITE data file not found'
+      error%bString = TRIM(carg(2))
+      GOTO 9999
+    END IF
+
+    OSlist%nFile = OSlist%nFile + 1
+      
+    IF( OSlist%nFile == 1 )THEN
+      ALLOCATE( currentFile,STAT=alloc_stat )
+      IF( alloc_stat /= 0 )THEN
+        error%Number = UK_ERROR
+        error%aString = 'Error initializing link-list of ONSITE files'
+        GOTO 9999
+      END IF
+      OSlist%First => currentFile
+    ELSE 
+      ALLOCATE( currentFile%next,STAT=alloc_stat )
+      IF( alloc_stat /= 0 )THEN
+        error%Number = UK_ERROR
+        error%aString = 'Error adding to link-list of ONSITE files'
+        GOTO 9999
+      END IF
+      currentFile => currentFile%next 
+    END IF
+
+    CALL InitFileList()
+
+    currentFile%name = TRIM(carg(2))
+    currentFile%type = TRIM(carg(3))
+
+    OSdataLine = TRIM(line)
+
+  CASE( 'EXTRACT' )
+
+    IF( narg < 2 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for EXTRACT'
+      error%bString = 'ONSITE output file name required'
+      GOTO 9999
+    END IF
+
+    OSfile = TRIM(carg(2))
+    
+  CASE( 'QAOUT' )
+
+    IF( narg < 2 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for QAOUT'
+      error%bString = 'Must specify true or false'
+      GOTO 9999
+    END IF
+
+    lUAQ = carg(2)(1:1) == 'T' .OR. carg(2)(1:1) == 'Y'
+
+    OSqaoutLine = TRIM(line)
+    
+  CASE( 'RANDOM' )
+
+    IF( narg < 2 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for RANDOM'
+      error%bString = 'Must specify true or false'
+      GOTO 9999
+    END IF
+
+    lRandUA = carg(2)(1:1) == 'T' .OR. carg(2)(1:1) == 'Y'
+    
+    IF( narg > 2 )THEN
+      READ(carg(3),*,IOSTAT=ios ) dRanUA
+      IF( ios /= 0 )THEN
+        error%Number  = RD_ERROR
+        error%aString = 'Error reading angle precision for adding random component'
+        error%bString = 'Must specify a positive real number'
+        GOTO 9999
+      END IF
+      IF( dRanUA < 1. )THEN
+        error%Number  = IV_ERROR
+        error%aString = 'Invalid value for random angle precision'
+        error%bString = 'Must specify be 1 or greater'
+        GOTO 9999
+      END IF
+      dRanOS = dRanOS / dRan0
+    END IF
+
+  CASE( 'XDATES' )
+
+    IF( narg < 3 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for ONSITE XDATES'
+      error%bString = 'Start and end dates required'
+      GOTO 9999
+    END IF
+
+    ios = ParseDate( carg(2),yearStartOS,monthStartOS,dayStartOS )
+    IF( ios /= SUCCESS )THEN
+      error%Number  = RD_ERROR
+      error%aString = 'Error reading start date from ONSITE XDATES'
+      GOTO 9999
+    END IF
+
+    ios = ParseDate( carg(narg),yearEndOS,monthEndOS,dayEndOS )
+    IF( ios /= SUCCESS )THEN
+      error%Number  = RD_ERROR
+      error%aString = 'Error reading end date from ONSITE XDATES'
+      GOTO 9999
+    END IF
+
+    OSxdatesLine = TRIM(line)
+
+  CASE( 'LOCATION' )
+
+    IF( .NOT.ASSOCIATED(currentFile) )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'LOCATION must follow DATA'
+      GOTO 9999
+    END IF
+
+    IF( narg < 4 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for ONSITE LOCATION'
+      error%bString = 'ID, Lat, Lon required'
+      GOTO 9999
+    END IF
+
+    currentFile%ID = TRIM(carg(2))
+
+    ios = ParseLocation( carg(3),carg(4),currentFile%lat,currentFile%lon, &
+                                        currentFile%clat,currentFile%clon)
+    IF( ios /= SUCCESS )THEN
+      error%Number  = RD_ERROR
+      error%aString = 'Error reading ONSITE LOCATION lat/lon'
+      GOTO 9999
+    END IF
+
+    IF( narg > 4 )THEN
+      READ(carg(5),*,IOSTAT=ios) currentFile%tAdj
+      IF( ios /= 0 )THEN
+        error%Number  = RD_ERROR
+        error%aString = 'Error reading ONSITE LOCATION time adjustment'
+        GOTO 9999
+      END IF
+    END IF
+ 
+    IF( narg > 5 )THEN
+      READ(carg(6),*,IOSTAT=ios) currentFile%elev
+      IF( ios /= 0 )THEN
+        error%Number  = RD_ERROR
+        error%aString = 'Error reading ONSITE LOCATION elevation'
+        GOTO 9999
+      END IF
+    END IF
+ 
+    OSlocationLine = TRIM(line)
+
+  CASE( 'READ' )
+
+    IF( narg < 3 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for ONSITE READ'
+      error%bString = 'record index and at least one variable required'
+      GOTO 9999
+    END IF
+
+    nOSrecord = nOSrecord + 1
+    READ(carg(2),*,IOSTAT=ios) nrec
+    IF( ios /= 0 )THEN
+      error%Number  = RD_ERROR
+      error%aString = 'Error reading ONSITE variable list'
+      GOTO 9999
+    END IF
+    IF( nOSrecord /= nrec )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Invalid ONSITE READ record number'
+      GOTO 9999
+    END IF
+
+    IF( nOSrecord == 1 )THEN
+        ALLOCATE( firstOSread%first,STAT=alloc_stat )
+        firstOSread%first%line = TRIM(line)
+        NULLIFY( firstOSread%first%next )
+        OSread => firstOSread%first
+        OSread%rec = nOSrecord
+    ELSE
+        ALLOCATE( OSread%next,STAT=alloc_stat )
+        OSread => OSread%next
+        NULLIFY( OSread%next )
+        OSread%line = TRIM(line)
+        OSread%rec = nOSrecord
+    END IF
+
+  CASE( 'FORMAT' )
+
+    IF( narg < 3 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for ONSITE FORMAT'
+      error%bString = 'record index and format spec required'
+      GOTO 9999
+    END IF
+
+    nOSformat = nOSformat + 1
+    READ(carg(2),*,IOSTAT=ios) nrec
+    IF( ios /= 0 )THEN
+      error%Number  = RD_ERROR
+      error%aString = 'Error reading ONSITE FORMAT'
+      GOTO 9999
+    END IF
+    IF( nOSformat /= nrec )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Invalid ONSITE format record number'
+      GOTO 9999
+    END IF
+
+    IF( nOSformat == 1 )THEN
+        ALLOCATE( firstOSformat%first,STAT=alloc_stat )
+        firstOSformat%first%line = TRIM(line)
+        NULLIFY( firstOSformat%first%next )
+        OSread => firstOSformat%first
+        OSread%rec = nOSformat
+    ELSE
+        ALLOCATE( OSread%next,STAT=alloc_stat )
+        OSread => OSread%next
+        NULLIFY( OSread%next )
+        OSread%line = TRIM(line)
+        OSread%rec = nOSformat
+    END IF
+
+  CASE( 'RANGE' )
+
+    IF( narg < 5 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for ONSITE RANGE'
+      error%bString = 'variable name, min / max and missing values required'
+      GOTO 9999
+    END IF
+
+    nOSrange = nOSrange + 1
+
+    IF( nOSrange == 1 )THEN
+        ALLOCATE( firstOSrange%first,STAT=alloc_stat )
+        firstOSrange%first%line = TRIM(line)
+        NULLIFY( firstOSrange%first%next )
+        OSread => firstOSrange%first
+        OSread%rec = nOSrange
+    ELSE
+        ALLOCATE( OSread%next,STAT=alloc_stat )
+        OSread => OSread%next
+        NULLIFY( OSread%next )
+        OSread%line = TRIM(line)
+        OSread%rec = nOSrange
+    END IF
+
+  CASE( 'OSHEIGHTS' )
+
+    IF( narg < 2 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for ONSITE OSHEIGHTS'
+      error%bString = 'At least one height must be specified'
+      GOTO 9999
+    END IF
+
+    nOSheight = narg - 1
+    OSheightLine = TRIM(line)
+
+  CASE( 'AUDIT' )
+
+    IF( narg < 2 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for ONSITE AUDIT'
+      error%bString = 'At least one variable must be specified'
+      GOTO 9999
+    END IF
+
+    OSauditLine = TRIM(line)
+
+  CASE( 'NO_MISSING' )
+
+    IF( narg < 2 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for ONSITE NO_MISSING'
+      error%bString = 'At least one variable must be specified'
+      GOTO 9999
+    END IF
+
+    OSnomissingLine  = TRIM(line)
+
+  CASE( 'OBS/HOUR' )
+
+!**********************************************************
+!    error%Number  = IV_ERROR
+!    error%aString = 'ONSITE OBS/HOUR keyword not supported'
+!    error%bString = 'Data must be reported hourly'
+!    GOTO 9999
+!**********************************************************
+
+    IF( narg < 2 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for ONSITE OBS/HOUR'
+      error%bString = 'Times per hour must be specified'
+      GOTO 9999
+    END IF
+
+    OSobsperhourLine = TRIM(line)
+
+  CASE( 'THRESHOLD' )
+
+    IF( narg < 2 )THEN
+      error%Number  = IV_ERROR
+      error%aString = 'Insufficient input specified for ONSITE THRESHOLD'
+      error%bString = 'Threshold wind speed must be specified'
+      GOTO 9999
+    END IF
+
+    OSthresholdLine = TRIM(line)
+
+  CASE DEFAULT
+    !Ignore **** needs a message? ****
+
+END SELECT
+
+irv = SUCCESS
+error%Routine = ''
 
 9999 CONTINUE
 

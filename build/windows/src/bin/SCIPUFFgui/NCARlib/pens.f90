@@ -1,7 +1,7 @@
 SUBROUTINE SetBrush()
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -58,7 +58,7 @@ END
 SUBROUTINE SetPen()
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -135,7 +135,7 @@ END
 SUBROUTINE setRGBcolor( indx,icol )
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

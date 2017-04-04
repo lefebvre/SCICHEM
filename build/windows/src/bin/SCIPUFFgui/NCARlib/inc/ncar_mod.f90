@@ -59,7 +59,7 @@ MODULE NCAR
 ! GetNCARDC
 !==============================================================================
     SUBROUTINE GetNCARDC( hDC, hDCget )
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       INTEGER(POINTER_LEN) hDC
       INTEGER(POINTER_LEN) hDCget
     END SUBROUTINE GetNCARDC
@@ -82,7 +82,7 @@ MODULE NCAR
 ! GetNCARPalette
 !==============================================================================
     SUBROUTINE GetNCARPalette( hPalette )
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       INTEGER(POINTER_LEN) hPalette
     END SUBROUTINE GetNCARPalette
 
@@ -125,7 +125,7 @@ MODULE NCAR
 ! GetNCARWindow
 !==============================================================================
     SUBROUTINE GetNCARWindow( hWindow )
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       INTEGER(POINTER_LEN) hWindow
     END SUBROUTINE GetNCARWindow
 
@@ -246,7 +246,7 @@ MODULE NCAR
 ! InitNCARGraphics
 !==============================================================================
     SUBROUTINE InitNCARGraphics( hInstance )
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       INTEGER(POINTER_LEN) hInstance
     END SUBROUTINE InitNCARGraphics
 
@@ -300,7 +300,7 @@ MODULE NCAR
 ! RestoreFont
 !==============================================================================
     SUBROUTINE RestoreFont(hDC,hFontNew,hFontOld)
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       INTEGER(POINTER_LEN) hDC
       INTEGER(POINTER_LEN) hFontNew
       INTEGER(POINTER_LEN) hFontOld
@@ -331,7 +331,7 @@ MODULE NCAR
 ! SetFont
 !==============================================================================
     SUBROUTINE SetFont(hDC,font,ifsz,irot,iwgt,inew,iold)
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       INTEGER(POINTER_LEN) hDC
       CHARACTER(*)font
       INTEGER ifsz
@@ -352,7 +352,7 @@ MODULE NCAR
 ! SetNCARDC
 !==============================================================================
     SUBROUTINE SetNCARDC(hDC,hDCget)
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       INTEGER(POINTER_LEN) hDC
       INTEGER(POINTER_LEN) hDCget
     END SUBROUTINE SetNCARDC
@@ -375,7 +375,7 @@ MODULE NCAR
 ! SetNCARWindow
 !==============================================================================
     SUBROUTINE SetNCARWindow( hWindow )
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       INTEGER(POINTER_LEN) hWindow
     END SUBROUTINE SetNCARWindow
 

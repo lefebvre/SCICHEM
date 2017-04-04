@@ -46,6 +46,10 @@ ELSE IF( dt_smp == DEF_VAL_R )THEN
 ELSE
   dt_smp    = MAX(dt_smp,delt/(2.0**MAXTLV))
   mxlev_smp = time_level( dt_smp )
+  IF( nError /= NO_ERROR )THEN
+    eRoutine = 'read_smp'
+    GOTO 9999
+  END IF
 END IF
 
 !------ Initialize sampler time and no. of variables
@@ -97,6 +101,7 @@ IF( .NOT.lexist )THEN
     string = 'Sensor Output'
   END IF
   CALL create_smp( string )
+  IF( nError /= NO_ERROR )GOTO 9999
 END IF
 
 !------ Output file
@@ -175,6 +180,8 @@ ELSE
   CALL ReadLastSamplerTime( nback )
   IF( nError /= NO_ERROR )GOTO 9999
 
+  IF( t > tEndSamp )GOTO 9999
+
   tol = 10.**FLOOR(LOG10(t)) !Nearest power of 10, i.e., t = r*tol where tol = 10^n
   tol = 0.9*tol * 1.E-6  !Six decimal points
   !tol = 0.9*tol * 1.E-4  !Four decimal points - use in non-AFTAC code someday
@@ -220,7 +227,7 @@ ELSE
       CALL BackSpaceSampler( nback,ts,ios )
       IF( ios /= NO_ERROR )ts = tStartSamp
 
-      IF( ABS((t_smp-ts) - dtSmpOut) < tol )THEN
+      IF( ABS((t_smp-ts) - dtSmpOut) < tol .OR. (lavg .AND. lSmpOutList .AND. t_smp < tStartSamp) )THEN
 
         READ(lun_smp,*,IOSTAT=ios) ts,((dum,i=1,smp(is)%nvar),is=1,nsmp)
         IF( multicomp .AND. smp(is)%nmc > 0 )READ(lun_asmp,*,IOSTAT=ios) ts,((dum,i=1,3+smp(is)%nmc),is=1,nsmp)
@@ -307,14 +314,16 @@ TYPE( sensor ), POINTER :: ss
 REAL,    EXTERNAL :: sind, cosd
 INTEGER, EXTERNAL :: SAG_RmvGrdStr, SAG_SetSpecialValue
 
-lLargeDelT = .FALSE.
-
 !------ Don't do anything if before sensor start time
 
 IF( t < tStartSamp )THEN
   t_smp = t
-  GOTO 9999
+  GOTO 9998
 END IF
+
+!------ Don't do anything if after end of sensor output
+
+IF( t > tEndSamp )GOTO 9998
 
 !------ Set max vertical puff level
 
@@ -326,6 +335,7 @@ END DO
 lLargeDelT = BTEST(SmpOutType,SOB_LARGEDELT) .OR. &
              (lSmpOut .AND. .NOT.BTEST(SmpOutType,SOB_INTONLY)) !To force actions on large timesteps or
                                                                 !user-specified output times
+
 !------ Loop until output time is greater than current time
 
 lFirst = .TRUE.
@@ -542,7 +552,6 @@ Samplers : DO is = 1,nsmp
     END DO GridLoop
 
   END DO Samplers
-
 !------ Write output
 
   IF( lAvg .OR. lSmpOut )THEN
@@ -574,6 +583,9 @@ IF( ndosblk_smp > 0 .AND. lLargeDelT )THEN
     IF( dosblk_smp(i)%grdI > 0 )irv = SAG_RmvGrdStr( dosblk_smp(i)%grdI )
   END DO
 END IF
+
+
+9998 CONTINUE
 
 RETURN
 END
@@ -867,7 +879,6 @@ IF( iSensor == IS_CORR .AND. t_avg == DEF_VAL_R )THEN
 END IF
 
 9999 CONTINUE
-
 
 RETURN
 END
@@ -1250,7 +1261,7 @@ END IF
 
 !------ Account for puff advection since last update
 
-CALL mapfac( p%xbar,p%ybar,xmap,ymap )
+CALL mapfac( SNGL(p%xbar),SNGL(p%ybar),xmap,ymap )
 
 IF( p%idtl >= 0 )THEN
   it = mstepP/MIN(2**p%idtl,mstepP)
@@ -1274,8 +1285,8 @@ IF( mvlos%r > SMALL )THEN
 
   padv = p
 
-  padv%xbar = p%xbar + p%uo*tp*xmap     !Advect puff location
-  padv%ybar = p%ybar + p%vo*tp*ymap
+  padv%xbar = p%xbar + DBLE(p%uo*tp*xmap)     !Advect puff location
+  padv%ybar = p%ybar + DBLE(p%vo*tp*ymap)
   padv%zbar = p%zbar + p%wo*tp
 
   cl = 0.; ccl = 0.
@@ -1296,9 +1307,9 @@ ELSE
   vbar = p%zbar
   vs   = x_sensor(3)
 
-  zp = (vs-vbar)                 - p%wo*tp
-  xp = (x_sensor(1)-p%xbar)/xmap - p%uo*tp
-  yp = (x_sensor(2)-p%ybar)/ymap - p%vo*tp
+  zp = (vs-vbar)                       - p%wo*tp
+  xp = (x_sensor(1)-SNGL(p%xbar))/xmap - p%uo*tp
+  yp = (x_sensor(2)-SNGL(p%ybar))/ymap - p%vo*tp
 
 !------ Gaussian argument
 
@@ -1324,7 +1335,7 @@ ELSE
 
     IF( lter )THEN
 
-      CALL get_topogIn( p%xbar,p%ybar,hz,hx,hy,getPuffifld(p) )
+      CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),hz,hx,hy,getPuffifld(p) )
       zr   = vbar - hz
       CALL puff_grnd_reflect( zr,p,hx,hy,xr,xnrm,deth,znrm )
       zfac = 0.5*znrm/(p%det*deth)
@@ -1375,6 +1386,119 @@ IF( ALLOCATED(comp) )DEALLOCATE( comp,STAT=alloc_stat )
 RETURN
 END
 
+!=======================================================================
+
+SUBROUTINE GetPuffFac( x_sensor,p,ltot,ltotNot,csmp )
+
+!------ Calculate puff concentration at sensor location
+
+USE scipuff_fi
+USE sampler_fi
+
+IMPLICIT NONE
+
+REAL, DIMENSION(3), INTENT( IN  ) :: x_sensor !sensor location
+TYPE( puff_str ),   INTENT( IN  ) :: p        !puff structure
+LOGICAL,            INTENT( IN  ) :: ltot     !flag for total variance
+LOGICAL,            INTENT( IN  ) :: ltotNot  !flag for not total variance (also, perhaps)
+REAL, DIMENSION(5), INTENT( OUT ) :: csmp     !puff concentration at sensor, mean, variance(maybe 2) and scale(maybe 2)
+
+REAL, PARAMETER :: ARGMAX = 20.0
+
+TYPE( puff_totalcc  ) pt
+
+REAL, DIMENSION(3) :: xr, xnrm
+
+INTEGER it
+REAL    cfac, ccfac, cctfac, slfac, sltfac, xmap, ymap, vbar, tp
+REAL    deth, rat, hz, hx, hy, zp, znrm, zfac, vs
+REAL    xp, yp, faci, arg, args, zr, facs, fac, vols
+
+INTEGER, EXTERNAL :: getPuffifld
+
+!------ Initialize output to zero
+
+csmp = 0.
+
+!------ Account for puff advection since last update
+
+CALL mapfac( SNGL(p%xbar),SNGL(p%ybar),xmap,ymap )
+
+IF( p%idtl >= 0 )THEN
+  it = mstepP/MIN(2**p%idtl,mstepP)
+  it = MOD(istepP,it)
+  tp = FLOAT(it)*dtsP
+ELSE
+  tp = 0.
+END IF
+
+vbar = p%zbar
+vs   = x_sensor(3)
+
+zp = (vs-vbar)                       - p%wo*tp
+xp = (x_sensor(1)-SNGL(p%xbar))/xmap - p%uo*tp
+yp = (x_sensor(2)-SNGL(p%ybar))/ymap - p%vo*tp
+
+!------ Gaussian argument
+
+arg = (p%axx*xp + 2.*p%axy*yp + 2.*p%axz*zp)*xp &
+                +   (p%ayy*yp + 2.*p%ayz*zp)*yp &
+                              +    p%azz*zp*zp
+IF(  arg < ARGMAX )THEN
+
+  vols = PI3*SQRT(p%det)
+  cfac = p%c/vols
+
+  IF( ltot )THEN
+    CALL get_totalcc( p,pt )
+    cctfac = MAX((pt%cct-pt%cctb)/vols,0.0)
+    sltfac = 0.5*p%sr*cctfac  !p%sr is 2 x Tc
+  END IF
+  IF( ltotNot )THEN
+    ccfac = MAX((p%cc-p%ccb)/vols,0.0)
+    slfac = 0.5*p%sr*ccfac  !p%sr is 2 x Tc
+  END IF
+
+  deth = p%axx*p%ayy - p%axy**2
+  rat  = 0.5/(p%det*deth)
+  CALL zi_reflect( vbar,p%zc,p%zc,vs,rat,faci )
+
+  IF( lter )THEN
+
+    CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),hz,hx,hy,getPuffifld(p) )
+    zr   = vbar - hz
+    CALL puff_grnd_reflect( zr,p,hx,hy,xr,xnrm,deth,znrm )
+    zfac = 0.5*znrm/(p%det*deth)
+    zr   = xnrm(1)*(xp-xr(1)) + xnrm(2)*(yp-xr(2)) + xnrm(3)*(zp-xr(3))
+    zr   = MAX(zr,0.)
+    facs = EXP(zfac*zr)
+
+  ELSE
+
+    args = vs*vbar*rat
+    facs = EXP(-args)
+    hz   = 0.
+
+  END IF
+
+  fac = EXP(-arg)*(1.+facs)*(1.+faci)
+
+  csmp(1) = fac*cfac
+  IF( ltotNot )THEN
+    csmp(2) = fac*ccfac
+    csmp(3) = fac*slfac
+  END IF
+  IF( ltot )THEN
+    csmp(4) = fac*cctfac
+    csmp(5) = fac*sltfac
+  END IF
+
+END IF
+
+9999 CONTINUE
+
+RETURN
+END
 !==============================================================================
 
 SUBROUTINE GetSampMC( ss,tfac )
@@ -1400,7 +1524,6 @@ REAL    fso4j, fno3j, fnh4j
 REAL    faso4j, fano3j, fanh4j
 REAL    aso4, ano3, anh4, tso4, tno3, tnh4
 REAL    ahno3, anh3, thno3, tnh3
-
 INTERFACE
   SUBROUTINE SetChemAmbient( xIn,yIn,zIn,t,leq,lmet,lplot )
     REAL,    INTENT( IN ) :: xIn, yIn, zIn, t
@@ -1430,7 +1553,6 @@ IF( multicomp )THEN
 END IF
 
 !------ Update species background concentrations and set equilibrium species
-
 CALL SetChemAmbient( ss%x,ss%y,ss%zh,t,.TRUE.,.TRUE.,.TRUE. )
 IF( nError /= NO_ERROR )GOTO 9999
 
@@ -1443,7 +1565,6 @@ ELSE
 END IF
 
 ppm2ugm3 = pb*750.06/(62.4*tb)   ! *MW later (pb mbar to mmHg, T in K, R = 62.4 and mg to ug)
-
 ! Calculate relative humidity for inorganic aerosol equilibrium calculations
 IF ( laerosol ) THEN
 
@@ -1454,7 +1575,6 @@ IF ( laerosol ) THEN
   rh = MAX(rh,0.01)
 
 END IF
-
 DO i = 1,SIZE(ss%mcID)
   cfac = 1.
   IF( chem%oUnits == UNIT_UGM3 .AND. &
@@ -1519,7 +1639,7 @@ IF (laerosol) THEN
   else
     fano3j = 1.0
   end if
-  
+
   tno3  = tno3j + tno3i
   if ( tno3 > 0. ) then
     fno3j = tno3j/tno3
@@ -1537,7 +1657,7 @@ IF (laerosol) THEN
   else
     fanh4j = 1.0
   end if
-  
+
   tnh4  = tnh4j + tnh4i
   if ( tnh4 > 0. ) then
     fnh4j = tnh4j/tnh4
@@ -1585,7 +1705,6 @@ IF (laerosol) THEN
   ss%dsmp(ioff+IDNH3) = tnh3
 
 END IF
-
 
 9999 CONTINUE
 
@@ -2012,6 +2131,9 @@ END DO
 
 IF( lAvg .OR. lSmpOut )THEN
 
+  IF( lSmpOutList .AND. lAvg )dtSmpOut = 0. !Go to next time in list
+
+
   tSmpOut = tSmpOut + dtSmpOut
 
   IF( lSmpOutList )THEN !Check against start of next period
@@ -2026,6 +2148,11 @@ IF( lAvg .OR. lSmpOut )THEN
         ELSE
           tSmpOut = SampTimeList%tStart
         END IF
+      END IF
+    ELSE
+      IF( lAvg )THEN  !No more output times
+        tStartSamp = HUGE(0.)
+        tSmpOut    = HUGE(0.)
       END IF
     END IF
   END IF
@@ -2174,7 +2301,7 @@ INTEGER, EXTERNAL :: SAG_BottomMinMaxID, SAG_TrianglesID, SAG_NodesID, SAG_LastE
 INTEGER, EXTERNAL :: SAG_CountContourID, SAG_BuildContourID, SAG_SetSpecialValue
 REAL,    EXTERNAL :: sind, cosd
 
-!------ Initiallize
+!------ Initialize
 
 irv = SAG_SetSpecialValue( .TRUE.,HP_SPV )
 
@@ -2239,195 +2366,195 @@ ELSE IF( fmax(1) > ss%autoLev )THEN   !All points above level: setup grid based 
   ss%dxs = ss%dx
   ss%dys = ss%dy
 
-  GOTO 9998 !Allocate ss%dsmp
-
-END IF
+ELSE
 
 !------ Setup triangles and nodes - Use grid coordinates for accuracy
 
-grd => SAG_PtrGrdStr( grdI )
+  grd => SAG_PtrGrdStr( grdI )
 
-triT => SAG_PtrTriStr( grdI )
+  triT => SAG_PtrTriStr( grdI )
 
-ifld(1) = 1
-IF( .NOT.ASSOCIATED(triT%iptri) )THEN
-  irv = SAG_TrianglesID( grdI,1,ifld,.TRUE. )
-  IF( irv /= SAG_OK )THEN
-    nError = SAG_LastError( eInform,eAction )
-    IF( nError == NO_ERROR )nError = UK_ERROR
-    eRoutine = 'SensorAutoGrid'
-    eMessage = 'Error computing field triangles'
-    GOTO 9999
+  ifld(1) = 1
+  IF( .NOT.ASSOCIATED(triT%iptri) )THEN
+    irv = SAG_TrianglesID( grdI,1,ifld,.TRUE. )
+    IF( irv /= SAG_OK )THEN
+      nError = SAG_LastError( eInform,eAction )
+      IF( nError == NO_ERROR )nError = UK_ERROR
+      eRoutine = 'SensorAutoGrid'
+      eMessage = 'Error computing field triangles'
+      GOTO 9999
+    END IF
+  ELSE
+    irv = SAG_NodesID( grdI,1,ifld )
+    IF( irv /= SAG_OK )THEN
+      nError = SAG_LastError( eInform,eAction )
+      IF( nError == NO_ERROR )nError = UK_ERROR
+      eRoutine = 'SensorAutoGrid'
+      eMessage = 'Error computing field triangles node values'
+      GOTO 9999
+    END IF
   END IF
-ELSE
-  irv = SAG_NodesID( grdI,1,ifld )
-  IF( irv /= SAG_OK )THEN
-    nError = SAG_LastError( eInform,eAction )
-    IF( nError == NO_ERROR )nError = UK_ERROR
-    eRoutine = 'SensorAutoGrid'
-    eMessage = 'Error computing field triangles node values'
-    GOTO 9999
-  END IF
-END IF
 
 !------ Count number of points in contour
 
-contour%mxpts = 0
-contour%mxlns = 0
+  contour%mxpts = 0
+  contour%mxlns = 0
 
-CALL SAG_InitContour( contour,1,ss%autoLev,.TRUE.,.TRUE. )  !Log interpolation and closed contours
+  CALL SAG_InitContour( contour,1,ss%autoLev,.TRUE.,.TRUE. )  !Log interpolation and closed contours
 
-irv = SAG_CountContourID( grdI,contour )
-IF( irv /= SAG_OK )THEN
-  nError = SAG_LastError( eInform,eAction )
-  IF( nError == NO_ERROR )nError = UK_ERROR
-  eRoutine = 'SensorAutoGrid'
-  eMessage = 'Error counting contour points/lines'
-  GOTO 9999
-END IF
+  irv = SAG_CountContourID( grdI,contour )
+  IF( irv /= SAG_OK )THEN
+    nError = SAG_LastError( eInform,eAction )
+    IF( nError == NO_ERROR )nError = UK_ERROR
+    eRoutine = 'SensorAutoGrid'
+    eMessage = 'Error counting contour points/lines'
+    GOTO 9999
+  END IF
 
-IF( contour%npts <= 0 )THEN
-  ss%nx = 0
-  ss%ny = 0
-  GOTO 9999
-END IF
+  IF( contour%npts <= 0 )THEN  !Should not occur
+    ss%nx = 0
+    ss%ny = 0
+    GOTO 9999
+  END IF
 
 !------ Allocate contour arrays
 
-ALLOCATE( contour%ippts(contour%npts),contour%iplns(contour%nlns),STAT=alloc_stat )
-IF( alloc_stat /= 0 )THEN
-  nError   = UK_ERROR
-  eRoutine = 'SensorAutoGrid'
-  eMessage = 'Error allocating contour points/lines'
-  GOTO 9999
-END IF
+  ALLOCATE( contour%ippts(contour%npts),contour%iplns(contour%nlns),STAT=alloc_stat )
+  IF( alloc_stat /= 0 )THEN
+    nError   = UK_ERROR
+    eRoutine = 'SensorAutoGrid'
+    eMessage = 'Error allocating contour points/lines'
+    GOTO 9999
+  END IF
 
-contour%mxpts = contour%npts
-contour%mxlns = contour%nlns
+  contour%mxpts = contour%npts
+  contour%mxlns = contour%nlns
 
 !------ Build contour
 
-irv = SAG_BuildContourID( grdI,contour )
-IF( irv /= SAG_OK )THEN
-  nError = SAG_LastError( eInform,eAction )
-  IF( nError == NO_ERROR )nError = UK_ERROR
-  eRoutine = 'SensorAutoGrid'
-  eMessage = 'Error building contour'
-  GOTO 9999
-END IF
+  irv = SAG_BuildContourID( grdI,contour )
+  IF( irv /= SAG_OK )THEN
+    nError = SAG_LastError( eInform,eAction )
+    IF( nError == NO_ERROR )nError = UK_ERROR
+    eRoutine = 'SensorAutoGrid'
+    eMessage = 'Error building contour'
+    GOTO 9999
+  END IF
 
-CALL check_progress()
+  CALL check_progress()
 
 !------ Allocate arrays for each closed contour
 
-nL = contour%nlns
+  nL = contour%nlns
 
-ALLOCATE( Line(nL),STAT=alloc_stat )
-IF( alloc_stat /= 0 )THEN
-  nError   = UK_ERROR
-  eRoutine = 'SensorAutoGrid'
-  eMessage = 'Error allocating arrays for computing contour rotation'
-  GOTO 9999
-END IF
+  ALLOCATE( Line(nL),STAT=alloc_stat )
+  IF( alloc_stat /= 0 )THEN
+    nError   = UK_ERROR
+    eRoutine = 'SensorAutoGrid'
+    eMessage = 'Error allocating arrays for computing contour rotation'
+    GOTO 9999
+  END IF
 
-is = 1
-xs0 = contour%ippts(1)%x   !Reference point in grid coordinates
-ys0 = contour%ippts(1)%y
+  is = 1
+  xs0 = contour%ippts(1)%x   !Reference point in grid coordinates
+  ys0 = contour%ippts(1)%y
 
-xm = grd%xmin + grd%dx*xs0 !Convert to project coordinates
-ym = grd%ymin + grd%dy*ys0
+  xm = grd%xmin + grd%dx*xs0 !Convert to project coordinates
+  ym = grd%ymin + grd%dy*ys0
 
-CALL mapfac( xm,ym,xmap,ymap )
+  CALL mapfac( xm,ym,xmap,ymap )
 
-sumL  = 0.
-sumX  = 0.; sumY  = 0.
-sumXX = 0.; sumYY = 0.; sumXY = 0.
+  sumL  = 0.
+  sumX  = 0.; sumY  = 0.
+  sumXX = 0.; sumYY = 0.; sumXY = 0.
 
 !------ Loop over contours and compute line integrals
 
-DO iL = 1,nL
+  DO iL = 1,nL
 
-  IF( iL == nL )THEN
-    npts = contour%npts - contour%iplns(iL) + 1
-  ELSE
-    npts = contour%iplns(iL+1) - contour%iplns(iL)
-  END IF
-  Line(iL)%number = npts
+    IF( iL == nL )THEN
+      npts = contour%npts - contour%iplns(iL) + 1
+    ELSE
+      npts = contour%iplns(iL+1) - contour%iplns(iL)
+    END IF
+    Line(iL)%number = npts
 
-  IF( iL > 1 )is = Line(iL-1)%start + Line(iL-1)%number
+    IF( iL > 1 )is = Line(iL-1)%start + Line(iL-1)%number
 
-  Line(iL)%start = is
+    Line(iL)%start = is
 
-  xm = grd%dx*(contour%ippts(is)%x - xs0)/xmap; ym = grd%dy*(contour%ippts(is)%y - ys0)/ymap
+    xm = grd%dx*(contour%ippts(is)%x - xs0)/xmap; ym = grd%dy*(contour%ippts(is)%y - ys0)/ymap
 
-  DO i = is+1,is+npts-1
-    xs = grd%dx*(contour%ippts(i)%x - xs0)/xmap
-    ys = grd%dy*(contour%ippts(i)%y - ys0)/ymap
-    ds = SQRT((xs-xm)**2+(ys-ym)**2)
-    sumL  = sumL  + ds
-    sumX  = sumX  + ds*xs
-    sumY  = sumY  + ds*ys
-    sumXX = sumXX + ds*xs*xs
-    sumYY = sumYY + ds*ys*ys
-    sumXY = sumXY + ds*xs*ys
-    xm = xs; ym = ys
+    DO i = is+1,is+npts-1
+      xs = grd%dx*(contour%ippts(i)%x - xs0)/xmap
+      ys = grd%dy*(contour%ippts(i)%y - ys0)/ymap
+      ds = SQRT((xs-xm)**2+(ys-ym)**2)
+      sumL  = sumL  + ds
+      sumX  = sumX  + ds*xs
+      sumY  = sumY  + ds*ys
+      sumXX = sumXX + ds*xs*xs
+      sumYY = sumYY + ds*ys*ys
+      sumXY = sumXY + ds*xs*ys
+      xm = xs; ym = ys
+    END DO
+
   END DO
-
-END DO
 
 !------ Compute second-moments
 
-sumX  = sumX  / sumL
-sumY  = sumY  / sumL
-sumXX = sumXX / sumL - sumX**2
-sumYY = sumYY / sumL - sumY**2
-sumXY = sumXY / sumL - sumX*sumY
+  sumX  = sumX  / sumL
+  sumY  = sumY  / sumL
+  sumXX = sumXX / sumL - sumX**2
+  sumYY = sumYY / sumL - sumY**2
+  sumXY = sumXY / sumL - sumX*sumY
 
 !------ Rotate to eliminate off-diagonal term for elliptical contour
 !       Set to nearest degree
 
-ss%rot = 0.5*ATAN2(2.*sumXY,sumXX-sumYY) / PI180
-ss%rot = NINT(ss%rot/1.) * 1.
+  ss%rot = 0.5*ATAN2(2.*sumXY,sumXX-sumYY) / PI180
+  ss%rot = NINT(ss%rot/1.) * 1.
 
-c = cosd( ss%rot )
-s = sind( ss%rot )
+  c = cosd( ss%rot )
+  s = sind( ss%rot )
 
 !------ Loop over contour points; find min/max in rotated coord
 
-xm = 0.
-ym = 0.
+  xm = 0.
+  ym = 0.
 
-xmin = xm
-xmax = xm
-ymin = ym
-ymax = ym
+  xmin = xm
+  xmax = xm
+  ymin = ym
+  ymax = ym
 
-DO i = 2,contour%npts
-  xs = grd%dx*(contour%ippts(i)%x - xs0)/xmap
-  ys = grd%dy*(contour%ippts(i)%y - ys0)/ymap
-  xm =  xs*c + ys*s
-  ym = -xs*s + ys*c
-  xmin = MIN(xmin,xm)
-  xmax = MAX(xmax,xm)
-  ymin = MIN(ymin,ym)
-  ymax = MAX(ymax,ym)
-END DO
+  DO i = 2,contour%npts
+    xs = grd%dx*(contour%ippts(i)%x - xs0)/xmap
+    ys = grd%dy*(contour%ippts(i)%y - ys0)/ymap
+    xm =  xs*c + ys*s
+    ym = -xs*s + ys*c
+    xmin = MIN(xmin,xm)
+    xmax = MAX(xmax,xm)
+    ymin = MIN(ymin,ym)
+    ymax = MAX(ymax,ym)
+  END DO
 
-dx  = xmax - xmin
-dy  = ymax - ymin
-del = SQRT(dx*dy/FLOAT(ss%npts))
+  dx  = xmax - xmin
+  dy  = ymax - ymin
+  del = SQRT(dx*dy/FLOAT(ss%npts))
 
-ss%nx = MAX(INT(dx/del)+1,2)
-ss%ny = MAX(INT(dy/del)+1,2)
+  ss%nx = MAX(INT(dx/del)+1,2)
+  ss%ny = MAX(INT(dy/del)+1,2)
 
-ss%dx = dx/FLOAT(ss%nx-1); ss%dxs = ss%dx
-ss%dy = dy/FLOAT(ss%ny-1); ss%dys = ss%dy
+  ss%dx = dx/FLOAT(ss%nx-1); ss%dxs = ss%dx
+  ss%dy = dy/FLOAT(ss%ny-1); ss%dys = ss%dy
 
-ss%x = grd%xmin + grd%dx*xs0 + (xmin*c - ymin*s)*xmap
-ss%y = grd%ymin + grd%dy*ys0 + (xmin*s + ymin*c)*ymap
+  ss%x = grd%xmin + grd%dx*xs0 + (xmin*c - ymin*s)*xmap
+  ss%y = grd%ymin + grd%dy*ys0 + (xmin*s + ymin*c)*ymap
 
-ss%x0 = ss%x
-ss%y0 = ss%y
+  ss%x0 = ss%x
+  ss%y0 = ss%y
+
+END IF
 
 !------ Convert to (optional) sensor coordinates
 
@@ -2441,8 +2568,6 @@ IF( lSmpCnv )THEN
 END IF
 
 !------ Setup dsmp array
-
-9998 CONTINUE
 
 IF( ASSOCIATED(ss%gsmp) )DEALLOCATE( ss%gsmp,STAT=alloc_stat )
 
@@ -2905,3 +3030,4 @@ END DO
 
 RETURN
 END
+

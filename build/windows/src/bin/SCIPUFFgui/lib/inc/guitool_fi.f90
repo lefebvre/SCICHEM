@@ -1,6 +1,6 @@
 MODULE GUItool_fi
 
-  USE winAPI, ONLY: POINTER_LEN
+  USE myWinAPI, ONLY: POINTER_LEN
   USE create_fd
   USE release_gui_fd
   USE project_fd

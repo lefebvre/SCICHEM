@@ -2,7 +2,7 @@ SUBROUTINE InitNCARGraphics( instance )
 
 USE ncarlib_fi
 USE lastset_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

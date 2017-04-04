@@ -607,7 +607,7 @@ INTEGER i, j, inode, n2, mxdata, iter, nsmth, nsmtho
 INTEGER alloc_stat, jp, ii, jnode
 REAL    rr1, rr2, m1bar, m2bar, v1bar, v2bar
 REAL    dr1, dr2, delM, delV
-REAL    aa, bb, cc, frac, m1c, m2c, mtc
+REAL    aa, bb, cc, frac
 REAL    r1hat, r2hat
 LOGICAL lcontinue, found
 
@@ -863,13 +863,10 @@ DO WHILE( iter < 25 .AND. lcontinue )
           m2bar = m2bar/FLOAT(n2)
           v1bar = v1bar/FLOAT(n2)
           v2bar = v2bar/FLOAT(n2)
-          m1c = MIN(1.E4*m1bar,v1bar/m1bar)
-          m2c = MIN(1.E4*m2bar,v2bar/m2bar)
-          mtc = triT%nodeT%ipdata((i-1)*mxdata+2)/triT%nodeT%ipdata((i-1)*mxdata+1)
 
-          cc = 0.0
-          IF( m2bar > 5.*TINY(m2bar) )cc = MIN(1.0,triT%nodeT%ipdata((i-1)*mxdata+1)/m2bar)
-          IF( v2bar > 5.*TINY(v2bar) )cc = MIN(cc, triT%nodeT%ipdata((i-1)*mxdata+2)/v2bar)
+          cc = 1.0
+          IF( m2bar > triT%nodeT%ipdata((i-1)*mxdata+1) )cc = triT%nodeT%ipdata((i-1)*mxdata+1)/m2bar
+          IF( v2bar > triT%nodeT%ipdata((i-1)*mxdata+2) )cc = MIN(cc, triT%nodeT%ipdata((i-1)*mxdata+2)/v2bar)
           triT%nodeT%ipdata((i-1)*mxdata+3) = 0.5*m2bar*cc
           triT%nodeT%ipdata((i-1)*mxdata+4) = 0.25*v2bar*cc*cc
           triT%nodeT%ipdata((i-1)*mxdata+1) = triT%nodeT%ipdata((i-1)*mxdata+1) &
@@ -877,7 +874,6 @@ DO WHILE( iter < 25 .AND. lcontinue )
           triT%nodeT%ipdata((i-1)*mxdata+2) = triT%nodeT%ipdata((i-1)*mxdata+2) &
                                             - triT%nodeT%ipdata((i-1)*mxdata+4)
 
- !$OMP ATOMIC
           nsmth = nsmth + 1
 
         END IF
@@ -1983,7 +1979,7 @@ INTERFACE
     TYPE( SCIPPlotFieldT ),                    INTENT( IN    ) :: Field        !Field descriptor
     TYPE( SCIPPlotTypeT ),                     INTENT( IN    ) :: PlotType     !Plot definition
     TYPE( SCIPContourHeaderT ),                INTENT( IN    ) :: contourHead  !Contour array header
-    TYPE( SCIPContourElementT ), DIMENSION(*), TARGET, &
+    TYPE( SCIPContourElementT ), DIMENSION(contourHead%number), TARGET, &
                                                INTENT( INOUT ) :: contourList  !Contour array
     TYPE( ARAPWriteT ),                        INTENT( IN    ) :: GUIWrite     !Draw instructions
     INTEGER,                                   INTENT( IN    ) :: nComment     !Number of User supplied comments
@@ -2108,7 +2104,7 @@ INTERFACE
     TYPE( SCIPPlotFieldT ),                    INTENT( IN    ) :: Field        !Field descriptor
     TYPE( SCIPPlotTypeT ),                     INTENT( IN    ) :: PlotType     !Plot definition
     TYPE( SCIPContourHeaderT ),                INTENT( IN    ) :: contourHead  !Contour array header
-    TYPE( SCIPContourElementT ), DIMENSION(*), TARGET, &
+    TYPE( SCIPContourElementT ), DIMENSION(contourHead%number), TARGET, &
                                                INTENT( INOUT ) :: contourList  !Contour array
     TYPE( ARAPWriteT ),                        INTENT( IN    ) :: GUIWrite     !Draw instructions
     INTEGER,                                   INTENT( IN    ) :: nComment     !Number of User supplied comments

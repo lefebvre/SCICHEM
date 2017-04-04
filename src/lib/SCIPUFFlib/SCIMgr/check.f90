@@ -574,7 +574,7 @@ SELECT CASE (check%type)
   CASE( HR_STACK,HR_PRIME )
     irv = CheckReleaseStack( check%relData,special,distMin,distMax,distMMD,mtlType )
     IF( irv /= SCIPsuccess )GOTO 9999
-  CASE( HR_STACK3 )
+  CASE( HR_STACK3,HR_STACK3F )
     irv = CheckReleaseStack3( check%relData,special,distMin,distMax,distMMD,mtlType )
     IF( irv /= SCIPsuccess )GOTO 9999
   CASE( HR_PUFF )
@@ -631,7 +631,7 @@ INTEGER, DIMENSION(:), ALLOCATABLE :: StackType
 
 INTEGER i, j, mtlType, alloc_stat, stack_distribution
 LOGICAL checkDynamics, checkStack
-REAL stack_dryFrac
+REAL    stack_dryFrac
 
 TYPE( relStackT ) stack
 TYPE( relStack3T ) stack3

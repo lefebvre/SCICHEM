@@ -40,7 +40,7 @@ END IF
 IF( lter )THEN
   sx = SQRT(p%sxx)
   sy = SQRT(p%syy)
-  CALL get_topogIn( p%xbar,p%ybar,h,hx,hy,getPuffifld(p) )
+  CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),h,hx,hy,getPuffifld(p) )
   IF( zsettle < 0. )THEN
     zdos = MIN(hc,p%zbar-h)
   ELSE

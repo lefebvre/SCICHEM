@@ -3,7 +3,7 @@ MODULE pcscipuf_fi
   USE project_fd
   USE GUIparam_fd
   USE GUIstruct_fd
-  USE winAPI_fd, ONLY: POINTER_LEN
+  USE myWinAPI_fd, ONLY: POINTER_LEN
 
   SAVE
 

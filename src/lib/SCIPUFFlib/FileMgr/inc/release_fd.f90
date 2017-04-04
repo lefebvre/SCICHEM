@@ -41,7 +41,10 @@ MODULE release_fd
   INTEGER, PARAMETER :: HR_PRIME  = 2**HRB_PRIME + HR_STACK
   INTEGER, PARAMETER :: HR_XINST  = 2**HRB_OFFDIAG + HR_INST
   INTEGER, PARAMETER :: HR_XINST3 = 2**HRB_OFFDIAG + 2**HRB_RAN3 + HR_INST
-  INTEGER, PARAMETER :: HR_STACK3 = 2**HRB_STACK3 + HR_CONT
+  INTEGER, PARAMETER :: HR_STACK3 = 2**HRB_STACK3 + HR_STACK
+  INTEGER, PARAMETER :: HR_CONTF   = HR_CONT   + 2**HRB_FILE
+  INTEGER, PARAMETER :: HR_STACKF  = HR_STACK  + 2**HRB_FILE
+  INTEGER, PARAMETER :: HR_STACK3F = HR_STACK3 + 2**HRB_FILE
 
 !==== SCIP Release distribution types =========================================
 
@@ -52,14 +55,14 @@ MODULE release_fd
 
   INTEGER, PARAMETER :: HS_MAXRELRESERVED =  1
 
-  INTEGER, PARAMETER :: HS_MAXRELCONTSIZE = 11
+  INTEGER, PARAMETER :: HS_MAXRELCONTSIZE  = 12
+  INTEGER, PARAMETER :: HS_MAXRELCMOVSIZE  = 15
+  INTEGER, PARAMETER :: HS_MAXRELCSTK3SIZE = 13
+  INTEGER, PARAMETER :: HS_MAXRELCSTKSIZE  = 11
   INTEGER, PARAMETER :: HS_MAXRELFILESIZE = 3 + PATH_MAXLENGTH/4
   INTEGER, PARAMETER :: HS_MAXRELINSTSIZE = 14
-  INTEGER, PARAMETER :: HS_MAXRELCMOVSIZE = 14
   INTEGER, PARAMETER :: HS_MAXRELPOOLSIZE =  3
-  INTEGER, PARAMETER :: HS_MAXRELIPUFSIZE = 26
-  INTEGER, PARAMETER :: HS_MAXRELCSTK3SIZE =  12
-  INTEGER, PARAMETER :: HS_MAXRELCSTKSIZE   = 10
+  INTEGER, PARAMETER :: HS_MAXRELIPUFSIZE  = 26
   INTEGER, PARAMETER :: HS_MAXRELXINSTSIZE  = 17
   INTEGER, PARAMETER :: HS_MAXRELXINST3SIZE = 20
 
@@ -76,8 +79,6 @@ MODULE release_fd
   INTEGER, PARAMETER :: HS_PADRELCSTK3    = HS_PADRELGEN - HS_MAXRELCSTK3SIZE
   INTEGER, PARAMETER :: HS_PADRELXINST    = HS_PADRELGEN - HS_MAXRELXINSTSIZE
   INTEGER, PARAMETER :: HS_PADRELXINST3   = HS_PADRELGEN - HS_MAXRELXINST3SIZE
-
-  INTEGER, PARAMETER :: MAX_MCR = 100
 
 !==== relGenT =================================================================
 
@@ -103,6 +104,7 @@ MODULE release_fd
     REAL    buoyancy     !buoy
     REAL    dryFrac      !mass Fraction : Liquid, Wet Particle release only
     REAL    activeFrac   !active Fraction
+    REAL    nextUpdtTime !update time
     INTEGER padding(HS_PADRELCONT)
   END TYPE  relContT
 
@@ -116,6 +118,25 @@ MODULE release_fd
     CHARACTER(PATH_MAXLENGTH) relFile
     INTEGER padding(HS_PADRELFILE)
   END TYPE  relFileT
+
+!==== relContFileT ================================================================
+
+  TYPE  relContFileT
+    SEQUENCE
+    INTEGER distribution !subgroup
+    REAL    rate         !cmass
+    REAL    duration     !tdur/3600.
+    REAL    sigY         !sigy
+    REAL    sigZ         !sigz
+    REAL    MMD          !rel_param(REL_MMD_INDX)=lognorm_mmd
+    REAL    sigma        !rel_param(REL_SIGMA_INDX)=lognorm_sigma
+    REAL    momentum     !wmom
+    REAL    buoyancy     !buoy
+    REAL    dryFrac      !mass Fraction : Liquid, Wet Particle release only
+    REAL    activeFrac   !active Fraction
+    CHARACTER(PATH_MAXLENGTH-32) relFile     !Keep release same size as relFileT
+    INTEGER padding(HS_PADRELFILE)
+  END TYPE  relContFileT
 
 !==== relInstT ================================================================
 
@@ -207,6 +228,7 @@ MODULE release_fd
     REAL    velY         !vrel
     REAL    velZ         !wrel
     REAL    activeFrac   !active Fraction
+    REAL    nextUpdtTime !update time
     INTEGER padding(HS_PADRELCMOV)
   END TYPE  relMoveT
 
@@ -266,10 +288,11 @@ MODULE release_fd
     REAL    exitTemp     !buoy
     REAL    dryFrac      !mass Fraction : Liquid release only
     REAL    activeFrac   !active Fraction
+    REAL    nextUpdtTime !update time
     INTEGER padding(HS_PADRELCSTK)
   END TYPE  relStackT
 
-!==== relStackT ===============================================================
+!==== relStack3T ==============================================================
 
   TYPE  relStack3T
     SEQUENCE
@@ -283,8 +306,45 @@ MODULE release_fd
     REAL    exitTemp     !buoy
     REAL    dryFrac      !mass Fraction : Liquid release only
     REAL    activeFrac   !active Fraction
+    REAL    nextUpdtTime !update time
     INTEGER padding(HS_PADRELCSTK3)
   END TYPE  relStack3T
+
+!==== relStackFileT ===============================================================
+
+  TYPE  relStackFileT
+    SEQUENCE
+    INTEGER distribution !subgroup
+    REAL    rate         !cmass
+    REAL    duration     !tdur/3600.
+    REAL    diameter     !size
+    REAL    MMD          !rel_param(REL_MMD_INDX)=lognorm_mmd
+    REAL    sigma        !rel_param(REL_SIGMA_INDX)=lognorm_sigma
+    REAL    exitVel      !wmom
+    REAL    exitTemp     !buoy
+    REAL    dryFrac      !mass Fraction : Liquid release only
+    REAL    activeFrac   !active Fraction
+    CHARACTER(PATH_MAXLENGTH-28) relFile     !Keep release same size as relFileT
+    INTEGER padding(HS_PADRELFILE)
+  END TYPE  relStackFileT
+
+!==== relStack3FileT ==============================================================
+
+  TYPE  relStack3FileT
+    SEQUENCE
+    INTEGER distribution !subgroup
+    REAL    rate         !cmass
+    REAL    duration     !tdur/3600.
+    REAL    diameter     !size
+    REAL    MMD          !rel_param(REL_MMD_INDX)=lognorm_mmd
+    REAL    sigma        !rel_param(REL_SIGMA_INDX)=lognorm_sigma
+    REAL    exitVel(3)   !umom,vmom,wmom
+    REAL    exitTemp     !buoy
+    REAL    dryFrac      !mass Fraction : Liquid release only
+    REAL    activeFrac   !active Fraction
+    CHARACTER(PATH_MAXLENGTH-36) relFile     !Keep release same size as relFileT
+    INTEGER padding(HS_PADRELFILE)
+  END TYPE  relStack3FileT
 
 !==== releaseT ================================================================
 
@@ -304,21 +364,9 @@ MODULE release_fd
     CHARACTER(16)   material    !relmat
     CHARACTER(32)   relName     !Release Identifier
     CHARACTER(192)  relDisplay  !Release display string
-    INTEGER nMC
-    CHARACTER(16), DIMENSION(MAX_MCR) :: MCname
-    REAL,          DIMENSION(MAX_MCR) :: MCmass
   END TYPE  releaseT
 
-  INTEGER, PARAMETER :: SIZE_releaseT = 3*KIND(1) + 2*KIND(1.D0) + 5*KIND(1.) + SIZE_relGenT + 16 + 32 + 192 + KIND(1) &
-                                        + MAX_MCR*16 + MAX_MCR*KIND(1.)
-
-!==== StoreReleaseT ================================================================
-
-  TYPE  StoreReleaseT
-    SEQUENCE
-    TYPE( ReleaseT ) release
-    TYPE( StoreReleaseT ), POINTER :: NextRelease
-  END TYPE  StoreReleaseT
+  INTEGER, PARAMETER :: SIZE_releaseT = 3*KIND(1) + 2*KIND(1.D0) + 5*KIND(1.) + SIZE_relGenT + 16 + 32 + 192
 
 !==== releaseMCT ================================================================
 
@@ -328,5 +376,37 @@ MODULE release_fd
     CHARACTER(16)   MCname       !multicomponent name
     REAL            MCmass       !component release mass
   END TYPE  releaseMCT
+
+!------ Multi-component data structures
+
+TYPE MCrelData
+  SEQUENCE
+  CHARACTER(16)              :: MCname
+  REAL                       :: MCmass
+  TYPE( MCrelData ), POINTER :: next
+END TYPE MCrelData
+
+TYPE MCrelList
+  SEQUENCE
+  INTEGER nList
+  TYPE( MCrelData ), POINTER :: firstMCRel
+END TYPE MCrelList
+
+!==== releaseSpecT ================================================================
+
+  TYPE  releaseSpecT
+    SEQUENCE
+    TYPE( ReleaseT ) release
+    TYPE( MCrelList ) MClist
+    INTEGER ityp
+    INTEGER distrib
+  END TYPE releaseSpecT
+!==== StoreReleaseT ================================================================
+
+  TYPE  StoreReleaseT
+    SEQUENCE
+    TYPE( releaseSpecT ) relSpec
+    TYPE( StoreReleaseT ), POINTER :: NextRelease
+  END TYPE  StoreReleaseT
 
 END MODULE release_fd

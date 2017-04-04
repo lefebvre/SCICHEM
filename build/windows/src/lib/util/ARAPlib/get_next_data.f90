@@ -81,6 +81,7 @@ END DO
 !------ check for keywords by searching for "="
 
 i = INDEX(string,'=')
+IF( maxn < 1 )i = 0
 
 IF( i == 0 )THEN
 
@@ -111,7 +112,7 @@ END IF
 
 !------ parse data string
 
-CALL parse_string( data_string,n_arg,c_arg,maxn,lerr )
+CALL parse_string( data_string,n_arg,c_arg,ABS(maxn),lerr )
 IF( lerr )RETURN
 
 IF( kwrd /= 'NONE' )THEN
@@ -420,6 +421,29 @@ DO
   i = first_nblank( string(j:nch) ) + j - 1
 
 END DO
+
+RETURN
+END
+
+!==============================================================================
+
+INTEGER FUNCTION RemoveCF(line)
+
+IMPLICIT NONE
+
+CHARACTER(*),INTENT( INOUT ) :: line
+INTEGER                      :: nch, i
+
+nch=LEN_TRIM(line)
+
+IF( nch > 0 )THEN
+  DO i = 1,nch
+    IF( ICHAR(line(i:i)) == 13 )line(i:i)=' '
+    IF( ICHAR(line(i:i)) == 0  )line(i:i)=''
+  END DO
+END IF
+
+RemoveCF=LEN_TRIM(line)
 
 RETURN
 END

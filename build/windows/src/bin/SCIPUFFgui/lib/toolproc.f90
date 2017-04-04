@@ -27,7 +27,7 @@ USE reldef_fd
 USE tooluser_fd
 USE files_fi
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 !     This is the message handler for the dialog boxes.
 
@@ -134,7 +134,7 @@ USE reldef_fd
 USE tooluser_fd
 USE files_fi
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 USE HtmlHelpAPI
 IMPLICIT NONE
 
@@ -228,7 +228,7 @@ USE reldef_fd
 USE tooluser_fd
 USE files_fi
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -285,7 +285,7 @@ USE tooluser_fd
 USE files_fi
 USE pcscipuf_fi
 USE script_fi
-USE winAPI
+USE myWinAPI
 USE guiAPI
 
 IMPLICIT NONE
@@ -359,7 +359,7 @@ USE errorParam_fd
 USE files_fi
 USE pcscipuf_fi
 USE script_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -432,7 +432,7 @@ USE files_fi
 USE pcscipuf_fi
 USE create_fi
 USE script_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -495,7 +495,7 @@ USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine repositions the main window to 0,0
 !
@@ -526,7 +526,7 @@ USE reldef_fd
 USE tooluser_fd
 USE files_fi
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 !     Check Button/window status
 !       ibutton > 0 -> Button must be enabled and main window not iconized
@@ -559,7 +559,7 @@ USE reldef_fd
 USE tooluser_fd
 USE files_fi
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

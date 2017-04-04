@@ -108,6 +108,8 @@ INTEGER ios
 
 INTEGER, EXTERNAL :: FindNML
 
+INTEGER, DIMENSION(TIME_STATUS_ARRAY_SIZE) :: time_status
+
 NAMELIST / time1 / year_start,month_start,day_start,tstart &
                   ,tzone, local, time_status
 
@@ -157,33 +159,6 @@ IF( ios /= 0 )THEN
   nError   = RD_ERROR
   eRoutine = 'WriteNamelistTime1'
   eMessage = 'Error writing TIME1 namelist'
-  GOTO 9999
-END IF
-
-9999 CONTINUE
-
-RETURN
-END
-!===============================================================================
-!     WriteNamelistTime1
-!===============================================================================
-SUBROUTINE WriteNamelistTimeStatus( iunit )
-
-USE scipuff_fi
-
-IMPLICIT NONE
-
-INTEGER, INTENT( IN ) :: iunit
-
-INTEGER ios
-
-NAMELIST / time1 / time_status
-
-WRITE(UNIT=iunit,NML=time1,IOSTAT=ios)
-IF( ios /= 0 )THEN
-  nError   = RD_ERROR
-  eRoutine = 'WriteNamelistTimeStatus'
-  eMessage = 'Error writing TIME1(status) namelist'
   GOTO 9999
 END IF
 

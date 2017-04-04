@@ -12,7 +12,7 @@ USE plotdlg_fi
 USE GUImatl_fi
 USE pltchoice_fi
 USE coordinate_fd
-USE winAPI
+USE myWinAPI
 
 !     This routine processes real EDITBOXes from Dialog Boxes
 
@@ -594,7 +594,7 @@ USE plotdlg_fi
 USE GUImatl_fi
 USE pltchoice_fi
 USE coordinate_fd
-USE winAPI
+USE myWinAPI
 
 !     This routine processes real EDITBOXes from Dialog Boxes
 

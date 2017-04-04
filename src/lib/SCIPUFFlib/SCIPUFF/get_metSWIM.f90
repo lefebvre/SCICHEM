@@ -83,7 +83,7 @@ IF( irv /= SWIMsuccess )THEN
   GOTO 9999
 END IF
 
-  !------ Set met field index if requested
+!------ Set met field index if requested
 
 IF( PRESENT(outField) )outField = Met%iField
 
@@ -175,7 +175,7 @@ wts     = Met%BL%HeatFlux
 prbl    = FLOAT(Met%BL%PrecipType)
 sun_fac = Met%BL%sunfac
 prate   = Met%BL%prate
-cc      = Met%BL%cc
+cldcvr  = Met%BL%cc
 
 wwz  = Met%Turb%WWgrad
 

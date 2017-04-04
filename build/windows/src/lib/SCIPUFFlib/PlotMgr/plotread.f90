@@ -64,6 +64,8 @@ TYPE( startT ), INTENT( IN ) :: start
 TYPE( SAGgrid_str ), POINTER :: grd
 
 INTEGER irv, ios, i, grdI
+INTEGER iout
+REAL tout
 
 INTEGER, EXTERNAL :: SAG_NewGrdStr, SAG_InitGridID, SAG_OpenID, SAG_ReadHeaderID
 INTEGER, EXTERNAL :: SAG_CloseID, SAG_RmvGrdStr
@@ -139,6 +141,12 @@ DO i = 1,nSrfTime
     eRoutine = 'ReadSrfTime'
     eMessage = 'Error converting surface time list'
     GOTO 9999
+  END IF
+  IF( grd%time > 1000. .AND. i > 1000 )THEN
+    !--- Adjust time to nearest multiple of output time step
+    tout = SrfTime(2)%time%hour - SrfTime(1)%time%hour
+    iout = NINT(SrfTime(i)%time%hour/tout)
+    SrfTime(i)%time%hour = FLOAT(iout)*tout
   END IF
   ios = TimeToString( SrfTime(i)%time,SrfTime(i)%string )
   IF( ios /= SCIPsuccess )THEN

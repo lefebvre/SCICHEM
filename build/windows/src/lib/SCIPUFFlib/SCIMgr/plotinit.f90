@@ -45,6 +45,9 @@ nLocMax = 0
 NULLIFY( nsmp_dep )
 NULLIFY( nsmp_dos )
 
+CALL InitReleaseSpec( currentSpec )
+
+CALL InitReleaseSpec( InstReleaseList%relSpec )
 NULLIFY( InstReleaseList%NextRelease )
 
 srfados  = 0

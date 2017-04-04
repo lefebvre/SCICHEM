@@ -227,3 +227,46 @@ MODULE Extract_fi
 
 END MODULE Extract_fi
 
+MODULE cmd_fi
+
+  INTEGER, PARAMETER        :: lun_ext = 201
+  INTEGER ncmd, narg, alloc_stat
+  INTEGER iTim, iMat, iFld, iCnt, iOut, iScl
+  INTEGER Hslc, Sslc, Vslc, Vint, Hpro
+  REAL tOut, fScl, vExcd, pExcd
+  LOGICAL useArgs, lerr
+  CHARACTER(16)  fUnit
+  CHARACTER(256) matName, cmd, extType, outFile, effType
+  CHARACTER(256), DIMENSION(:), POINTER :: cargs
+
+  TYPE cmd_str
+    CHARACTER(8)   :: name
+    INTEGER        :: narg
+    CHARACTER(256) :: cargs
+  END TYPE cmd_str
+
+  TYPE( cmd_str ), DIMENSION(:), ALLOCATABLE :: cmds, tcmd
+
+  TYPE fld_str
+    CHARACTER(16)   :: fclass     ! dos,dep,con,ico,dur,c3d
+    CHARACTER(16)   :: fchoice    ! Material name
+    CHARACTER(16)   :: fcategory  ! Surface
+    CHARACTER(16)   :: fkind      ! Vapor, Liquid, Particle Bin,Total
+    CHARACTER(16)   :: ftype      ! Mean, Prob, Exceed, Var
+  END TYPE fld_str
+
+  TYPE( fld_str ):: fld
+
+  INTERFACE
+    SUBROUTINE SplitString( InString,Separator,nSubStr,OutStrings,lerr )
+      IMPLICIT NONE
+      CHARACTER(*),   INTENT( IN    )       :: InString
+      CHARACTER(1),   INTENT( IN    )       :: Separator
+      INTEGER,        INTENT( INOUT )       :: nSubStr
+      CHARACTER(256), DIMENSION(:), POINTER :: OutStrings
+      LOGICAL,        INTENT( OUT   )       :: lerr
+    END SUBROUTINE
+  END INTERFACE
+
+END MODULE cmd_fi
+

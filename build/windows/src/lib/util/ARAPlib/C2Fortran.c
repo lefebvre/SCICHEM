@@ -79,6 +79,21 @@ struct updateRelT **in, *out;
 }
 
 //=======Duplicate function for different fortran compilers======
+void address_updatemc_(in, out)
+struct updateRelMCT **in, *out;
+{
+  *out = **in;
+  return;
+}
+
+void ADDRESS_UPDATEMC(in, out)
+struct updateRelMCT **in, *out;
+{
+  address_update_(in, out);
+  return;
+}
+
+//=======Duplicate function for different fortran compilers======
 void address_effect_(in,out)
 struct computeEffT **in, *out;
 {
@@ -240,6 +255,22 @@ struct updateRelT *in, **out;
 	update_address_(in,out);
 	return;
 }
+
+//=======Duplicate function for different fortran compilers======
+void updatemc_address_(in, out)
+struct updateRelMCT *in, **out;
+{
+  **out = *in;
+  return;
+}
+
+void UPDATEMC_ADDRESS(in, out)
+struct updateRelMCT *in, **out;
+{
+  updatemc_address_(in, out);
+  return;
+}
+
 //===============================================================
 void EFFECT_ADDRESS(in,out)
 struct computeEffT *in, **out;

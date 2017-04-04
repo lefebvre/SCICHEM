@@ -3,7 +3,7 @@
 !***********************************************************************
 RECURSIVE SUBROUTINE process_scroll(iwnd_db,MyCmd)
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE pcscipuf_fi
 USE animate_fi
 
@@ -86,7 +86,7 @@ END
 !***********************************************************************
 SUBROUTINE SetScrollControlRange(iwnd,iscroll,imin,imax,irv)
 
-USE winAPI
+USE myWinAPI
 USE pcscipuf_fi, ONLY: NULL_POINTER
 
 IMPLICIT NONE
@@ -127,7 +127,7 @@ END
 !***********************************************************************
 SUBROUTINE GetScrollControlRange(iwnd,iscroll,imin,imax,irv)
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -169,7 +169,7 @@ END
 !***********************************************************************
 SUBROUTINE SetScrollControlPos(iwnd,iscroll,ipos,irv)
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -208,7 +208,7 @@ END
 !***********************************************************************
 SUBROUTINE GetScrollControlPos(iwnd,iscroll,ipos)
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

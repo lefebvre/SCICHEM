@@ -5,7 +5,7 @@ RECURSIVE SUBROUTINE process_button( iwnd_db,MyCmd )
 
 USE resource_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 ! This routine processes PUSHBUTTONs from Dialog Boxes
 
@@ -118,7 +118,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE plotdlg_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 USE guiAPI
 
 ! Create Modal Dialog Box
@@ -233,7 +233,7 @@ USE dialog_fi
 USE script_fi
 USE pltchoice_fi
 USE PlotOpt_fd
-USE winAPI
+USE myWinAPI
 
 ! This routine processes PUSHBUTTONs from Plot Dialog Box
 
@@ -411,7 +411,7 @@ USE resource_fd
 USE plotdlg_fi
 USE pltchoice_fi
 USE GUIparam_fd
-USE winAPI_fd, ONLY: POINTER_LEN
+USE myWinAPI_fd, ONLY: POINTER_LEN
 
 ! This routine processes DEFAULT/RESTORE PUSHBUTTONs from Dialog Boxes
 
@@ -469,7 +469,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE create_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 
 ! This routine processes PUSHBUTTONs from CONTOUR Dialog Box
 
@@ -700,7 +700,7 @@ USE script_fi
 USE pcscipuf_fi
 USE GUImatl_fi
 USE GUItool_fi
-USE winAPI
+USE myWinAPI
 
 ! This routine processes PUSHBUTTONs from EDTPRJ Dialog Box
 
@@ -971,7 +971,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE errorParam_fd
 USE default_fd
-USE winAPI
+USE myWinAPI
 
 ! This routine processes PUSHBUTTONs from PICK Dialog Box
 
@@ -1035,7 +1035,7 @@ END
 SUBROUTINE hide_checkmark( iwnd_db,id_button )
 
 USE resource_fd
-USE winAPI_fd, ONLY: POINTER_LEN
+USE myWinAPI_fd, ONLY: POINTER_LEN
 
 ! Hides a checkmark in EDTPRJ Dialog Box
 
@@ -1064,7 +1064,7 @@ END
 SUBROUTINE set_checkmark( iwnd_db,id_button )
 
 USE resource_fd
-USE winAPI_fd, ONLY: POINTER_LEN
+USE myWinAPI_fd, ONLY: POINTER_LEN
 
 ! Shows a checkmark in EDTPRJ Dialog Box
 
@@ -1330,7 +1330,7 @@ ELSE
   DefinedOK = IBCLR(DefinedOK,DF_MET)
 END IF
 
-!==== Convert old met to new defintions
+!==== Convert old met to new definitions
 
 CALL convert_SCIP20_met( iwnd_db,jversion,metdef(idlg),project(idlg) )
 
@@ -1361,13 +1361,13 @@ IF( BTEST(DefinedOK,DF_MATERIAL) )THEN
 
 ELSE
 
-!==== NO materials - clear release defintion flag
+!==== NO materials - clear release definition flag
 
   DefinedOK = IBCLR(DefinedOK,DF_RELEASE)
 
 END IF
 
-!==== Reset material defintion flag
+!==== Reset material definition flag
 
 IF( materials(idlg)%nmatl <= 0 )DefinedOK = IBCLR(DefinedOK,DF_MATERIAL)
 
@@ -1398,7 +1398,7 @@ LOGICAL gridded_met, has_terrain
 INTEGER nError
 CHARACTER(128) eMessage,eInform,eAction,eRoutine
 
-!==== Check material defintions
+!==== Check material definitions
 
 lok = materials(EDIT_LEVEL_1)%nmatl > 0
 IF( .NOT.lok )THEN
@@ -1409,7 +1409,7 @@ IF( .NOT.lok )THEN
   GOTO 9999
 END IF
 
-!==== Check release defintions
+!==== Check release definitions
 
 lok = scenario(EDIT_LEVEL_1)%nrel > 0
 IF( .NOT.lok )THEN
@@ -1420,7 +1420,7 @@ IF( .NOT.lok )THEN
   GOTO 9999
 END IF
 
-!==== Check met defintions - If gridded or terrain must have default horizontal resolution
+!==== Check met definitions - If gridded or terrain must have default horizontal resolution
 
 has_terrain = metdef(EDIT_LEVEL_1)%lmc                                  !Non gridded met with terrain
 

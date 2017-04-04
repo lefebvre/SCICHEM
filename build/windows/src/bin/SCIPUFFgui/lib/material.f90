@@ -11,7 +11,7 @@ USE pcscipuf_fi
 USE files_fi
 USE GUImatl_fi
 USE GUItool_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the material definition Dialog Box
 !
@@ -771,7 +771,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE GUImatl_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !---  This routine clears the material description part of the
 !     Material Definition dialog box
@@ -858,7 +858,7 @@ USE GUImatl_fi
 USE GUItool_fi
 USE create_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !---  This routine enables/disables the material buttons
 
@@ -920,7 +920,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE GUImatl_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine enables/disables the subgroup buttons
 
@@ -964,7 +964,7 @@ USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !---  This routine enables/disables the subgroup buttons
 
@@ -995,7 +995,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE GUImatl_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !---  This routine enables/disables the material buttons
 
@@ -1055,7 +1055,7 @@ USE pcscipuf_fi
 USE GUImatl_fi
 USE create_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 USE liqdef
 
 IMPLICIT NONE
@@ -1289,7 +1289,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE GUImatl_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1466,7 +1466,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE GUImatl_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1615,7 +1615,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE GUImatl_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1762,7 +1762,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE GUImatl_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1901,7 +1901,7 @@ USE pcscipuf_fi
 USE GUImatl_fi
 USE create_fi
 USE GUItool_fi
-USE winAPI
+USE myWinAPI
 USE cfocus
 
 !--- This routine processes PUSHBUTTONs from MATDEF Dialog Box
@@ -2363,7 +2363,7 @@ USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
 USE GUImatl_fi
-USE winAPI
+USE myWinAPI
 
 !--- This routine initializes the new material Dialog Box
 
@@ -2638,7 +2638,7 @@ USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !--- This routine initializes the compute subgroup definition Dialog Box
 
@@ -2680,7 +2680,7 @@ USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !--- This routine initializes the compute subgroup definition Dialog Box
 
@@ -2800,7 +2800,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE GUImatl_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 USE liqdef
 
 !

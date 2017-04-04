@@ -7,7 +7,7 @@ USE GUItool_fi
 USE GUImatl_fi
 USE create_fi
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 USE contri_fi
 USE contri_D
 
@@ -38,7 +38,7 @@ CALL gslwsc( 1.0 )
 CALL SizeRelList( scenario(BASE_LEVEL) )
 IF( hasError() )GOTO 9999
 CALL GUI_SCIP_scenario( project(BASE_LEVEL),scenario(BASE_LEVEL), &
-                        materials(BASE_LEVEL),reldef,relList,SIZE(relList) )
+                        materials(BASE_LEVEL),reldef,relList,SIZE(relList),relMCList,SIZE(relMCList) )
 IF( hasError() )GOTO 9999
 
 IF( showText )THEN
@@ -318,7 +318,7 @@ SUBROUTINE draw_weather( ptime )
 USE files_fi
 USE errorParam_fd
 USE contri_fi
-USE winAPI
+USE myWinAPI
 USE contri_D
 
 IMPLICIT NONE

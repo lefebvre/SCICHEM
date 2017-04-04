@@ -99,18 +99,34 @@ USE error_fi
 IMPLICIT NONE
 
 CHARACTER(PATH_MAXLENGTH) filename, filepath
+CHARACTER(PATH_MAXLENGTH) prjname, tmpfilename
+
+CHARACTER(PATH_MAXLENGTH), EXTERNAL :: StripExtension
 
 CHARACTER(PATH_MAXLENGTH), EXTERNAL :: buildStopFile
 
 CALL SplitName( file_log,filename,filepath )
 
-file_abort = buildStopFile( 'scipuff.abort',filepath )
+prjname = StripExtension( filename )
+
+tmpfilename = TRIM(prjname)//'.abort'
+file_abort = buildStopFile( tmpfilename,filepath )
 IF( nError /= 0 )GOTO 9999
 
-file_halt = buildStopFile( 'scipuff.halt',filepath )
+tmpfilename = TRIM(prjname)//'.halt'
+file_halt = buildStopFile( tmpfilename,filepath )
 IF( nError /= 0 )GOTO 9999
 
-file_stop = buildStopFile( 'scipuff.stop',filepath )
+tmpfilename = TRIM(prjname)//'.pause'
+file_pause = buildStopFile( tmpfilename,filepath )
+IF( nError /= 0 )GOTO 9999
+
+tmpfilename = TRIM(prjname)//'.resume'
+file_resum = buildStopFile( tmpfilename,filepath )
+IF( nError /= 0 )GOTO 9999
+
+tmpfilename = TRIM(prjname)//'.stop'
+file_stop = buildStopFile( tmpfilename,filepath )
 IF( nError /= 0)GOTO 9999
 
 9999 CONTINUE

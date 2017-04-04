@@ -22,7 +22,7 @@ LOGICAL,           INTENT( IN    ) :: lProf
 LOGICAL,           INTENT( IN    ) :: lAssm        !Assimilation flag
 
 REAL, PARAMETER :: VEL_EPS = 0.1
-REAL, PARAMETER :: WT_FAC = 0.5
+REAL, PARAMETER :: WT_FAC  = 0.5
 
 INTEGER alloc_stat, nxy, nz, nzt, ip, k, ii
 REAL    t0, h, D, zh, del_t, t_us
@@ -105,18 +105,18 @@ DoUpdate = .TRUE.
 
 IF( lAssm )THEN
 
-IF( ABS(fld%tNext) < 1. )THEN
-  CALL SWIMcombPrfSCM_U( ip,nxy,nz,InterpPrf%U,fld%NextField%U,fld%Field1%U,fld%obsWt%su )
-ELSE
-  CALL SWIMcombPrfSCM( ip,nxy,nz,InterpPrf%U,fld%NextField%U,fld%Field1%U,fld%obsWt%su )
-END IF
-  CALL SWIMcombPrfSCM( ip,nxy,nz,InterpPrf%V,fld%NextField%V,fld%Field1%V,fld%obsWt%sv )
+  IF( ABS(fld%tNext) < 1. )THEN
+    CALL SWIMcombPrfSCM_U( ip,nxy,nz,InterpPrf%U,fld%NextField%U,fld%Field1%U,fld%obsWt%su )
+  ELSE
+    CALL SWIMcombPrfSCM( ip,nxy,nz,InterpPrf%U,fld%NextField%U,fld%Field1%U,fld%obsWt%su )
+  END IF
+    CALL SWIMcombPrfSCM( ip,nxy,nz,InterpPrf%V,fld%NextField%V,fld%Field1%V,fld%obsWt%sv )
 
 ELSE
 
-  CALL SWIMcombPrf( ip,nxy,nz,InterpPrf%U,fld%Field%U,fld%obsWt%su,fld%NextField%U )
-  DoUpdate = .FALSE.
-  CALL SWIMcombPrf( ip,nxy,nz,InterpPrf%V,fld%Field%V,fld%obsWt%sv,fld%NextField%V )
+    CALL SWIMcombPrf( ip,nxy,nz,InterpPrf%U,fld%Field%U,fld%obsWt%su,fld%NextField%U )
+    DoUpdate = .FALSE.
+    CALL SWIMcombPrf( ip,nxy,nz,InterpPrf%V,fld%Field%V,fld%obsWt%sv,fld%NextField%V )
 
 END IF
 
@@ -169,64 +169,64 @@ END IF
 !------ Temperature (extrapolate if no profile data available)
 
 IF( BTEST(fld%type,FTB_T) )THEN
-IF( lAssm )THEN
-  IF( ASSOCIATED(InterpPrf%Tpot%obs) ) &
-    CALL SWIMcombPrfSCM( ip,nxy,nz,InterpPrf%Tpot,fld%NextField%Tpot,fld%Field1%Tpot,fld%obsWt%st )
-ELSE
-  IF( lProf )THEN
-    CALL SWIMcombPrf( ip,nxy,nz,InterpPrf%Tpot,fld%Field%Tpot,fld%obsWt%st,fld%NextField%Tpot )
+  IF( lAssm )THEN
+    IF( ASSOCIATED(InterpPrf%Tpot%obs) ) &
+      CALL SWIMcombPrfSCM( ip,nxy,nz,InterpPrf%Tpot,fld%NextField%Tpot,fld%Field1%Tpot,fld%obsWt%st )
   ELSE
-    CALL SWIMcombPrf( ip,nxy,1,InterpPrf%Tpot,fld%Field%Tpot,fld%obsWt%st,fld%NextField%Tpot )
-    t0 = fld%NextField%Tpot(ip)
-    h  = fld%grid%terrain%H(i) + fld%grid%Hmin
-    D  = fld%grid%terrain%D(i)
-    zh = h + D*fld%grid%Z(1)
-    t_us = StndTpot( zh )
-    del_t = t0 - t_us
-    ii = ip
-    DO k = 2,nz
-      ii = ii + nxy
-      zh = h + D*fld%grid%Z(k)
+    IF( lProf )THEN
+      CALL SWIMcombPrf( ip,nxy,nz,InterpPrf%Tpot,fld%Field%Tpot,fld%obsWt%st,fld%NextField%Tpot )
+    ELSE
+      CALL SWIMcombPrf( ip,nxy,1,InterpPrf%Tpot,fld%Field%Tpot,fld%obsWt%st,fld%NextField%Tpot )
+      t0 = fld%NextField%Tpot(ip)
+      h  = fld%grid%terrain%H(i) + fld%grid%Hmin
+      D  = fld%grid%terrain%D(i)
+      zh = h + D*fld%grid%Z(1)
       t_us = StndTpot( zh )
-      fld%NextField%Tpot(ii) = t_us + del_t
-    END DO
+      del_t = t0 - t_us
+      ii = ip
+      DO k = 2,nz
+        ii = ii + nxy
+        zh = h + D*fld%grid%Z(k)
+        t_us = StndTpot( zh )
+        fld%NextField%Tpot(ii) = t_us + del_t
+      END DO
+    END IF
   END IF
-END IF
 END IF
 
 !------ Pressure
 
 IF( BTEST(fld%type,FTB_P) )THEN
-IF( lAssm )THEN
-  IF( ASSOCIATED(InterpPrf%Press%obs) ) &
-    CALL SWIMcombPrfSCM( ip,nxy,nz,InterpPrf%Press,fld%NextField%Press,fld%Field1%Press,fld%obsWt%sp )
-ELSE
-  CALL SWIMcombPrf( ip,nxy,nz,InterpPrf%Press,fld%Field%Press,fld%obsWt%sp,fld%NextField%Press )
-END IF
+  IF( lAssm )THEN
+    IF( ASSOCIATED(InterpPrf%Press%obs) ) &
+      CALL SWIMcombPrfSCM( ip,nxy,nz,InterpPrf%Press,fld%NextField%Press,fld%Field1%Press,fld%obsWt%sp )
+  ELSE
+    CALL SWIMcombPrf( ip,nxy,nz,InterpPrf%Press,fld%Field%Press,fld%obsWt%sp,fld%NextField%Press )
+  END IF
 END IF
 
 !------ Humidity
 !       N.B. Work with relative humidity
 
 IF( BTEST(fld%type,FTB_H) )THEN
-IF( lAssm )THEN
-  IF( ASSOCIATED(InterpPrf%Humid%obs) ) &
-    CALL SWIMcombPrfSCM( ip,nxy,nz,InterpPrf%Humid,fld%NextField%Humid,fld%Field1%Humid,fld%obsWt%sh )
-ELSE
-  CALL SWIMcombPrf( ip,nxy,nz,InterpPrf%Humid,fld%Field%Humid,fld%obsWt%sh,fld%NextField%Humid )
-END IF
+  IF( lAssm )THEN
+    IF( ASSOCIATED(InterpPrf%Humid%obs) ) &
+      CALL SWIMcombPrfSCM( ip,nxy,nz,InterpPrf%Humid,fld%NextField%Humid,fld%Field1%Humid,fld%obsWt%sh )
+  ELSE
+    CALL SWIMcombPrf( ip,nxy,nz,InterpPrf%Humid,fld%Field%Humid,fld%obsWt%sh,fld%NextField%Humid )
+  END IF
 END IF
 
 !------ Cloud liquid water
 !       N.B. Work g/m^3
 
 IF( BTEST(fld%type,FTB_QCLD) )THEN
-IF( lAssm )THEN
-  IF( ASSOCIATED(InterpPrf%Qcloud%obs) ) &
-    CALL SWIMcombPrfSCM( ip,nxy,nz,InterpPrf%Qcloud,fld%NextField%Qcloud,fld%Field1%Qcloud,fld%obsWt%sqc )
-ELSE
-  CALL SWIMcombPrf( ip,nxy,nz,InterpPrf%Qcloud,fld%Field%Qcloud,fld%obsWt%sqc,fld%NextField%Qcloud )
-END IF
+  IF( lAssm )THEN
+    IF( ASSOCIATED(InterpPrf%Qcloud%obs) ) &
+      CALL SWIMcombPrfSCM( ip,nxy,nz,InterpPrf%Qcloud,fld%NextField%Qcloud,fld%Field1%Qcloud,fld%obsWt%sqc )
+  ELSE
+    CALL SWIMcombPrf( ip,nxy,nz,InterpPrf%Qcloud,fld%Field%Qcloud,fld%obsWt%sqc,fld%NextField%Qcloud )
+  END IF
 END IF
 
 !------ Non-height-dependent fields

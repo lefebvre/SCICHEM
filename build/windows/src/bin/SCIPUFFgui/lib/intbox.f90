@@ -3,7 +3,7 @@
 !***********************************************************************
 RECURSIVE SUBROUTINE process_int(iwnd_db,MyCmd)
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE pcscipuf_fi
 USE dialog_fi
 USE files_fi

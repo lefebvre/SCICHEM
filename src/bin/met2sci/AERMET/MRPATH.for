@@ -106,7 +106,7 @@ C------- Syntax check only - do not process any data
       ELSEIF( MRSTAT .EQ. 2 )THEN
 C------- Call the merge subroutine
          WRITE( *,100)
-         CALL MERGE (ISTAT)
+         CALL AERMET_MERGE (ISTAT)
          IF( ISTAT .EQ. 1 )THEN
             MRSTAT = -1
             RUNERR = .TRUE.

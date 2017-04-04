@@ -1,7 +1,7 @@
 SUBROUTINE gscr( indx,r,g,b,lerr )
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -33,7 +33,7 @@ END
 SUBROUTINE checkpalette()
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

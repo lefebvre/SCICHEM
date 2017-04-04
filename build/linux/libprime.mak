@@ -8,34 +8,41 @@ BD =../${PSrcDir}/src
 
 SRCS_f90 = lib/PRIME/isc_prime.f90
 
-OBJS_f90 := $(notdir $(subst .f90,.o,$(SRCS_f90)))
+OBJS_f90 := $(subst .f90,.o,$(SRCS_f90))
 
 SRCS_f = lib/PRIME/prime_util.f lib/PRIME/prime.f
 
-OBJS_f := $(notdir $(subst .f,.o,$(SRCS_f)))
+OBJS_f := $(subst .f,.o,$(SRCS_f))
 
 OBJS :=  $(OBJS_f90)  $(OBJS_f) 
 
-all: $(PROG) separator
+DIRS = lib/PRIME
+
+all: $(DIRS) $(PROG) separator
 
 separator:
 	@echo ==========================================================================
+
+$(DIRS): FORCE
+	$(shell [ -d "$@" ] || mkdir -p "$@")
+
+FORCE:
 
 $(PROG): $(OBJS) $(LIBDEPENDS)
 	$(LB) $(LBFLAGS) $(PROG) $(OBJS)
 
 $(OBJS_f90): %.o:$(filter /\%.f90,$(SRCS_f90))
-	$(FC) $(FCFLAGS) $< 
+	$(FC) -o $@ $(FCFLAGS) $< 
 
 $(OBJS_f): %.o:$(filter /\%.f,$(SRCS_f))
-	$(F77) $(F77FLAGS) $< 
+	$(F77) -o $@ $(F77FLAGS) $< 
 
 
-prime_util.o:$(BD)/lib/PRIME/prime_util.f  modules.o
+lib/PRIME/prime_util.o:$(BD)/lib/PRIME/prime_util.f  lib/PRIME/modules.o
 
-isc_prime.o:$(BD)/lib/PRIME/isc_prime.f90  $(INCMOD)
+lib/PRIME/isc_prime.o:$(BD)/lib/PRIME/isc_prime.f90  $(INCMOD)
 
-prime.o:$(BD)/lib/PRIME/prime.f  modules.o
+lib/PRIME/prime.o:$(BD)/lib/PRIME/prime.f  lib/PRIME/modules.o
 
 
 # Entry for " make clean " to get rid of all object and module files 

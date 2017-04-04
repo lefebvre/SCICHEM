@@ -32,12 +32,13 @@ USE error_fi
 
 IMPLICIT NONE
 
-nRelOutsideDomain = 0
-nRelBeforeStart   = 0
-nStopSplit        = 0
-nDezoneSrf        = 0
-nPuffAboveTop     = 0
-nPuffReflect      = 0
+nRelOutsideDomain  = 0
+nCRelOutsideDomain = 0
+nRelBeforeStart    = 0
+nStopSplit         = 0
+nDezoneSrf         = 0
+nPuffAboveTop      = 0
+nPuffReflect       = 0
 
 RETURN
   END

@@ -220,7 +220,7 @@ USE plotdlg_fi
 USE dialog_fi
 USE script_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the PLOT Dialog Box
 !
@@ -359,7 +359,7 @@ USE pcscipuf_fi
 USE plotdlg_fi
 USE files_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the CONTOUR Dialog Box
 !
@@ -501,7 +501,7 @@ USE pcscipuf_fi
 USE plotdlg_fi
 USE param_fd
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the CONTOUR Dialog Box
 !
@@ -647,7 +647,7 @@ USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
 USE plotdlg_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the CONTOUR Dialog Box
 !
@@ -705,7 +705,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE plotdlg_fi
 USE param_fd
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the CONTOUR Dialog Box
 !
@@ -833,7 +833,7 @@ USE plotdlg_fi
 USE files_fi
 USE param_fd
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the SLICE Dialog Box
 !
@@ -914,7 +914,7 @@ USE pcscipuf_fi
 USE plotdlg_fi
 USE files_fi
 USE param_fd
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the PICK Dialog Box
 !
@@ -967,7 +967,7 @@ USE resource_fd
 USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the ZOOM Dialog Box
 !
@@ -1008,7 +1008,7 @@ USE dialog_fi
 USE plotdlg_fi
 USE param_fd
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the PLOT Dialog Box
 !
@@ -1104,7 +1104,7 @@ USE dialog_fi
 USE plotdlg_fi
 USE param_fd
 USE restart_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the OpenFile Dialog Box
 !
@@ -1164,7 +1164,7 @@ USE plotdlg_fi
 USE dialog_fi
 USE param_fd
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the PLOT Dialog Box
 !
@@ -1276,7 +1276,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE plotdlg_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the CONTOUR Dialog Box
 !
@@ -1361,7 +1361,7 @@ USE pcscipuf_fi
 USE plotdlg_fi
 USE param_fd
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the CONTOUR Dialog Box
 !
@@ -1565,7 +1565,7 @@ USE files_fi
 USE create_fi
 USE GUImatl_fi
 USE script_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the PLOT Dialog Box
 !
@@ -1722,7 +1722,7 @@ USE pcscipuf_fi
 USE dialog_fi
 USE files_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the PLOT Dialog Box
 !
@@ -1903,7 +1903,7 @@ USE pcscipuf_fi
 USE plotdlg_fi
 USE files_fi
 USE animate_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the DELETE Dialog Box
 !
@@ -2024,7 +2024,7 @@ USE pcscipuf_fi
 USE dialog_fi
 USE files_fi
 USE param_fd
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the NewSetup Dialog Box
 !
@@ -2248,7 +2248,7 @@ USE pcscipuf_fi
 USE dialog_fi
 USE plotdlg_fi
 USE param_fd
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the PLOT Dialog Box
 !
@@ -2303,7 +2303,7 @@ SUBROUTINE init_dialog_observe( iwnd_db,id_level )
 USE pltchoice_fi
 USE pcscipuf_fi
 USE tooluser_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

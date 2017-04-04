@@ -13,8 +13,9 @@ USE met_fi
 USE cont_rel_fi
 USE sciprime_fi
 USE srfparam_fd
-USE step_p_fi, ONLY: splitf, isplit
 USE chem_fi, ONLY: chemMC
+USE srfparam_fd
+USE step_p_fi, ONLY: splitf, isplit
 USE mpi_fi, ONLY: useMPI, pufNo
 USE StepMC_mpi_fi, ONLY: puffNos,iStepMC
 USE cont_rel_functions
@@ -34,13 +35,15 @@ CHARACTER(80) cmsg,cmsg2,cmsg3
 CHARACTER(32) ctem
 
 INTEGER, EXTERNAL :: set_lev
+CHARACTER(12), EXTERNAL :: FormatPuffs
+INTEGER, EXTERNAL :: extraUpdateDefinition
 
 CALL start_clock()
 
 IF( ALLOCATED(concPrime) )concPrime = 0.
 
 IF( npuf == 0 .AND. countDefinitions() == 0 .AND. &
-    InstReleaseList%release%trel == NOT_SET_R )THEN
+    InstReleaseList%relSpec%release%trel == NOT_SET_R )THEN
 
   t = t + delt
 
@@ -50,7 +53,7 @@ IF( npuf == 0 .AND. countDefinitions() == 0 .AND. &
   CALL time_message( cmsg2,t )
   IF( nError /= NO_ERROR )GOTO 9999
   CALL c_format( delt,nch,ctem )
-  WRITE(cmsg3,'(I5,A)')npuf,' Puffs  '//ctem(1:nch)//'s timestep'
+  cmsg3 = TRIM(FormatPuffs(npuf))//' Puffs  '//ctem(1:nch)//'s timestep'
   CALL write_progress( cmsg,cmsg2,cmsg3 )
   IF( nError /= NO_ERROR )GOTO 9999
 
@@ -116,7 +119,7 @@ cmsg = TRIM(name)//' : Calculating '
 CALL time_message( cmsg2,t )
 IF( nError /= NO_ERROR )GOTO 9999
 CALL c_format( dts,nch,ctem )
-WRITE(cmsg3,'(I7,A)')npuf,' Puffs  '//ctem(1:nch)//'s timestep'
+cmsg3 = TRIM(FormatPuffs(npuf))//' Puffs  '//ctem(1:nch)//'s timestep'
 CALL write_progress( cmsg,cmsg2,cmsg3 )
 IF( nError /= NO_ERROR )GOTO 9999
 
@@ -127,6 +130,7 @@ CALL write_progress_bar( ntem )
 
 t0_step = t
 t1_step = t + delt
+
 t_step  = 0.
 istep   = 0
 dt_dose = 0.
@@ -232,7 +236,8 @@ DO WHILE( istep < mstep )
 !-----------  no puffs, so increase timestep if no evaporation
 
     IF( nxtlev > 0 .AND. MOD(istep,2) /= 0 )THEN
-      IF( (InstReleaseList%release%trel == NOT_SET_R .AND. readyDefinition() == 0 ) .OR. nxtlev > 7 )THEN
+      IF( (InstReleaseList%relSpec%release%trel == NOT_SET_R .AND. readyDefinition() == 0 ) .OR. &
+          ( nxtlev > 7 .AND. extraUpdateDefinition() == 0) )THEN
         IF( mxlev_evap < nxtlev .AND. tlevDefinition() < nxtlev )THEN
           mstep  = mstep/2
           istep  = istep/2
@@ -403,6 +408,7 @@ DO WHILE( istep < mstep )
         SmpOutType = IBSET(SmpOutType,SOB_INTONLY); lUpdateSmp = .TRUE.
       END IF
     ELSE IF( lev <= mxlev_smp )THEN
+      SmpOutType = IBSET(SmpOutType,SOB_LARGEDELT)
       SmpOutType = IBCLR(SmpOutType,SOB_INTONLY);   lUpdateSmp = .TRUE.
     ELSE IF( int_sensor )THEN
       SmpOutType = IBSET(SmpOutType,SOB_INTONLY);   lUpdateSmp = .TRUE.

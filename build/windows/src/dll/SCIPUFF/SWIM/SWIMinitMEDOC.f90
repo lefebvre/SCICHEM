@@ -97,6 +97,8 @@ END IF
 irv = MEDOCcodenameRecord( unit,lformat,codename,lstagger,NestSrc )
 IF( irv /= SWIMsuccess )GOTO 9999
 
+IF( INDEX(codename,'WRF') > 0 )Src%type = IBSET(Src%type,GSB_WRFINP)  !Used to set WRF value of earth radius
+
 !------ Read date and time
 
 irv = MEDOCtimeRecord( unit,lformat,Src,tMEDOC,.FALSE. )
@@ -177,6 +179,7 @@ IF( BTEST(Src%type,GSB_NOMAP) )THEN
       Src%type = IBSET(Src%type,GSB_CARTESIAN) !Default
       zone = 0
       ios  = 0
+      CALL AdjustLongitude( xlon0 ) !Set to +/-180
       DO
         irv = LL2UTM( xlat0,xlon0,zone,x,y )
         IF( irv /= 0 )EXIT
@@ -221,6 +224,16 @@ IF( BTEST(Src%type,GSB_NOMAP) )THEN
     src%type = IBSET(src%type,GSB_STAGGER)
   END IF
 
+END IF
+
+!----- Adjust reference longitude to best fit project domain
+
+IF( xlon0 /= NOT_SET_R )THEN
+  IF( BTEST(Src%type,GSB_LATLON) )THEN
+    CALL AdjustLongitudeDom( xlon0,FLOAT(imax-1)*dx ) !Add/subtract 360 (or not) as appropriate
+  ELSE
+    CALL AdjustLongitudeDom( xlon0,NOT_SET_R )
+  END IF
 END IF
 
 !------ Set horizontal grid parameters for various map types
@@ -1473,8 +1486,6 @@ IF( x0 == NOT_SET_MED_R .OR. y0 == NOT_SET_MED_R )THEN
   y0 = NOT_SET_R
 END IF
 
-IF( xlon0 /= NOT_SET_R )CALL AdjustLongitude( xlon0 ) !Set to +/-180
-
 MEDOCgridRecord = SWIMresult
 
 CALL SWIMclearError()
@@ -1770,6 +1781,7 @@ INTEGER FUNCTION SetMEDOCvar2d( Var2d,Src )
 USE SWIM_FI
 USE SWIMparam_fd
 USE Char8Array_fd
+USE constants_fd
 
 IMPLICIT NONE
 
@@ -1785,13 +1797,15 @@ SetMEDOCvar2d = SWIMfailure
 nvar2d = Var2d%n
 
 Src%nVar2d = nvar2d
-ALLOCATE( Src%Var2dID(nvar2d),STAT=alloc_stat )
+ALLOCATE( Src%Var2dID(nvar2d),Src%Conv2d(nvar2d),STAT=alloc_stat )
 IF( alloc_stat /= 0 )THEN
   error%Number  = UK_ERROR
   error%Routine = 'SetMEDOCvar2d'
   error%Message = 'Error allocating variable ID array'
   GOTO 9999
 END IF
+
+Src%Conv2d = 0.
 
 DO i = 1,nvar2d
 
@@ -1845,13 +1859,31 @@ DO i = 1,nvar2d
     CASE( 'PRATE','PRECIP' )
       IF( Prj%BL%pr_type == -1. )THEN
         Src%Var2dID(i) = GVP_PRATE
+        SELECT CASE( TRIM( Var2d%unit(i)) )
+          CASE( 'MM/HR' )
+            Src%Conv2d(i) = 1.
+          CASE( 'KG/M2S','KG/M2-S','KG/M2/S' )
+            Src%Conv2d(i) = 1000./RHO_WATER * 3600.
+          CASE( 'KG/M2HR','KG/M2-HR','KG/M2/HR' )
+            Src%Conv2d(i) = 1000./RHO_WATER
+          CASE DEFAULT
+            Src%Conv2d(i) = 1
+        END SELECT
       ELSE
         Src%Var2dID(i) = GVP_NONE
       END IF
 
-    CASE( 'ACCPR','PRECIPTOT','PRECIPACC' )
+    CASE( 'ACCPR','PRECIPTOT','PRECIPACC' )  !
       IF( Prj%BL%pr_type == -1. )THEN
         Src%Var2dID(i) = GVP_ACCPR
+        SELECT CASE( TRIM( Var2d%unit(i)) )
+          CASE( 'MM' )
+            Src%Conv3d(i) = 1.
+          CASE( 'KG/M2' )
+            Src%Conv2d(i) = 1000./RHO_WATER
+          CASE DEFAULT
+            Src%Conv2d(i) = 1
+        END SELECT
       ELSE
         Src%Var2dID(i) = GVP_NONE
       END IF

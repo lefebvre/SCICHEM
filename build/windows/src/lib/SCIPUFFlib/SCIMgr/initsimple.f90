@@ -42,10 +42,12 @@ TYPE( char128T ) charStruct
 
 TYPE( messageT ) error
 
+!DEC$ IF DEFINED (__INTEL_COMPILER)
 !DEC$ IF DEFINED (DUALBUILD)
 INTEGER,              EXTERNAL :: InternalCallBackOMP
 !DEC$ ELSE
 INTEGER,              EXTERNAL :: InternalCallBack
+!DEC$ ENDIF
 !DEC$ ENDIF
 INTEGER,              EXTERNAL :: InitMessageHandler
 INTEGER(LEN_ADDRESS), EXTERNAL :: GetMessageHandler
@@ -81,11 +83,15 @@ CALL ExceptionTest()
 
 SimpleInitTool = SCIPfailure
 
+!DEC$ IF .NOT.DEFINED (__INTEL_COMPILER)
+SCIPCallBack = UserCall
+!DEC$ ELSE
 ExternalCallBack = UserCall
 !DEC$ IF DEFINED (DUALBUILD)
 SCIPCallBack = ADDRESSOF(InternalCallBackOMP)
 !DEC$ ELSE
 SCIPCallBack = ADDRESSOF(InternalCallBack)
+!DEC$ ENDIF
 !DEC$ ENDIF
 IF( GetMessageHandler() == 0 )THEN
   irv = InitMessageHandler( SCIPCallBack )

@@ -462,6 +462,7 @@ NAMELIST / g2ae_spec / g2ae_names
 NAMELIST / naqsspec  / n_g2aq_spc
 NAMELIST / g2aq_spec / g2aq_names
 
+INTEGER, EXTERNAL  :: RemoveCF
 
 !===== Set default values
 

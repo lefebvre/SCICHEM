@@ -46,7 +46,6 @@ INTEGER, EXTERNAL :: Write_Run
 INTEGER, EXTERNAL :: Write_Inp
 INTEGER, EXTERNAL :: Write_Rst
 INTEGER, EXTERNAL :: Write_Release
-INTEGER, EXTERNAL :: Write_Status
 INTEGER, EXTERNAL :: Write_Weather
 INTEGER, EXTERNAL :: Write_Material
 INTEGER, EXTERNAL :: Write_Options
@@ -183,27 +182,6 @@ SELECT CASE( iInput )
     weatherIO = TRANSFER(tInput0(1:n),weatherIO)
 
     ReturnValue = Write_Weather( weatherIO )
-
-  CASE( SCIP_STATUS )
-
-    n = SIZE_pstatusT / SIZE_I
-    statusIO = TRANSFER(tInput0(1:n),statusIO)
-
-    m = statusIO%statHead%number
-    ALLOCATE( statListIO(m),STAT=alloc_stat )
-    IF( alloc_stat /= 0 )THEN
-      ReturnValue = SCIPfailure
-      nError      = UK_ERROR
-      eRoutine    = 'WriteInput'
-      eMessage    = 'Error allocating status list array'
-      GOTO 9999
-    END IF
-
-    statListIO(1:m) = TRANSFER(tInput1(1:m),statListIO(1:m))
-
-    ReturnValue = Write_Status( statusIO,statListIO )
-
-    DEALLOCATE( statListIO,STAT=alloc_stat )
 
   CASE( SCIP_RUN )
 
@@ -634,6 +612,54 @@ CALL reset_messaging()
 RETURN
 END
 !*******************************************************************************
+!            Write Project ReleaseMC
+!*******************************************************************************
+INTEGER FUNCTION WriteReleaseMCF( UserID,releaseIO,relListIO,nMC,relMCList )
+
+USE SCIMgr_fd
+USE error_fi
+USE SCIMgrState
+
+IMPLICIT NONE
+
+INTEGER,                          INTENT( IN ) :: UserID
+TYPE( preleaseT ),                INTENT( IN ) :: releaseIO
+TYPE( releaseT  ), DIMENSION(*),  INTENT( IN ) :: relListIO
+INTEGER,                          INTENT( IN ) :: nMC
+TYPE( releaseMCT ), DIMENSION(*), INTENT( IN ) :: relMCList
+
+INTEGER currentState, irv
+
+INTEGER, EXTERNAL :: Write_ReleaseMC
+
+!==== Initialize
+
+WriteReleaseMCF = SCIPfailure
+
+IF( SCIMgrCheckState( HS_ANYSTATE ) )THEN     !Not available during callbacks
+  currentState = SCIMgrSetState( HS_BUSY )
+ELSE
+  CALL SCIMgrSetBusyMsg()
+  RETURN
+END IF
+
+CALL set_messaging( userID )
+
+!==== Initialize error
+
+CALL ModuleInitError()
+
+!==== Call Write routine
+
+WriteReleaseMCF = Write_ReleaseMC( releaseIO,relListIO,nMC,relMCList )
+
+irv = SCIMgrSetState( currentState )
+
+CALL reset_messaging()
+
+RETURN
+END
+!*******************************************************************************
 !            Write Project Weather
 !*******************************************************************************
 INTEGER FUNCTION WriteWeatherF( UserID,weatherIO )
@@ -671,53 +697,6 @@ CALL ModuleInitError()
 !==== Call Write routine
 
 WriteWeatherF = Write_Weather( weatherIO )
-
-irv = SCIMgrSetState( currentState )
-
-CALL reset_messaging()
-
-RETURN
-END
-!*******************************************************************************
-!            Write Project Status
-!*******************************************************************************
-INTEGER FUNCTION WriteStatusF( UserID,statusIO,statListIO )
-
-USE SCIMgr_fd
-USE error_fi
-USE statstruct_fd
-USE SCIMgrState
-
-IMPLICIT NONE
-
-INTEGER,               INTENT( IN ) :: UserID
-TYPE( pstatusT ),      INTENT( IN ) :: statusIO
-INTEGER, DIMENSION(*), INTENT( IN ) :: statListIO
-
-INTEGER currentState, irv
-
-INTEGER, EXTERNAL :: Write_Status
-
-!==== Initialize
-
-WriteStatusF = SCIPfailure
-
-IF( SCIMgrCheckState( HS_IDLEBUSY ) )THEN     !Not available during callbacks
-  currentState = SCIMgrSetState( HS_BUSY )
-ELSE
-  CALL SCIMgrSetBusyMsg()
-  RETURN
-END IF
-
-CALL set_messaging( userID )
-
-!==== Initialize error
-
-CALL ModuleInitError()
-
-!==== Call Write routine
-
-WriteStatusF = Write_Status( statusIO,statListIO )
 
 irv = SCIMgrSetState( currentState )
 

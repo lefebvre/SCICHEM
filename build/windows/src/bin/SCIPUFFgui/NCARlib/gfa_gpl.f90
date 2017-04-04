@@ -1,7 +1,7 @@
 SUBROUTINE gfa( n,x,y )
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -46,7 +46,7 @@ END
 SUBROUTINE gpl( n,x,y )
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -82,7 +82,7 @@ END
 SUBROUTINE gfellips( x,y )
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -109,7 +109,7 @@ END
 SUBROUTINE gellips(x,y)
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -142,7 +142,7 @@ END
 SUBROUTINE checkpoly( n,x,y )
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -210,7 +210,7 @@ END
 SUBROUTINE gaa(xo,yo,rx,ry,as,ae)
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

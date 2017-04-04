@@ -44,7 +44,7 @@ TimeLevel: DO lev = ilev,jlev
 
   PuffLoop: DO WHILE( ipuf > 0 )
 
-    CALL mapfac( puff(ipuf)%xbar,puff(ipuf)%ybar,xmap,ymap )
+    CALL mapfac( SNGL(puff(ipuf)%xbar),SNGL(puff(ipuf)%ybar),xmap,ymap )
 
     fmass = puff(ipuf)%c
     IF( IsLiquid(typeID(puff(ipuf)%ityp)%icls) )THEN
@@ -77,7 +77,7 @@ TimeLevel: DO lev = ilev,jlev
 !----- Set up grid search list
 
       IF( puff(ipuf)%szz > delz2 )THEN
-        nk = INT(2.*SQRT(puff(ipuf)%szz)/dzg)
+        nk = MAX(INT(2.*SQRT(puff(ipuf)%szz)/dzg),1)
         ku = MIN(k0+nk,nz)
         kl = MAX(k0-nk,1)
       ELSE
@@ -305,10 +305,9 @@ SearchList: DO WHILE( jpufn /= 0 )
 
 !------ check overlap distance
 
-        betx = (DBLE(puff(jpuf)%xbar) - DBLE(puff(ipuf)%xbar))/DBLE(xmap)
-        bety = (DBLE(puff(jpuf)%ybar) - DBLE(puff(ipuf)%ybar))/DBLE(ymap)
+        betx = (puff(jpuf)%xbar - puff(ipuf)%xbar)/DBLE(xmap)
+        bety = (puff(jpuf)%ybar - puff(ipuf)%ybar)/DBLE(ymap)
         betz =  DBLE(puff(jpuf)%zbar) - DBLE(puff(ipuf)%zbar)
-
         arg = overlp_merge( puff(ipuf),puff(jpuf),betx,bety,betz )
 
         IF( arg <= rrmrge )THEN
@@ -376,6 +375,7 @@ REAL FUNCTION overlp_merge( p1,p2,betxs,betys,betzs )
 USE inter_fi
 USE basic_fi
 USE struct_fd
+
 
 IMPLICIT NONE
 
@@ -542,7 +542,8 @@ REAL,             INTENT( IN    ) :: xmap, ymap
 
 TYPE( puff_dynamics ) pd1, pd2
 
-REAL    tot, r1, r2, xbar, ybar, zbar
+REAL(8) xbar, ybar
+REAL    tot, r1, r2, zbar
 REAL    ddx1, ddx2, ddy1, ddy2, ddz1, ddz2, zc
 REAL    h0, h1, h2, hx0, hx1, hx2, hy0, hy1, hy2, h, hx, hy
 INTEGER ifld, jfld
@@ -562,8 +563,8 @@ ELSE
   r2 = 0.5
 END IF
 
-xbar = r1*p1%xbar + r2*p2%xbar
-ybar = r1*p1%ybar + r2*p2%ybar
+xbar = DBLE(r1)*p1%xbar + DBLE(r2)*p2%xbar
+ybar = DBLE(r1)*p1%ybar + DBLE(r2)*p2%ybar
 zbar = r1*p1%zbar + r2*p2%zbar
 
 IF( lter )THEN
@@ -572,14 +573,14 @@ IF( lter )THEN
 
   ifld = getPuffifld( p1 )
   jfld = getPuffifld( p2 )
-  CALL get_topogIn( xbar,ybar,h0,hx0,hy0,jfld )
-  CALL get_topogIn( p1%xbar,p1%ybar,h1,hx1,hy1,ifld )
-  CALL get_topogIn( p2%xbar,p2%ybar,h2,hx2,hy2,jfld )
+  CALL get_topogIn( SNGL(xbar),   SNGL(ybar)   ,h0,hx0,hy0,jfld )
+  CALL get_topogIn( SNGL(p1%xbar),SNGL(p1%ybar),h1,hx1,hy1,ifld )
+  CALL get_topogIn( SNGL(p2%xbar),SNGL(p2%ybar),h2,hx2,hy2,jfld )
 
   IF( lcap )zc = r1*(p1%zc - h1) + r2*(p2%zc - h2)
 
   IF( ifld /= jfld )THEN
-    CALL get_topogIn( p1%xbar,p1%ybar,h,hx,hy,jfld )
+    CALL get_topogIn( SNGL(p1%xbar),SNGL(p1%ybar),h,hx,hy,jfld )
     p1%zbar = p1%zbar + (h-h1)
     p1%zi   = p1%zi   + (h-h1)
     IF( lcap )p1%zc = p1%zc + (h-h1)
@@ -595,7 +596,7 @@ IF( lter )THEN
   IF( dense_gas )THEN
     CALL get_dynamics( p1,pd1 )
     CALL get_dynamics( p2,pd2 )
-    CALL get_topogIn( p1%xbar,p1%ybar,h1,hx1,hy1,ifld )
+    CALL get_topogIn( SNGL(p1%xbar),SNGL(p1%ybar),h1,hx1,hy1,ifld )
     ldense = dense_effect( p1%zbar-h1,p1%sv,pd1%wcp,p1%c ) &
         .OR. dense_effect( p2%zbar-h2,p2%sv,pd2%wcp,p2%c )
     IF( ldense )THEN
@@ -609,10 +610,10 @@ ELSE
   lcap = .FALSE.
 END IF
 
-ddx1 = (p1%xbar - xbar)/xmap
-ddx2 = (p2%xbar - xbar)/xmap
-ddy1 = (p1%ybar - ybar)/ymap
-ddy2 = (p2%ybar - ybar)/ymap
+ddx1 = SNGL(p1%xbar - xbar)/xmap
+ddx2 = SNGL(p2%xbar - xbar)/xmap
+ddy1 = SNGL(p1%ybar - ybar)/ymap
+ddy2 = SNGL(p2%ybar - ybar)/ymap
 ddz1 =  p1%zbar - zbar
 ddz2 =  p2%zbar - zbar
 
@@ -683,8 +684,8 @@ TYPE( puff_str ), INTENT( IN )  :: p        !Puff
 REAL,             INTENT( OUT ) :: xx, yy   !Horizontal grid coordinate
 INTEGER,          INTENT( OUT ) :: k        !Vertical grid level
 
-xx = (p%xbar-xmin)/dxg
-yy = (p%ybar-ymin)/dyg
+xx = (SNGL(p%xbar)-xmin)/dxg
+yy = (SNGL(p%ybar)-ymin)/dyg
 
 IF( p%zbar <= p%zi .AND. lsplitz )THEN
   k = 1

@@ -1,7 +1,7 @@
 SUBROUTINE gridal( mtx,ndx,mty,ndy,ilx,ily,fsz )
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

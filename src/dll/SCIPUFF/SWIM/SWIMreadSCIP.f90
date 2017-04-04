@@ -113,7 +113,7 @@ REAL, DIMENSION(:), POINTER :: P
 REAL, DIMENSION(:), POINTER :: U, V, Tpot, Humid, Press
 
 INTERFACE
-  INTEGER FUNCTION Read3dVarGridded( src,nx,ny,nz,var,ks0,ishft,jshft )
+  INTEGER FUNCTION Read3dVarGridded( src,nx,ny,nz,var,ks0,ishft,jshft,var_src )
     USE SWIM_fi
     TYPE( GridSrc ),   INTENT( IN ) :: src
     INTEGER,           INTENT( IN ) :: nx, ny, nz
@@ -121,6 +121,7 @@ INTERFACE
     INTEGER,           INTENT( IN ) :: ks0
     INTEGER, OPTIONAL, INTENT( IN ) :: ishft
     INTEGER, OPTIONAL, INTENT( IN ) :: jshft
+    REAL, DIMENSION(:), OPTIONAL, POINTER :: var_src
   END FUNCTION Read3dVarGridded
 END INTERFACE
 

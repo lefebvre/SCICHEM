@@ -191,7 +191,7 @@ END
 !===============================================================================
 
 SUBROUTINE SetYear( iyy )
-
+ 
 USE default_fd
 
 IMPLICIT NONE
@@ -218,7 +218,7 @@ SUBROUTINE YearMonthDay( t,yr,mnth,day,to,yro,mntho,dayo )
 IMPLICIT NONE
 
 INTEGER, INTENT( IN  ) :: yr ,mnth ,day
-REAL,    INTENT( IN  ) :: t
+REAL,    INTENT( IN  ) :: t 
 INTEGER, INTENT( OUT ) :: yro,mntho,dayo
 REAL,    INTENT( OUT ) :: to
 

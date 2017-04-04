@@ -158,12 +158,6 @@ SELECT CASE( TRIM(carg(ikwrd)) )
       GOTO 9999
     END IF
 
-    IF( nMC > MAX_MCR )THEN
-      WRITE(*,*) 'Too many MC source species in SO MULTCOMP: ',nMC
-      WRITE(*,*) 'Maximum is ',MAX_MCR
-      GOTO 9999
-    END IF
-
     IF( ALLOCATED(MCrate) )DEALLOCATE(MCrate,STAT=alloc_stat )
 
     ALLOCATE( MCname(nMC),MCrate(nMC,new%scnHead%number),STAT=alloc_stat )
@@ -347,7 +341,7 @@ SELECT CASE( TRIM(carg(ikwrd)) )
           END IF
         END IF
 
-        relStackData%rate = relStackData%rate * 1.E-3       !Convert to g/s
+        relStackData%rate = relStackData%rate * 1.E-3       !Convert to kg/s
 
 !------ Set parameters for equivalent rectangle area source
 
@@ -517,7 +511,7 @@ SELECT CASE( TRIM(carg(ikwrd)) )
           GOTO 9999
         END IF
 
-        relContData%rate = relContData%rate * 1.E-3       !Convert to g/s
+        relContData%rate = relContData%rate * 1.E-3       !Convert to kg/s
 
         relContData%buoyancy = 0.  !AERMOD volumes sources are passive
         relContData%momentum = 0.
@@ -540,7 +534,7 @@ SELECT CASE( TRIM(carg(ikwrd)) )
     END SELECT
 
   CASE( 'BUILDHGT' )
-    IF( narg-ikwrd < 2 )THEN
+      IF( narg-ikwrd < 2 )THEN
       WRITE(*,'(A)') 'Insufficient SO BUILDHGT input'
       GOTO 9999
     END IF
@@ -689,6 +683,18 @@ INTEGER i, ios
 
 INTEGER, EXTERNAL :: FindRelName
 
+IF( .NOT.lPRIME )THEN     !Ignore all PRIME-related input
+  WritePrimeFile = SUCCESS
+  IF( .NOT.lPrimeFile )THEN
+    WRITE(*,'(A)') 'RUNPRIME model is set to False.'
+    WRITE(*,'(A)') '**NOTE** RUNPRIME is set to False by default.'
+    WRITE(*,'(A)') 'SCICHEM will ignore building downwash effects.'
+    WRITE(*,'(A)') 'Please refer to README.md and Users Guide for details.'    
+    lPrimeFile = .TRUE.
+  END IF
+  GOTO 9999
+END IF
+
 WritePrimeFile = FAILURE
 
 IF( .NOT.lPrimeFile )THEN
@@ -822,6 +828,7 @@ relStackData%sigma        = NOT_SET_R
 relStackData%exitVel      = NOT_SET_R
 relStackData%exitTemp     = NOT_SET_R
 relStackData%dryFrac      = NOT_SET_R
+relStackData%nextUpdtTime = DEF_VAL_R
 relStackData%padding      = NOT_SET_I
 
 RETURN
@@ -845,6 +852,7 @@ relContData%sigma        = NOT_SET_R
 relContData%momentum     = NOT_SET_R
 relContData%buoyancy     = NOT_SET_R
 relContData%dryFrac      = NOT_SET_R
+relContData%nextUpdtTime = DEF_VAL_R
 relContData%padding      = NOT_SET_I
 
 RETURN

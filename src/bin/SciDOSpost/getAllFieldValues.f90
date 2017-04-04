@@ -1,5 +1,5 @@
 !======================================================================
-SUBROUTINE GetAllFieldValues( grdI,grdA,nAreas,maxRec,nRec,lDep,isMult )
+SUBROUTINE GetAllFieldValues( grdI,grdA,nAreas,maxRec,nRec,lDep,isMult,lSkip )
 
 USE sagdef_fd
 USE sagstr_fd
@@ -17,23 +17,23 @@ INTEGER,                                INTENT( INOUT ) :: grdI, grdA
 INTEGER,                                INTENT( IN    ) :: nAreas
 INTEGER,                                INTENT( IN    ) :: maxRec
 INTEGER, DIMENSION(nAreas),             INTENT( IN    ) :: nRec
-!REAL, DIMENSION(nAreas,maxRec),         INTENT( IN    ) :: xRec, yRec
-!REAL, DIMENSION(nAreas,maxRec,*,2),     INTENT( INOUT ) :: srfFldVal
-LOGICAL,                                INTENT( IN    ) :: lDep, isMULT 
+
+LOGICAL,                                INTENT( IN    ) :: lDep, isMULT, lSkip
 
 TYPE( SAGgrid_str ), POINTER :: grd, agrd
 
 INTEGER irv, astat, ios
 INTEGER i, j, iKind, iMult, iSp
-INTEGER nFld
+INTEGER nFld, nVar
 
 INTEGER, DIMENSION(:),ALLOCATABLE :: ifld
 REAL,    DIMENSION(:),ALLOCATABLE :: fpnt,apnt
 
 REAL    xpnt, ypnt
+CHARACTER(1), DIMENSION(1) :: VarNames  !Var names to read
 
 INTEGER, EXTERNAL :: SAG_ReadHeaderID, SAG_ReadGridID, SAG_ReadMCDataID
-INTEGER, EXTERNAL :: SAG_BottomValueID
+INTEGER, EXTERNAL :: SAG_BottomValueID, SAG_ReadNextBreakID
 INTEGER, EXTERNAL :: output_groups
 
 CALL init_error()
@@ -50,11 +50,41 @@ if (debug .and. .false.) then
    end do
 end if
 
+IF ( lSkip )THEN
+  nVar = 0
+  varNames(1) = ''
+  grd => SAG_PtrGrdStr( grdI )
+  irv = SAG_ReadNextBreakID( grdI,nVar,varNames )
+  if (debug) WRITE(24,*)"Skip reading data from ",TRIM(grd%file)," for time ",grd%time
+  IF( irv /= SAG_OK )THEN
+    nError   = UK_ERROR
+    eRoutine = 'InitGrid'
+    eMessage = 'Error reading next break for SAG file'
+    CALL ReportFileName( eInform,'File=',TRIM(grd%file) )
+    GOTO 9999
+  END IF
+  IF( .NOT.lDep .AND. grdA > 0 )THEN
+    agrd => SAG_PtrGrdStr( grdA )
+    irv = SAG_ReadNextBreakID( grdA,nVar,varNames )
+    if (debug) WRITE(24,*)"Skip reading data from ",TRIM(agrd%file)," for time ",agrd%time
+    IF( irv /= SAG_OK )THEN
+      nError   = UK_ERROR
+      eRoutine = 'InitGrid'
+      eMessage = 'Error reading next break for SAG file'
+      CALL ReportFileName( eInform,'File=',TRIM(agrd%file) )
+      GOTO 9999
+    END IF
+  END IF
+  GOTO 9999
+END IF
+
 grd => SAG_PtrGrdStr( grdI )   ! Associate "local" grid structure pointer
 irv = SAG_ReadHeaderID( grdI )
+if (debug) WRITE(24,*)"Reading data from ",TRIM(grd%file)," for time ",grd%time
 IF( irv == SAG_OK .AND. .NOT.lDep .AND. grdA > 0 )THEN
   agrd => SAG_PtrGrdStr( grdA )
   irv = SAG_ReadHeaderID( grdA ) 
+  if (debug) WRITE(24,*)"Reading data from ",TRIM(agrd%file)," for time ",agrd%time
 END IF
 IF( irv == SAG_EOF )GOTO 9999
 IF( irv /= SAG_OK )THEN
@@ -229,11 +259,11 @@ IF( .NOT.lDep .AND. grdA > 0 )THEN
     DEALLOCATE(agrd%ipgrd,STAT=astat)
     NULLIFY(agrd%ipgrd)
   END IF 
-  IF( ASSOCIATED(grd%ipdat) )THEN
-    DEALLOCATE(grd%ipdat,STAT=astat)
-    NULLIFY(grd%ipdat)
+  IF( ASSOCIATED(agrd%ipdat) )THEN
+    DEALLOCATE(agrd%ipdat,STAT=astat)
+    NULLIFY(agrd%ipdat)
   END IF
-  grd%mxgrd = 0
+  agrd%mxgrd = 0
 END IF  
 
 RETURN

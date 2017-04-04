@@ -5,7 +5,7 @@ RECURSIVE INTEGER FUNCTION INITPROC(HDLG, MESSAGE, WPARAM, LPARAM)
 !DEC$ ATTRIBUTES STDCALL, ALIAS : '_INITPROC@16' :: INITPROC
 USE resource_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 !     This is the message handler for the CAUTION dialog boxes.
 
@@ -60,7 +60,7 @@ SUBROUTINE position_init(HWND)
 
 USE resource_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine positions the CAUTION box in the center of the screen
 !     and sets Version Number in the Message

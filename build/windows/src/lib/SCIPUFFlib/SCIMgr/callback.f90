@@ -107,6 +107,11 @@ USE basic_fd
 
 INTEGER(LEN_ADDRESS) :: arg1,arg2
 INTEGER,DIMENSION(*) :: iParm
+!DEC$ IF .NOT.DEFINED (__INTEL_COMPILER)
+INTEGER(LEN_ADDRESS) :: CallBackFunction
+
+PassMessageOn = CallBackFunction
+!DEC$ ELSE
 INTERFACE
   INTEGER FUNCTION CallBackFunction( arg1,arg2,iParm )
 !DEC$ ATTRIBUTES REFERENCE :: arg1, arg2
@@ -117,6 +122,7 @@ INTERFACE
 END INTERFACE
 
 PassMessageOn = CallBackFunction( arg1,arg2,iParm )
+!DEC$ ENDIF
 
 RETURN
 END

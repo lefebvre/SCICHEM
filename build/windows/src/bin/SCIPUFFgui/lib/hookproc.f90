@@ -3,7 +3,7 @@
 !***********************************************************************
 RECURSIVE FUNCTION SaveAsHook(HDLG, MESSAGE, WPARAM, LPARAM)
 !DEC$ ATTRIBUTES STDCALL, DECORATE, ALIAS : 'SaveAsHook' :: SaveAsHook
-USE winAPI
+USE myWinAPI
 USE resource_fd
 USE files_fi
 USE pcscipuf_fi
@@ -87,7 +87,7 @@ END
 !***********************************************************************
 RECURSIVE FUNCTION OpenHook(HDLG, MESSAGE, WPARAM, LPARAM)
 !DEC$ ATTRIBUTES STDCALL, DECORATE, ALIAS : 'OpenHook' :: OpenHook
-USE winAPI
+USE myWinAPI
 USE resource_fd
 USE files_fi
 USE pcscipuf_fi
@@ -173,7 +173,7 @@ END
 !***********************************************************************
 RECURSIVE FUNCTION PrintHook(HDLG, MESSAGE, WPARAM, LPARAM)
 !DEC$ ATTRIBUTES STDCALL, DECORATE, ALIAS : 'PrintHook' :: PrintHook
-USE winAPI
+USE myWinAPI
 USE resource_fd
 USE files_fi
 USE pcscipuf_fi
@@ -255,7 +255,7 @@ END
 !***********************************************************************
 SUBROUTINE center_window(HWND)
 
-USE winAPI
+USE myWinAPI
 USE resource_fd
 USE files_fi
 USE pcscipuf_fi

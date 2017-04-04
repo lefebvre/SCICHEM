@@ -1,7 +1,7 @@
 SUBROUTINE ExitNCARGraphics()
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

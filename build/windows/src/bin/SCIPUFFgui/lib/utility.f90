@@ -193,7 +193,7 @@ END
 !*******************************************************************************
 SUBROUTINE EnableControl( iwnd,ID,iflag )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -214,7 +214,7 @@ END
 !*******************************************************************************
 SUBROUTINE EnableControlL( iwnd,ID,lflag )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -241,7 +241,7 @@ END
 !*******************************************************************************
 SUBROUTINE ShowControl( iwnd,ID,iflag )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -262,7 +262,7 @@ END
 !*******************************************************************************
 SUBROUTINE SetFocusControl( iwnd,ID )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -282,7 +282,7 @@ END
 !*******************************************************************************
 SUBROUTINE IsControlVisible( iwnd,ID,lflag )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -302,7 +302,7 @@ END
 !*******************************************************************************
 SUBROUTINE IsControlEnabled( iwnd,ID,lflag )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -326,7 +326,7 @@ END
 !*******************************************************************************
 SUBROUTINE SetControlText( iwnd,ID,string )
 
-USE winAPI
+USE myWinAPI
 USE DefSize_fd
 
 IMPLICIT NONE
@@ -350,7 +350,7 @@ END
 !*******************************************************************************
 SUBROUTINE GetControlText( iwnd,ID,string )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -375,7 +375,7 @@ END
 !*******************************************************************************
 SUBROUTINE SetControlFont( iwnd,ID,ifon )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -394,7 +394,7 @@ END
 !*******************************************************************************
 SUBROUTINE SetControlIcon( iwnd,ID,icon )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -413,7 +413,7 @@ END
 !*******************************************************************************
 SUBROUTINE SetControlImage( iwnd,ID,ibmp )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -432,7 +432,7 @@ END
 !*******************************************************************************
 SUBROUTINE DeleteControlImage( iwnd,ID )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -454,7 +454,7 @@ END
 SUBROUTINE EnableButtons( iwnd,iflag,ns,nb )
 
 USE resource_fd
-USE winAPI_fd, ONLY: POINTER_LEN
+USE myWinAPI_fd, ONLY: POINTER_LEN
 
 IMPLICIT NONE
 
@@ -479,7 +479,7 @@ END
 SUBROUTINE SetChecks( iwnd,iflag,ns,nb )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -504,7 +504,7 @@ END
 SUBROUTINE SetRadios( iwnd,iflag,nf,ns,nb )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -540,7 +540,7 @@ END
 SUBROUTINE SetEditRs( iwnd,r,ns,nb )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -568,7 +568,7 @@ END
 SUBROUTINE SetEditR8s( iwnd,r,ns,nb )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -596,7 +596,7 @@ END
 SUBROUTINE ClearEditRs( iwnd,ns,nb )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -621,7 +621,7 @@ END
 SUBROUTINE ClearEditR8s( iwnd,ns,nb )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -646,7 +646,7 @@ END
 SUBROUTINE SetEditIs( iwnd,ival,ns,nb )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -686,7 +686,7 @@ END
 SUBROUTINE FormatEditIs( iwnd,form,ival,ns,nb )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -727,7 +727,7 @@ END
 SUBROUTINE SetEditTs( iwnd,string,ns,nb )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -752,7 +752,7 @@ END
 SUBROUTINE ClearList( iwnd,ilst )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -786,7 +786,7 @@ END
 SUBROUTINE AddList( iwnd,ilst,indx,string,iret )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -843,7 +843,7 @@ END
 SUBROUTINE GetListData( iwnd,ilst,indx,idata,iret )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -890,7 +890,7 @@ END
 SUBROUTINE SetListData( iwnd,ilst,indx,idata,iret )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -931,7 +931,7 @@ END
 !*******************************************************************************
 SUBROUTINE ListError( iwnd,imsg,ierr )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -965,7 +965,7 @@ END
 SUBROUTINE DeleteList( iwnd,ilst,indx,iret )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1004,7 +1004,7 @@ END
 SUBROUTINE ListCount( iwnd,ilst,iret )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1044,7 +1044,7 @@ END
 SUBROUTINE ListSelCount( iwnd,ilst,iret )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1100,7 +1100,7 @@ END
 SUBROUTINE GetList( iwnd,ilst,max,string,iret )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1173,7 +1173,7 @@ END
 SUBROUTINE GetListSel( iwnd,ilst,maxlst,indx,iret )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1241,7 +1241,7 @@ END
 SUBROUTINE GetListCurSel( iwnd,ilst,indx )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1283,7 +1283,7 @@ END
 SUBROUTINE SetListCurSel( iwnd,ilst,indx )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1323,7 +1323,7 @@ END
 SUBROUTINE GetListItem( iwnd,ilst,indx,string,iret )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1384,7 +1384,7 @@ END
 SUBROUTINE SetListSel( iwnd,ilst,indx,iret )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1431,7 +1431,7 @@ END
 SUBROUTINE SetListSelString( iwnd,ilst,string,iret )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1485,7 +1485,7 @@ END
 SUBROUTINE FindListStringEx( iwnd,ilst,string,iret )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1537,7 +1537,7 @@ END
 !*******************************************************************************
 SUBROUTINE CallButton( iwnd,ibtn,iret )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1559,7 +1559,7 @@ END
 !*******************************************************************************
 SUBROUTINE PushButton( iwnd,ictrl,ibtn,iret )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1668,7 +1668,7 @@ END
 !*******************************************************************************
 SUBROUTINE MyUpdateWindow( windowHandle,eraseBackground )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

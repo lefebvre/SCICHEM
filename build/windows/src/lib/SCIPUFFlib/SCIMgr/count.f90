@@ -6,7 +6,7 @@
 !===============================================================================
 !     CountRelease
 !===============================================================================
-INTEGER FUNCTION CountRelease( UserID,file,nRel )
+INTEGER FUNCTION CountRelease( UserID,file,nRel,nMCrel )
 
 USE SCIMgr_fd
 USE files_fi
@@ -20,6 +20,7 @@ IMPLICIT NONE
 INTEGER,           INTENT( IN  ) :: userID !USER ID tag
 TYPE( fileNameT ), INTENT( IN  ) :: file   !filename
 INTEGER,           INTENT( OUT ) :: nRel   !number of releases in file
+INTEGER,           INTENT( OUT ) :: nMCrel !number of multicomponent records in file
 
 INTEGER ios
 INTEGER lun
@@ -86,10 +87,11 @@ END IF
 !==== Read the namelists
 
 nRel   = 0
+nMCrel = 0
 nError = NO_ERROR
 
 DO WHILE( nError == NO_ERROR )
-  CALL CountNamelistScn( lun,nRel )
+  CALL CountNamelistScn( lun,nRel,nMCrel )
 END DO
 
 !==== Do some error checking

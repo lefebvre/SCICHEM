@@ -9,7 +9,7 @@ USE pcscipuf_fi
 USE plotdlg_fi
 USE animate_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 USE testprt
 
 IMPLICIT NONE
@@ -95,7 +95,7 @@ SUBROUTINE DisplayStat( ihwnd )
 USE resource_fd
 USE files_fi
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

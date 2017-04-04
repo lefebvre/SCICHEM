@@ -9,7 +9,7 @@ USE resource_fd
 USE tooluser_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 USE openfix
 USE mainbeta
 
@@ -99,7 +99,7 @@ USE resource_fd
 USE tooluser_fd
 USE files_fi
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine cleans up before posting a quit message
 
@@ -124,7 +124,7 @@ USE resource_fd
 USE tooluser_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     Prevents the Main Window from moving if its not minumized if a
 !     DialogBox is open and if the DontMove flag is set
@@ -160,7 +160,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE files_fi
 USE dib
-USE winAPI
+USE myWinAPI
 USE cDSWAlogo
 
 !     initialize by getting handle to DSWA logo
@@ -219,7 +219,7 @@ USE resource_fd
 USE tooluser_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 USE cDSWAlogo
 !     clean up by destroying handle to DSWA logo
 
@@ -250,7 +250,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE files_fi
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 USE cDSWAlogo
 
 !     display DSWA logo
@@ -381,7 +381,7 @@ SUBROUTINE background_message( iapp,iwnd,twnd,idc,itxcol )
 
 USE resource_fd
 USE tooluser_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

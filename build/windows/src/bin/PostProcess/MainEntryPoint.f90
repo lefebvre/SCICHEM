@@ -8,8 +8,10 @@ PROGRAM ScipuffPostProcess
 USE tooluser_fd
 USE Extract_fi
 USE SCIPtool
+USE cmd_fi
 USE scipuff_fi, ONLY: create
 USE MPI_fi, ONLY: useMPI,myid
+
 IMPLICIT NONE
 
 INTEGER irv, ios
@@ -60,6 +62,7 @@ END IF
 
 irv = readCommandLine()
 IF( irv /= 0 )THEN
+  IF( irv == -999 )GO TO 9999
   WRITE(6,*)'readCommandLine error',irv
   GO TO 9999
 END IF
@@ -116,6 +119,7 @@ SELECT CASE( RunMode(1:2) )
     !-- TotalMassByGroup Utility
     WRITE(6,'("Running TotalMass by Group utility")')
     CALL TotalMassByGroup()
+    GOTO 9999
   CASE( 'NK' )
     UseKey = .TRUE.
     allow3D = .FALSE.

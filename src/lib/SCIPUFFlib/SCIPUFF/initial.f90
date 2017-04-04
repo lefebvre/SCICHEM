@@ -20,12 +20,15 @@ USE cont_rel_functions
 
 IMPLICIT NONE
 
+CHARACTER(12)  cdefs, cpuffs
 CHARACTER(128) cmsg, cmsg2, cmsg3
 CHARACTER(PATH_MAXLENGTH) name1, name2
 
 INTEGER ios, i, irv, ifldp
+LOGICAL reWriteCdep
 
 CHARACTER(PATH_MAXLENGTH), EXTERNAL :: AddExtension
+CHARACTER(12), EXTERNAL :: FormatPuffs
 
 INTEGER, EXTERNAL :: SWIMupdateMet, SWIMputMixingHt, SWIMoutput, SWIMaddSmoothField
 INTEGER, EXTERNAL :: SetMetGrid, CheckPoleField, sysCopyFile
@@ -494,19 +497,21 @@ IF( nError /= NO_ERROR )GOTO 9999
 
 !------ Report status
 
+cpuffs = FormatPuffs( npuf )
 IF( npuf > 0 )THEN
+  cdefs  = FormatPuffs( countDefinitions() )
   IF( restart )THEN
     WRITE(lun_log,111,ERR=9998)'Run  restarted   at t =',t/3600., &
-                       'hrs. with NCREL = ',countDefinitions(),' and NPUFF = ',npuf
-111 FORMAT(A,F7.2,A,I4,A,I5,A,A)
+                       'hrs. with NCREL = '//TRIM(cdefs)//' and NPUFF = '//TRIM(cpuffs)
+111 FORMAT(A,F7.2,A)
   ELSE
     WRITE(lun_log,111,ERR=9998)'Run    started   at t =',t/3600., &
-                       'hrs. with NCREL = ',countDefinitions(),' and NPUFF = ',npuf
+                       'hrs. with NCREL = '//TRIM(cdefs)//' and NPUFF = '//TRIM(cpuffs)
   END IF
 END IF
 
-cmsg = CHAR(0)
-WRITE(cmsg2,'(A,I5,A)')'Beginning run with',npuf,' puffs'
+cmsg  = CHAR(0)
+cmsg2 = 'Beginning run with '//TRIM(cpuffs)//' puffs'
 cmsg3 = ' '
 CALL write_progress( cmsg,cmsg2,cmsg3 )
 
@@ -569,11 +574,12 @@ END IF
 
 !------ Set Defaults
 
-trel    = -1.E+36
+CALL InitReleaseSpec( currentSpec )
+
 restart      = .FALSE.
 ActiveSource = .TRUE.
 
-InstReleaseList%release%trel = NOT_SET_R
+CALL InitReleaseSpec( InstReleaseList%relSpec )
 NULLIFY( InstReleaseList%NextRelease )
 
 initStatics    = .FALSE.
@@ -639,6 +645,7 @@ USE scipuff_fi
 USE files_fi
 USE cont_rel_fi
 USE cont_rel_functions
+USE convert_fd
 
 IMPLICIT NONE
 
@@ -647,9 +654,10 @@ INTEGER n1, n2
 REAL    t_last
 
 CHARACTER(256) cmsg, cmsg2, cmsg3
-CHARACTER(8)   ctmp
 
+REAL, EXTERNAL :: ScaleReal
 LOGICAL, EXTERNAL :: check_scn_time
+CHARACTER(12), EXTERNAL :: FormatPuffs
 
 !------ open scenario events file
 
@@ -669,13 +677,13 @@ CALL start_clock()
 
 init_source       = 0
 
-CALL get_scn( lun_scn,file_scn )
+CALL get_scn( lun_scn,file_scn,currentSpec )
 IF( nError /= NO_ERROR )GOTO 9999
 
 !------ On start check for first release at t=0.0
 
 IF( t == 0.0 )THEN
-  CALL check_first_scn()
+  CALL check_first_scn( currentSpec )
   IF( nError /= NO_ERROR )GOTO 9999
 END IF
 
@@ -695,7 +703,7 @@ mpuf   = npuf
 mcrel  = count_nrel()
 t_last = t_old_r
 
-DO WHILE( trel < t+delt )
+DO WHILE( ScaleReal(currentSpec%release%trel,HCF_HOUR2SEC) < t+delt )
 
   init_source = init_source + 1
 
@@ -706,28 +714,28 @@ DO WHILE( trel < t+delt )
 
   IF( check_scn_time(t_last) )THEN
 
-    IF( LEN_TRIM(relDisplay) > 0 )THEN
-      WRITE(cmsg3,'(A,I5,''('',A,'')'')')'Preparing source',init_source,TRIM(relDisplay)
+    IF( LEN_TRIM(currentSpec%release%relDisplay) > 0 )THEN
+      WRITE(cmsg3,'(A,I5,''('',A,'')'')')'Preparing source',init_source,TRIM(currentSpec%release%relDisplay)
     ELSE
       WRITE(cmsg3,'(A,I5)')'Preparing source',init_source
     END IF
     CALL write_progress( cmsg,cmsg2,cmsg3 )
 
-    IF( trel > t_last )THEN      !Clear Initialize
+    IF( ScaleReal(currentSpec%release%trel,HCF_HOUR2SEC) > t_last )THEN        !Clear Initialize
       crmode = CRMODE_START
-    ELSE IF( trel < t_last )THEN !Clear Re-initialize
+    ELSE IF( ScaleReal(currentSpec%release%trel,HCF_HOUR2SEC) < t_last )THEN   !Clear Re-initialize
       crmode = CRMODE_RESTART
     ELSE
-      IF( trel < t )THEN           !Re-initialze an existing release (resume)
+      IF( ScaleReal(currentSpec%release%trel,HCF_HOUR2SEC) < t )THEN           !Re-initialize an existing release (resume)
         crmode = CRMODE_RESTART
-      ELSE                         !Initialize a new release (special restart with trel = restart time)
+      ELSE                                                                     !Initialize a new release (special restart with trel = restart time)
         crmode = CRMODE_START
       END IF
     END IF
 
 !------ process scn
 
-    CALL process_scn( crmode )
+    CALL process_scn( crmode,currentSpec )
     IF( nError /= NO_ERROR )GOTO 9999
 
     IF( crmode == CRMODE_RESTART .AND. count_nrel() > mcrel )THEN
@@ -740,8 +748,8 @@ DO WHILE( trel < t+delt )
 
   ELSE
 
-    IF( LEN_TRIM(relDisplay) > 0 )THEN
-      WRITE(cmsg3,'(A,I5,''('',A,'')'')')'Skipping source',init_source,TRIM(relDisplay)
+    IF( LEN_TRIM(currentSpec%release%relDisplay) > 0 )THEN
+      WRITE(cmsg3,'(A,I5,''('',A,'')'')')'Skipping source',init_source,TRIM(currentSpec%release%relDisplay)
     ELSE
       WRITE(cmsg3,'(A,I5)')'Skipping source',init_source
     END IF
@@ -753,9 +761,9 @@ DO WHILE( trel < t+delt )
 
 !----- Save time of initialized release (for restart)
 
-  t_old_r = MAX(t_old_r,trel)
+  t_old_r = MAX(t_old_r,ScaleReal(currentSpec%release%trel,HCF_HOUR2SEC))
 
-  CALL get_scn( lun_scn,file_scn )
+  CALL get_scn( lun_scn,file_scn,currentSpec )
   IF( nError /= NO_ERROR )GOTO 9999
 
 END DO
@@ -770,11 +778,9 @@ END IF
 !----- Initialize puff interactions
 
 IF( npuf > mpuf )THEN
-  WRITE(ctmp,'(I8)',IOSTAT=ios) npuf-mpuf
-  ctmp  = ADJUSTL(ctmp)
   cmsg  = CHAR(0)
   cmsg2 = CHAR(0)
-  WRITE(cmsg3,'(A)')'Initializing '//TRIM(ctmp)//' new puffs'
+  cmsg3 = 'Initializing '//TRIM(FormatPuffs(npuf-mpuf))//' new puffs'
   CALL write_progress( cmsg,cmsg2,cmsg3 )
 
   n1 = mpuf + 1
@@ -786,11 +792,9 @@ END IF
 !----- Initialize continuous release interactions
 
 IF( count_nrel() > 0 )THEN
-  WRITE(ctmp,'(I8)',IOSTAT=ios) count_nrel()
-  ctmp  = ADJUSTL(ctmp)
   cmsg  = CHAR(0)
   cmsg2 = CHAR(0)
-  WRITE(cmsg3,'(A)')'Initializing '//TRIM(ctmp)//' new releases'
+  cmsg3 = 'Initializing '//TRIM(FormatPuffs(count_nrel()))//' new releases'
   CALL write_progress( cmsg,cmsg2,cmsg3 )
 
   CALL InteractContinuousReleases( .TRUE. )
@@ -811,12 +815,19 @@ END
 LOGICAL FUNCTION check_scn_time( t_last ) RESULT( yes )
 
 USE scipuff_fi
+USE convert_fd
 
 REAL, INTENT( IN ) :: t_last
 
-IF( reltyp(1:1) == 'C' )THEN
-  yes = ( trel+tdur-t > 1.0E-4*tdur .OR. tdur == DEF_VAL_R )  !Same as deactivation check in c_release
-ELSE IF( reltyp(1:1) == 'I' )THEN
+REAL tdur,trel
+
+REAL, EXTERNAL :: ScaleReal
+
+trel = ScaleReal(currentSpec%release%trel,HCF_HOUR2SEC)
+IF( BTEST(currentSpec%release%type,HRB_CONT) )THEN
+  CALL getReleaseDuration( currentSpec%release,tdur )
+  yes = (trel+tdur-t > 1.0E-4*tdur .OR. tdur == DEF_VAL_R )  !Same as deactivation check in c_release
+ELSE IF( BTEST(currentSpec%release%type,HRB_INST) )THEN
   yes = ( trel > t_last )
 END IF
 
@@ -825,7 +836,7 @@ END
 
 !=======================================================================
 
-SUBROUTINE check_first_scn()
+SUBROUTINE check_first_scn( relSpec )
 
 USE scipuff_fi
 USE files_fi
@@ -833,22 +844,24 @@ USE cont_rel_fi
 
 IMPLICIT NONE
 
+TYPE( releaseSpecT ), INTENT( INOUT ) :: relSpec
+
 INTEGER ios
 CHARACTER(128) cmsg, cmsg2, cmsg3
 
 !==== Check first release time
 
-IF( trel /= 0. )THEN
+IF( relSpec%release%trel /= 0. )THEN
 
 !==== Inform user that first release is not at t=0.
 
   nError   = WN_ERROR
   eRoutine = 'check_first_scn'
   eMessage = 'First release is not at run start time'
-  IF( trel < 0.0 )THEN
+  IF( relSpec%release%trel < 0.0 )THEN
     eInform = 'Releases earlier than start time will be ignored'
   ELSE
-    WRITE(eInform,*)'No puffs will be released until t =',trel/3600.,' hrs'
+    WRITE(eInform,*)'No puffs will be released until t =',relSpec%release%trel,' hrs'
   END IF
 
   CALL WarningMessage( .TRUE. )
@@ -856,19 +869,19 @@ IF( trel /= 0. )THEN
 
 !==== Skip releases before t=0.
 
-  DO WHILE( trel < 0.0 )
-    WRITE(lun_log,*,IOSTAT=ios)'Skipping release at t =',trel/3600.
+  DO WHILE( relSpec%release%trel < 0.0 )
+    WRITE(lun_log,*,IOSTAT=ios)'Skipping release at t =',relSpec%release%trel
     nRelBeforeStart = nRelBeforeStart + 1
     init_source = init_source + 1
     cmsg  = CHAR(0)
     cmsg2 = CHAR(0)
-    IF( LEN_TRIM(relDisplay) > 0 )THEN
-      WRITE(cmsg3,'(A,I5,''('',A,'')'')')'Skipping source',init_source,TRIM(relDisplay)
+    IF( LEN_TRIM(relSpec%release%relDisplay) > 0 )THEN
+      WRITE(cmsg3,'(A,I5,''('',A,'')'')')'Skipping source',init_source,TRIM(relSpec%release%relDisplay)
     ELSE
       WRITE(cmsg3,'(A,I5)')'Skipping source',init_source
     END IF
     CALL write_progress( cmsg,cmsg2,cmsg3 )
-    CALL get_scn( lun_scn,file_scn )
+    CALL get_scn( lun_scn,file_scn,relSpec )
     IF( nError /= NO_ERROR )GOTO 9999
   END DO
 
@@ -881,7 +894,7 @@ END
 
 !=======================================================================
 
-SUBROUTINE process_scn( crmode )
+SUBROUTINE process_scn( crmode,relSpec )
 
 USE scipuff_fi
 USE files_fi
@@ -890,7 +903,8 @@ USE cont_rel_functions
 
 IMPLICIT NONE
 
-INTEGER, INTENT( IN ) :: crmode
+INTEGER,             INTENT( IN   ) :: crmode
+TYPE( releaseSpecT), INTENT( INOUT) :: relSpec
 
 !----- update scn
 
@@ -904,20 +918,20 @@ END IF
 
 !----- check scn settings
 
-CALL valid_scn()
+CALL valid_scn( relSpec )
 IF( nError /= NO_ERROR )GOTO 9999
 
 !----- initialize for random locations
 
-CALL init_random_loc()
+CALL init_random_loc( relSpec )
 IF( nError /= NO_ERROR )GOTO 9999
 
 !----- process scn
 
-IF( reltyp(1:1) == 'C' )THEN
-  CALL process_scn_cont( crmode )
-ELSE IF( reltyp(1:1) == 'I' )THEN
-  CALL i_release( .TRUE. )
+IF( BTEST(relSpec%release%type,HRB_CONT) )THEN
+  CALL process_scn_cont( relSpec,crmode )
+ELSE IF( BTEST(relSpec%release%type,HRB_INST) )THEN
+  CALL i_release( relSpec,.TRUE. )
 END IF
 IF( nError /= NO_ERROR )GOTO 9999
 
@@ -942,6 +956,9 @@ USE adjoint_fi
 IMPLICIT NONE
 
 INTEGER ios, i, imat, nrd
+REAL tdur, cmass
+
+TYPE( releaseSpecT ) :: relSpec
 
 LOGICAL, EXTERNAL :: IsNullSensor
 
@@ -985,29 +1002,33 @@ nrd = 0
 
 tFirstTrigger = 0.0
 
+CALL InitReleaseSpec( relSpec )
+
 DO
-  CALL get_scn( lun_scn,file_scn )
+  CALL get_scn( lun_scn,file_scn,relSpec )
   IF( nError /= NO_ERROR )GOTO 9999
 
-  IF( trel == 1.0E36 )EXIT
+  IF( relSpec%release%trel == 1.0E36 )EXIT
 
   imat = 0
   DO i = 1,ntypm
-    IF( TRIM(relmat) == TRIM(material(i)%cmat) )imat = i
+    IF( TRIM(relSpec%release%material) == TRIM(material(i)%cmat) )imat = i
   END DO
 
   IF( imat == 0 )THEN
     nError   = UK_ERROR
     eRoutine = 'InitAdjointMat'
-    eMessage = 'Material in scenario file not found in material list:'//TRIM(relmat)
+    eMessage = 'Material in scenario file not found in material list:'//TRIM(currentSpec%release%material)
     CALL ReportFileName( eInform,'File=',file_scn )
     GOTO 9999
   END IF
 
-  AdjMat(imat)%xrel = SNGL(xrel)
-  AdjMat(imat)%yrel = SNGL(yrel)
-  AdjMat(imat)%zrel = zrel
-  AdjMat(imat)%trel = trel
+  CALL getReleaseDuration( relSpec%release,tdur )
+  CALL getReleaseMass( relSpec%release,cmass )
+  AdjMat(imat)%xrel = SNGL(relSpec%release%xrel)
+  AdjMat(imat)%yrel = SNGL(relSpec%release%yrel)
+  AdjMat(imat)%zrel = relSpec%release%zrel
+  AdjMat(imat)%trel = relSpec%release%trel
   AdjMat(imat)%tdur = tdur
   AdjMat(imat)%mass = cmass
   AdjMat(imat)%umet = NOT_SET_R
@@ -1016,7 +1037,7 @@ DO
   nrd = nrd + 1
 
   IF( .NOT.IsNullSensor(material(imat)%icls) )THEN
-    tFirstTrigger = MAX(tFirstTrigger,trel)
+    tFirstTrigger = MAX(tFirstTrigger,relSpec%release%trel)
   END IF
 
 END DO

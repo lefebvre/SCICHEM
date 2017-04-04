@@ -215,8 +215,6 @@ nsmp     = 0
 tLastDep = 0.
 tLastDos = 0.
 
-NULLIFY( puffRelease%aux )
-
 !------ Initialize time if restarting from another project
 
 IF( file_rst /= ' ' )THEN
@@ -820,7 +818,7 @@ END DO
 IF( lter_old )THEN
   DO ipuf = 1,npuf
     i = getPuffifld( puff(ipuf) )
-    irv = SWIMcnvCoord(  puff(ipuf)%xbar,puff(ipuf)%ybar,PrjCoord,xp,yp,OldGrid(i)%coord )
+    irv = SWIMcnvCoord( SNGL(puff(ipuf)%xbar),SNGL(puff(ipuf)%ybar),PrjCoord,xp,yp,OldGrid(i)%coord )
     CALL get_topog_interp( OldGrid(i),OldGrid(i)%h,xp,yp,h )
     puff(ipuf)%zbar = MAX(puff(ipuf)%zbar-h,0.)  !set to height agl
   END DO
@@ -834,7 +832,7 @@ END DO
 
 IF( lter )THEN
   DO ipuf = 1,npuf
-    CALL get_topogIn( puff(ipuf)%xbar,puff(ipuf)%ybar,h,hx,hy,1 )
+    CALL get_topogIn( SNGL(puff(ipuf)%xbar),SNGL(puff(ipuf)%ybar),h,hx,hy,1 )
     puff(ipuf)%zbar = puff(ipuf)%zbar + h
   END DO
 END IF

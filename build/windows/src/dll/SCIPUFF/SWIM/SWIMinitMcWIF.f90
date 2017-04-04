@@ -20,6 +20,7 @@ REAL, DIMENSION(:), POINTER :: zb, z, zt, zbw, dzi, dzti
 
 INTEGER ios, irv, nzb, nzt, nxb, nyb, nzm1, i, j, i0
 REAL    xmap, ymap
+LOGICAL lAssim
 
 TYPE( MetGrid ), POINTER :: gridp
 
@@ -64,23 +65,33 @@ irv = SWIMaddLogMessage('Setup for mass-consistent adjustment of wind fields')
 IF( irv /= SWIMsuccess )GOTO 9999
 
 !------ Check input grid
+!       N.B. Check for assimlating obs into existing gridded field
+!       IF so, basic grid is unchanged.
 
-IF( nzMC < 1 .OR. .NOT.ASSOCIATED(zMC) )THEN
-  error%Message = 'Undefined vertical grid for mass-consistent calculation'
-  GOTO 9999
-END IF
+IF( nzMC < 0 )THEN
+  lAssim = .TRUE.
 
-IF( zMC(1) <= 0. )THEN
-  error%Message = 'Lowest level of vertical grid must be greater than zero'
-  GOTO 9999
-END IF
+ELSE
+  lAssim = .FALSE.
 
-DO i = 2,nzMC
-  IF( zMC(i) <= zMC(i-1) )THEN
-    error%Message = 'Vertical grid not monotonic'
+  IF( nzMC < 1 .OR. .NOT.ASSOCIATED(zMC) )THEN
+    error%Message = 'Undefined vertical grid for mass-consistent calculation'
     GOTO 9999
   END IF
-END DO
+
+  IF( zMC(1) <= 0. )THEN
+    error%Message = 'Lowest level of vertical grid must be greater than zero'
+    GOTO 9999
+  END IF
+
+  DO i = 2,nzMC
+    IF( zMC(i) <= zMC(i-1) )THEN
+      error%Message = 'Vertical grid not monotonic'
+      GOTO 9999
+    END IF
+  END DO
+
+END IF
 
 IF( MIN(grid%nX,grid%nY) < 3 )THEN
   error%Number  = IV_ERROR
@@ -91,21 +102,26 @@ END IF
 
 !------ Set vertical grid
 
-nzb     = nzMC
-grid%nZ = nzb
-nzt     = nzb + 1
+IF( lAssim )THEN
+  nzb = grid%nZ
+  nzt = nzb + 1
 
-ALLOCATE( grid%Z(nzb),grid%Zw(nzt),STAT=ios )
-IF( ios /= 0 )GOTO 9999
+ELSE
+  nzb     = nzMC
+  nzt = nzb + 1
+  grid%nZ = nzb
+  ALLOCATE( grid%Z(nzb),grid%Zw(nzt),STAT=ios )
+  IF( ios /= 0 )GOTO 9999
+  DO i = 1,nzMC
+    grid%Z(i) = zMC(i)
+  END DO
+
+END IF
 
 ALLOCATE( grid%McWIF%zt(nzt),grid%McWIF%z(nzt),grid%McWIF%alphaFFT(nzt), &
           grid%McWIF%dzi(nzt),grid%McWIF%dzti(nzt), &
           grid%McWIF%cza(nzt),grid%McWIF%czb(nzt),STAT=ios )
 IF( ios /= 0 )GOTO 9999
-
-DO i = 1,nzMC
-  grid%Z(i) = zMC(i)
-END DO
 
 !------ Allocate horizontal weight arrays
 
@@ -143,9 +159,12 @@ DO i = 2,nzm1
 END DO
 z(nzt) = 1.5*zt(nzt) - 0.5*zt(nzm1)
 
-DO i = 1,nzt
-  zbw(i) = z(i)
-END DO
+IF( .NOT.lAssim )THEN
+  DO i = 1,nzt
+    zbw(i) = z(i)
+  END DO
+  grid%Ztop = z(nzm1)
+END IF
 
 DO i = 2,nzt
   dzi(i)  = 1./(z(i) - z(i-1))
@@ -154,39 +173,49 @@ END DO
 dzi(1)  = dzi(2)
 dzti(1) = dzti(2)
 
-grid%Ztop = z(nzm1)
-
 !------ Set staggered grid type bit
 
-grid%type = IBSET(grid%type,GTB_STAGGER)
-grid%type = IBSET(grid%type,GTB_STAGGERZ)
+IF( lAssim )THEN
+  IF( .NOT.(BTEST(grid%type,GTB_STAGGER) .AND. BTEST(grid%type,GTB_STAGGERZ)) )THEN
+    error%Number  = IV_ERROR
+    error%Message = 'Gridded field must be on C (staggered) grid'
+    GOTO 9999
+  END IF
+ELSE
+  grid%type = IBSET(grid%type,GTB_STAGGER)
+  grid%type = IBSET(grid%type,GTB_STAGGERZ)
+END IF
+
+IF( .NOT.lAssim )THEN
 
 !------ Zero slope terrain boundaries
 
-DO i = 1,grid%nXY  !First add back Hmin in case it' on a boundary
-  grid%terrain%H(i) = grid%terrain%H(i) + grid%Hmin
-END DO
+  DO i = 1,grid%nXY  !First add back Hmin in case it' on a boundary
+    grid%terrain%H(i) = grid%terrain%H(i) + grid%Hmin
+  END DO
 
-i0 = (nyb-1)*nxb
-DO i = 1,nxb
-  grid%terrain%H(i)    = grid%terrain%H(i+nxb)
-  grid%terrain%H(i0+i) = grid%terrain%H(i0+i-nxb)
-END DO
+  i0 = (nyb-1)*nxb
+  DO i = 1,nxb
+    grid%terrain%H(i)    = grid%terrain%H(i+nxb)
+    grid%terrain%H(i0+i) = grid%terrain%H(i0+i-nxb)
+  END DO
 
-DO j = 1,nyb
-  i0 = (j-1)*nxb
-  grid%terrain%H(i0+1)   = grid%terrain%H(i0+2)
-  grid%terrain%H(i0+nxb) = grid%terrain%H(i0+nxb-1)
-END DO
+  DO j = 1,nyb
+    i0 = (j-1)*nxb
+    grid%terrain%H(i0+1)   = grid%terrain%H(i0+2)
+    grid%terrain%H(i0+nxb) = grid%terrain%H(i0+nxb-1)
+  END DO
 
-CALL SetHmin( grid ) !Reset Hmin
+  CALL SetHmin( grid ) !Reset Hmin
 
-Prj%Hmin = SWIMsetHmin()
+  Prj%Hmin = SWIMsetHmin()
 
 !------ Define relative depth arrays and gradients
 
-irv = SetTerrainGrad( grid )
-IF( irv /= SWIMsuccess )GOTO 9999
+  irv = SetTerrainGrad( grid )
+  IF( irv /= SWIMsuccess )GOTO 9999
+
+END IF
 
 !------ Scale dx and dy by mean map factors
 

@@ -126,10 +126,12 @@ DO ii = 1,mat_mc%nMCtype
     END IF
 
     DO i = 1,chem%nSpecies
-      WRITE(lun_prj,IOSTAT=ios) chem%species(i)%class,chem%species(i)%classAux,chem%species(i)%name, &
+       WRITE(lun_prj,IOSTAT=ios)chem%species(i)%class,chem%species(i)%classAux,chem%species(i)%name, &
                                 chem%species(i)%ambient,chem%species(i)%tol,&
                                 chem%species(i)%ldos,chem%species(i)%ldep, &
                                 chem%species(i)%scav,chem%species(i)%vdep,&
+                                chem%species(i)%Henry0,chem%species(i)%TpFac,&
+                                chem%species(i)%RxFac,chem%species(i)%SrfRFac,chem%species(i)%ldrydep,&
                                 chem%species(i)%mw,chem%species(i)%nit,chem%species(i)%lim
       IF( ios /= 0 )GOTO 9998
     END DO
@@ -411,15 +413,16 @@ END
 
 !-------------------------------------------------------------------------
 
-SUBROUTINE InitChemInst( p,ID )
+SUBROUTINE InitChemInst( relSpec,p,ID )
 
 USE chem_fi
 USE scipuff_fi
 
 IMPLICIT NONE
 
-TYPE( puff_str ), INTENT( INOUT ) :: p
-INTEGER,          INTENT( IN    ) :: ID
+TYPE( releaseSpecT ), INTENT( INOUT ) :: relSpec
+TYPE( puff_str ),     INTENT( INOUT ) :: p
+INTEGER,              INTENT( IN    ) :: ID
 
 INTEGER i, j
 
@@ -432,9 +435,9 @@ DO i = 1,nspectot
   chemMC(ID)%species(i)%conc = 0.
 END DO
 
-rel => RelMC%rel
+rel => relSpec%MClist%firstMCrel
 
-DO i = 1,RelMC%nList
+DO i = 1,relSpec%MClist%nList
   DO j = 1,nspectot
     IF( TRIM(rel%MCname) == TRIM(chemMC(ID)%species(j)%name) )THEN
       IF( chemMC(ID)%species(j)%class == ID_SPECIES_PARTICLE )THEN
@@ -535,7 +538,7 @@ DO i = 1,chemMC(ID)%nStar
   chemMC(ID)%star(i)%s%conc = chemMC(ID)%star(i)%s%conc * fac
 END DO
 
-vol  = vol*fac
+vol = vol*fac
 
 CALL PutChemAux( ID,p )
 
@@ -592,11 +595,13 @@ END DO
 
 chem%nFast        = nfast
 chem%nSlow        = nslow
+chem%nGaseous     = ngaseous
 chem%nParticle    = nparticle
 chem%nEquilibrium = nequil
 
 IF( ASSOCIATED(chem%fast)  )DEALLOCATE( chem%fast, STAT=alloc_stat )
 IF( ASSOCIATED(chem%slow)  )DEALLOCATE( chem%slow, STAT=alloc_stat )
+IF( ASSOCIATED(chem%gaseous)   )DEALLOCATE( chem%gaseous,  STAT=alloc_stat )
 IF( ASSOCIATED(chem%particle)  )DEALLOCATE( chem%particle, STAT=alloc_stat )
 IF( ASSOCIATED(chem%equil) )DEALLOCATE( chem%equil,STAT=alloc_stat )
 
@@ -619,12 +624,19 @@ IF( nslow > 0 )THEN
     GOTO 9999
   END IF
 END IF
-
+ngaseous = nfast + nslow
+ALLOCATE( chem%gaseous(ngaseous),STAT=alloc_stat )
+IF( alloc_stat /= 0 )THEN
+  nError   = UK_ERROR
+  eMessage = 'Error allocating multicomponent gaseous arrays'
+  eRoutine = 'SetChemPointers'
+  GOTO 9999
+END IF
 IF( nparticle > 0 )THEN
   ALLOCATE( chem%particle(nparticle),STAT=alloc_stat )
   IF( alloc_stat /= 0 )THEN
     nError   = UK_ERROR
-    eMessage = 'Error allocating multicomponent arrays'
+    eMessage = 'Error allocating multicomponent particle arrays'
     eRoutine = 'SetChemPointers'
     GOTO 9999
   END IF
@@ -644,6 +656,7 @@ END IF
 
 nfast     = 0
 nslow     = 0
+ngaseous  = 0
 nparticle = 0
 nequil    = 0
 
@@ -652,10 +665,14 @@ DO i = 1,nspec
     CASE( ID_SPECIES_FAST )
       nfast = nfast + 1
       chem%fast(nfast)%s => chem%species(i)
+      ngaseous = ngaseous + 1
+      chem%gaseous(ngaseous)%s => chem%species(i)
 
     CASE( ID_SPECIES_SLOW )
       nslow = nslow + 1
       chem%slow(nslow)%s => chem%species(i)
+      ngaseous = ngaseous + 1
+      chem%gaseous(ngaseous)%s => chem%species(i)
 
     CASE( ID_SPECIES_PARTICLE )
       nparticle = nparticle + 1
@@ -834,7 +851,6 @@ END DO
 
 RETURN
 END
-
 !=======================================================================
 
 SUBROUTINE InitMCUnits( imat,mcKind,units )

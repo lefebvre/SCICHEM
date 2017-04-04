@@ -12,7 +12,7 @@ USE dialog_fi
 USE param_fd
 USE urban_fi
 USE basic_fd
-USE winAPI_fd, ONLY: SW_HIDE
+USE myWinAPI_fd, ONLY: SW_HIDE
 
 !
 !     This routine initializes the URBAN Dialog Box
@@ -120,7 +120,7 @@ USE pcscipuf_fi
 USE files_fi
 USE dialog_fi
 USE param_fd
-USE winAPI
+USE myWinAPI
 USE urban_fi
 !
 !     This routine initializes the URBAN/UDM Dialog Box
@@ -180,7 +180,7 @@ USE pcscipuf_fi
 USE files_fi
 USE dialog_fi
 USE param_fd
-USE winAPI
+USE myWinAPI
 USE urban_fi
 !
 !     This routine initializes the URBAN/MSS Dialog Box
@@ -252,7 +252,7 @@ USE pcscipuf_fi
 USE files_fi
 USE dialog_fi
 USE param_fd
-USE winAPI
+USE myWinAPI
 USE urban_fi
 !
 !     This routine initializes the URBAN/UWM Dialog Box
@@ -561,7 +561,7 @@ USE pcscipuf_fi
 USE dialog_fi
 USE urban_fi
 USE basic_fd
-USE winAPI_fd, ONLY: SW_SHOWNORMAL, SW_HIDE
+USE myWinAPI_fd, ONLY: SW_SHOWNORMAL, SW_HIDE
 
 IMPLICIT NONE
 
@@ -646,7 +646,7 @@ USE pcscipuf_fi
 USE dialog_fi
 USE urban_fi
 USE basic_fd
-USE winAPI_fd, ONLY: SW_SHOWNORMAL, SW_HIDE
+USE myWinAPI_fd, ONLY: SW_SHOWNORMAL, SW_HIDE
 
 IMPLICIT NONE
 
@@ -690,7 +690,7 @@ USE pcscipuf_fi
 USE dialog_fi
 USE urban_fi
 USE basic_fd
-USE winAPI_fd, ONLY: SW_SHOWNORMAL, SW_HIDE
+USE myWinAPI_fd, ONLY: SW_SHOWNORMAL, SW_HIDE
 
 IMPLICIT NONE
 
@@ -771,7 +771,7 @@ USE dialog_fi
 USE errorParam_fd
 USE param_fd
 USE GUItool_fi
-USE winAPI
+USE myWinAPI
 USE urban_fi
 
 !     This routine processes LOAD/DEFAULT PUSHBUTTONs from Urban Dialog Box
@@ -816,7 +816,7 @@ SUBROUTINE GetUrbanFile( iwnd_db,filename )
 USE pcscipuf_fi
 USE create_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -863,7 +863,7 @@ SUBROUTINE LoadUrbanFile( iwnd_db,filename,id_level )
 USE create_fi
 USE urban_fi
 USE error_fi
-USE winAPI_fd
+USE myWinAPI_fd
 
 IMPLICIT NONE
 
@@ -931,7 +931,7 @@ USE files_fi
 USE errorParam_fd
 USE GUIparam_fd
 USE SCIPresults_fd
-USE winAPI_fd
+USE myWinAPI_fd
 
 IMPLICIT NONE
 
@@ -1199,7 +1199,7 @@ USE files_fi
 USE errorParam_fd
 USE GUIparam_fd
 USE SCIPresults_fd
-USE winAPI_fd
+USE myWinAPI_fd
 
 IMPLICIT NONE
 
@@ -1472,7 +1472,7 @@ USE SCIPresults_fd
 USE errorParam_fd
 USE urban_fi
 USE files_fi
-USE winAPI_fd
+USE myWinAPI_fd
 
 IMPLICIT NONE
 
@@ -1585,7 +1585,7 @@ USE SCIPresults_fd
 USE errorParam_fd
 USE urban_fi
 USE files_fi
-USE winAPI_fd
+USE myWinAPI_fd
 
 IMPLICIT NONE
 
@@ -2377,7 +2377,7 @@ USE pcscipuf_fi
 USE dialog_fi
 USE urban_fi
 USE datums
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -2489,7 +2489,7 @@ SUBROUTINE ResetRadioSelection( iwnd,ilev,indx )
 
 USE resource_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

@@ -81,7 +81,7 @@ Src%nXY = imax*jmax
 Src%nVar2d = 0
 Src%nVar3d = nvar3d
 
-CALL AdjustLongitude( xlon0 )
+CALL AdjustLongitudeDom( xlon0,FLOAT(imax-1)*dx )
 
 Src%type = IBSET(Src%type,GSB_LATLON)
 Src%dX   = dx

@@ -59,7 +59,6 @@ INTERFACE
 
 END INTERFACE
 
-!INTEGER, EXTERNAL :: SetTerrainGrad, initFFTMcWIF
 INTEGER, EXTERNAL :: initFFTMcWIF
 
 !------ Initialize
@@ -80,15 +79,11 @@ grid%nz    = gridp%nz
 
 !------ Define grid (halve resolution)
 
-!grid%nX = gridp%nX/2 + 1; IF( MOD(grid%nX,2) == 0 )grid%nX = grid%nX + 1
-!grid%nY = gridp%nY/2 + 1; IF( MOD(grid%nY,2) == 0 )grid%nY = grid%nY + 1
 grid%nX = (gridp%nX+1)/2 + 1;
 grid%nY = (gridp%nY+1)/2 + 1;
 
 grid%nXY = grid%nX*grid%nY
 
-!xfac = FLOAT(gridp%nX-1)/FLOAT(grid%nX-1)
-!yfac = FLOAT(gridp%nY-1)/FLOAT(grid%nY-1)
 xfac = FLOAT(gridp%nX-2)/FLOAT(grid%nX-2)
 yfac = FLOAT(gridp%nY-2)/FLOAT(grid%nY-2)
 grid%dX = gridp%dX*xfac
@@ -100,8 +95,6 @@ grid%McWIF%dyi = gridp%McWIF%dyi/yfac
 grid%Xmin = gridp%Xmin + 0.5*(gridp%dX-grid%dX)  !Keep location of flux boundary fixed
 grid%Ymin = gridp%Ymin + 0.5*(gridp%dY-grid%dY)
 
-!grid%Xmax = grid%Xmin + FLOAT(grid%nX-1)*grid%dX
-!grid%Ymax = grid%Ymin + FLOAT(grid%nY-1)*grid%dY
 grid%Xmax = grid%Xmin + FLOAT(grid%nX-1)*grid%dX
 grid%Ymax = grid%Ymin + FLOAT(grid%nY-1)*grid%dY
 
@@ -298,8 +291,8 @@ CALL GetFilterWeightsMG( wtFil )
 
 ns = (nFil-1)/2
 
-xOdd = grid%nX /= gridp%nX/2+1 !(MOD(fldp%nx,2) /= 0)
-yOdd = grid%nY /= gridp%nY/2+1 !(MOD(fldp%ny,2) /= 0)
+xOdd = grid%nX /= gridp%nX/2+1
+yOdd = grid%nY /= gridp%nY/2+1
 
 smooth%nXp = gridp%nX
 
@@ -449,8 +442,6 @@ DO i = 1,grid%nx
       smooth%xSmooth(i)%wt(ii) = wtFilStg(ii)
     END DO
   ELSE
-    !rx = ((FLOAT(i)-1.5)*grid%dx + 0.5*gridp%dx)/gridp%dx
-!    ic = INT(rx) + 1
     rx = (FLOAT(i)-1.5)*grid%dx/gridp%dx + 1.5  !Fractional index, i.e., at i=1, x=-dx/2
     ic = INT(rx+0.5)
     im = ic - ns
@@ -458,7 +449,7 @@ DO i = 1,grid%nx
     j  = 0
     DO ii = im,ip
       j = j + 1
-      xp = FLOAT(ii) !- 1.
+      xp = FLOAT(ii)
       ic = ilimit( ii,1,gridp%nx )
       smooth%xSmooth(i)%ip(j) = ic
       smooth%xSmooth(i)%wt(j) = FilterFacStgMG( rx,xp )
@@ -499,7 +490,6 @@ DO j = 1,grid%ny
       smooth%ySmooth(j)%wt(ii) = wtFilStg(ii)
     END DO
   ELSE
-!    ry = ((FLOAT(j)-1.5)*grid%dy + 0.5*gridp%dy)/gridp%dy
     ry = (FLOAT(j)-1.5)*grid%dy/gridp%dy + 1.5  !fractional "j" index, i.e., at j=1, y=-dy/2
     jc = INT(ry+0.5)
     jm = jc - ns
@@ -508,7 +498,7 @@ DO j = 1,grid%ny
     sumw = 0.
     DO jj = jm,jp
       i = i + 1
-      yp = FLOAT(jj) !- 1.
+      yp = FLOAT(jj)
       jc = ilimit( jj,1,gridp%ny )
       smooth%ySmooth(j)%ip(i) = jc
       smooth%ySmooth(j)%wt(i) = FilterFacStgMG( ry,yp )
@@ -754,5 +744,6 @@ END DO
 9999 CONTINUE
 
 IF( ALLOCATED(sum_wt) )DEALLOCATE( sum_wt,STAT=i )
+
 RETURN
 END

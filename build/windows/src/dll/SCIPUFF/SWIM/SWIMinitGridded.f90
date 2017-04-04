@@ -17,7 +17,7 @@ INTEGER, INTENT( INOUT ) :: metType
 
 TYPE( MetField ), POINTER :: fld
 
-CHARACTER(PATH_MAXLENGTH) NestSource, file, path, pathx
+CHARACTER(PATH_MAXLENGTH) NestSource, file, path, pathx, NestSourcePath
 INTEGER irv, alloc_stat, nxy, nxyz, inest, i
 LOGICAL lexist, lQQ, lNestTerr
 LOGICAL lflag
@@ -96,7 +96,7 @@ lNestTerr = .FALSE.
 !       N.B. McWIF will be used with MEDOC file
 !            and 3d climo
 
-IF( Prj%MC%type > 0 )THEN
+IF( BTEST(Prj%MC%type,MCB_TER) .OR. BTEST(Prj%MC%type,MCB_LC) )THEN
 
   IF( BTEST(fld%gridSource%type,GSB_SCIP) )THEN
 
@@ -164,7 +164,7 @@ END IF
 
 !------ Setup McWIF with 3d climo or SCIP gridded; McWIF w/ MEDOC will be defined later
 
-IF( Prj%MC%type > 0 )THEN
+IF( BTEST(Prj%MC%type,MCB_TER) .OR. BTEST(Prj%MC%type,MCB_LC) )THEN
 
   IF( lNestTerr )THEN
 
@@ -365,15 +365,21 @@ file = NestSource; NestSource = TRIM(StripNull(file))
 
 IF( LEN_TRIM(NestSource) > 0 )THEN
 
+  CALL SubPathSep( NestSource )  ! Ignore slash type in path separator
   CALL SplitName( NestSource,file,pathx )
   IF( LEN_TRIM(pathx) == 0 )THEN                          !Add path of Source if NestSource is w/o a path
     CALL SplitName( fld%gridSource%Source(1),file,path )
     CALL AddPath( NestSource,path )
+  ELSE                                                    !Add path of Source assuming relative path
+    CALL SplitName( fld%gridSource%Source(1),file,path )
+    NestSourcePath = NestSource
+    CALL AddPath( NestSourcePath,path )
+    INQUIRE( FILE=TRIM(NestSourcePath),EXIST=lexist )
+    IF( lexist )NestSource = NestSourcePath
   END IF
 
   INQUIRE( FILE=TRIM(NestSource),EXIST=lexist )
   IF( .NOT.lexist )THEN                                  !If not found, look in Source directory
-
     IF( LEN_TRIM(pathx) > 0 )THEN
       caution%aString = 'Nested file not found in original location'
       caution%bString = 'File name = '//TRIM(NestSource)
@@ -786,7 +792,7 @@ SetGridParam = SWIMfailure
 
 !------ Set earth radius to be consistent with WRF model
 
-IF( BTEST(src%type,GSB_WRF) )THEN
+IF( BTEST(src%type,GSB_WRF) .OR. BTEST(src%type,GSB_WRFINP) )THEN
   RearthKM = 6370.
 ELSE
   RearthKM = Rearth*1.E-3

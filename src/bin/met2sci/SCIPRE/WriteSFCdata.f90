@@ -3,11 +3,12 @@ INTEGER FUNCTION WriteSFCdata() RESULT( irv )
 !------ Read data in temporary file and output SCICHEM SFC file
 
 USE met2sci_fi
+USE BLOCK2_IRND
 
 IMPLICIT NONE
 
 INTEGER nt, i
-INTEGER iyr, imo, iday, ihr
+INTEGER iyr, imo, iday, ihr, jday, ih
 INTEGER itotal, iopaq
 REAL    lat, lon, z, elev
 REAL    v, d !prate, p, cc, temp, rh, wspd, wdir
@@ -15,6 +16,8 @@ REAL    v, d !prate, p, cc, temp, rh, wspd, wdir
 INTEGER, DIMENSION(22) :: sfobs
 
 CHARACTER(1) c
+
+INTEGER, EXTERNAL :: JULIAN
 
 irv = FAILURE
 
@@ -123,7 +126,17 @@ DO
   IF( sfobs(21) /= 999 .AND. sfobs(22) /= 999 )THEN
     d = FLOAT(sfobs(21)) * 10.
     v = FLOAT(sfobs(22)) / 10.
-  ELSE IF( sfobs(21) == 999 .AND. sfobs(22) == 999 )THEN
+    IF( lRandSFC )THEN
+      jday = JULIAN(iyr,imo,iday )
+      ih = ihr + 1; IF( ih > 24 )ih = ih-24
+      d = d + (IRND(ih,jday) - 4.0)*dRanSFC
+      IF( d > 360.0) THEN
+       d = d - 360.0
+      ELSEIF (d < 0.0) THEN
+        d = d + 360.0
+      ENDIF
+    END IF
+   ELSE IF( sfobs(21) == 999 .AND. sfobs(22) == 999 )THEN
     d = MISSING_R
     v = MISSING_R
   ELSE

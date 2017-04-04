@@ -1677,6 +1677,16 @@ IF( Prj%BL%type == BLP_MET .OR. Prj%BL%type == BLP_OPER )THEN
 
   END SELECT
 
+ELSE IF( Prj%BL%type == BLP_CALC )THEN
+
+  SELECT CASE( TRIM(name) )
+    CASE( 'CC','FCC' )
+      id = OVP_CC
+      type = IBSET(type,OTB_CC)
+      type = IBSET(type,OTB_BLV)
+      IF( TRIM(unit) == '%' )cnv = 1.E-2
+  END SELECT
+
 END IF
 
 !------ Check Precip only if requested by user
@@ -1687,16 +1697,31 @@ IF( Prj%BL%pr_type == -1. )THEN
 
     CASE( 'PRCP' )
       id = OVP_PRCP
-      IF( TRIM(unit) /= 'MM/HR' )THEN
-        type = IBSET(type,OTB_PRATE)
-      ELSE
-        type = IBSET(type,OTB_PRCP)
-      END IF
+      SELECT CASE( TRIM(unit) )
+        CASE( 'MM/HR'  )
+          type = IBSET(type,OTB_PRATE)
+        CASE( 'KG/M2/HR' )
+          type = IBSET(type,OTB_PRATE)
+          cnv  = 1000./RHO_WATER
+        CASE( 'KG/M2/S' )
+          type = IBSET(type,OTB_PRATE)
+          cnv  = 1000./RHO_WATER * 3600.
+        CASE DEFAULT
+          type = IBSET(type,OTB_PRCP)
+      END SELECT
       type = IBSET(type,OTB_BLV)
 
     CASE( 'PRATE' )
       id = OVP_PRCP
       type = IBSET(type,OTB_PRATE)
+      SELECT CASE( TRIM(unit) )
+        CASE( 'MM/HR'  )
+          cnv = 1.
+        CASE( 'KG/M2/HR' )
+          cnv = 1000./RHO_WATER
+        CASE( 'KG/M2/S' )
+          cnv = 1000./RHO_WATER * 3600.
+      END SELECT
       type = IBSET(type,OTB_BLV)
 
     CASE( 'FPC0' )
@@ -2212,20 +2237,68 @@ DO
     StaID  = TRIM(c_arg(i))   !Set station id
     var(i) = OBP_BADDATA
 
-  ELSE IF( Obs%lAERMET .AND. &
-     (c_arg(i)(1:3) == '-99' .OR. c_arg(i)(1:5) == '-9.00') )THEN
-    IF( i == 10 ) THEN
-      var(i+i0) = -1.E+20  !Convective BL depth
-    ELSE
-      var(i+i0) = OBP_BADDATA
+  ELSE IF( Obs%lAERMET )THEN
+
+    !--- AERMET Surface file
+    IF( BTEST(Obs%type,OTB_SRF) )THEN
+
+      ! 1:Yr, 2:mo, 3:dy, 4:jul, 5:Hr, 6:H, 7:u*, 8:w*, 9:VPTG, 10:Zic, 11:Zim, 12:L, 13:zo, 14:Bo, 15:r,
+      ! 16:Ws, 17:Wd, 18:zref, 19:temp, 20:ztemp, 21: prec, 22:precip, 23: RH, 24:pres, 25:ccvr
+      READ(c_arg(i),*,IOSTAT=ios) var(i+i0)
+      IF( ios /= 0 )GOTO 9998
+
+      ! Range settings based on CHKMSG routine in metext.f (AERMOD 15181)
+      SELECT CASE( i )
+        CASE( 6 )
+          IF( var(i+i0) <= -999. )var(i+i0) = OBP_BADDATA
+        CASE( 7 )
+          IF( var(i+i0) < 0. .OR. var(i+i0) >= 9. )var(i+i0) = OBP_BADDATA
+        CASE( 8,9,13,14,15,18,20,22 )
+          IF( c_arg(i)(1:3) == '-9.' )var(i+i0) = OBP_BADDATA
+        CASE( 10,11 )
+          IF( c_arg(i)(1:5) == '-999.' )var(i+i0) = OBP_BADDATA ! -1.E+20  !Convective BL depth
+        CASE( 12 )
+          IF( c_arg(i)(1:7) == '-99999.' )var(i+i0) = OBP_BADDATA
+        CASE( 16 )
+          IF( var(i+i0) < 0. .OR. var(i+i0) >= 90. )var(i+i0) = OBP_BADDATA
+        CASE( 17 )
+          IF( var(i+i0) <= -9. .OR. var(i+i0) > 900. )var(i+i0) = OBP_BADDATA
+        CASE( 19 )
+          IF( var(i+i0) <= 0.  .OR. var(i+i0) > 900. )var(i+i0) = OBP_BADDATA
+        CASE( 21 )
+          IF( c_arg(i)(1:4) == '9999' )var(i+i0) = OBP_BADDATA
+        CASE( 23 )
+          IF( c_arg(i)(1:4) == '999.' )var(i+i0) = OBP_BADDATA
+        CASE( 24 )
+          IF( c_arg(i)(1:6) == '99999.' )var(i+i0) = OBP_BADDATA
+      END SELECT
+
+      IF( i > 25 )var(i+i0) = OBP_BADDATA    !Extra col with characters
+
     END IF
 
-  ELSE IF( Obs%lAERMET .AND. BTEST(Obs%type,OTB_PRF) .AND. i+i0 /= 8 &
-           .AND. c_arg(i)(1:3) == '999' )THEN
-    var(i+i0) = OBP_BADDATA
+    !--- AERMET Profile file
+    IF( BTEST(Obs%type,OTB_PRF) )THEN
 
-  ELSE IF( Obs%lAERMET .AND. i+i0 == 29 )THEN !Extra col with characters
-    var(i+i0) = OBP_BADDATA
+        !1:Year, 2:month, 3:day, 4:hour, 5:height, 6:top, 7:WDnn, 8:WSnn, 9:TTnn, 10:SAnn, 11:SWnn
+        READ(c_arg(i),*,IOSTAT=ios) var(i+i0)
+        IF( ios /= 0 )GOTO 9998
+
+        ! Range settings based on PFLCNV routine in metext.f (AERMOD 15181)
+        SELECT CASE( i )
+          CASE( 7 )
+            IF( var(i+i0) <= -9. .OR. var(i+i0) > 900. )var(i+i0) = OBP_BADDATA
+          CASE( 8 )
+            IF( var(i+i0) < 0. .OR. var(i+i0) >= 90. )var(i+i0) = OBP_BADDATA
+          CASE( 9 )
+            IF( var(i+i0) <= -90.  .OR. var(i+i0) >= 90. )var(i+i0) = OBP_BADDATA
+          CASE( 10,11 )
+            IF( c_arg(i)(1:3) == '99.' )var(i+i0) = OBP_BADDATA
+        END SELECT
+
+        IF( i > 11 )var(i+i0) = OBP_BADDATA    !Extra col with characters
+
+    END IF
 
   ELSE IF( TRIM(c_arg(i)) == TRIM(Obs%BadString) )THEN
     var(i+i0) = OBP_BADDATA   !Bad data numerical value

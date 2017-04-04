@@ -49,7 +49,7 @@ USE mettype_fd
 USE reldef_fd
 USE tooluser_fd
 USE basic_fd
-USE winAPI_fd, ONLY: POINTER_LEN
+USE myWinAPI_fd, ONLY: POINTER_LEN
 
 IMPLICIT NONE
 

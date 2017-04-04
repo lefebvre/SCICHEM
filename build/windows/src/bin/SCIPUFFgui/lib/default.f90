@@ -11,7 +11,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE files_fi
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 USE datums
 
 !     This routine initializes common areas
@@ -1332,7 +1332,7 @@ END
 !***********************************************************************
 INTEGER FUNCTION FileSize( filename )
 
-USE winAPI
+USE myWinAPI
 USE DefSize_fd
 	
 IMPLICIT NONE

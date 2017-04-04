@@ -323,6 +323,32 @@ END
 
 !==============================================================================
 
+RECURSIVE REAL FUNCTION StndRelativeHumid( p ) RESULT( rh )
+
+!------ Relative humidity profile based on linear profile of Manabe & Wetherald (1967)
+
+!------ Input : p = pressure (mb)
+
+!       Output: rh = relative humidity in percent
+
+USE StndAtmos_fi
+USE constants_fd
+
+IMPLICIT NONE
+
+REAL, INTENT( IN ) :: p
+
+IF( p > 10.0 )THEN
+  rh = RHSRF + RHSLOPE*MIN(p-1000,0.)
+ELSE
+  rh = RHSTRAT
+END IF
+
+RETURN
+END
+
+!==============================================================================
+
 SUBROUTINE StandardAtmosphere( z,t,tz,pr )
 
 !------ 1976 US Standard Atmosphere

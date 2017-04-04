@@ -5,7 +5,7 @@ LOGICAL FUNCTION verify_button( iwnd,bmsg )
 
 USE pcscipuf_fi
 USE script_fi
-USE winAPI
+USE myWinAPI
 
 !---- This routine verifies a button click
 

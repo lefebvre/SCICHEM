@@ -10,10 +10,11 @@ USE contour_fd
 USE AreaMode_fd
 USE Extract_fi
 USE GetTimes_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
-INTEGER              irv
+INTEGER              i,irv,ios
 
 INTEGER, EXTERNAL :: GetProjectPlotLists, GetProjectPlotTimes, GetProjectModes
 INTEGER, EXTERNAL :: NumClassData
@@ -31,6 +32,51 @@ IF( irv /= SCIPsuccess )GOTO 9999
 
 irv =  GetProjectPlotTimes( Project )
 IF( irv /= SCIPsuccess )GOTO 9999
+
+IF( iTim > 0 )THEN
+  TimeOut  => TimeSrf
+  nTimeOut = nTimeSrf
+  IF( iFld > 0 )THEN
+    SELECT CASE( TRIM(cmds(iFld)%cargs) )
+    CASE( 'con','ico')
+      TimeOut => TimePuff
+      nTimeOut = nTimePuff
+    END SELECT
+  END IF
+  IF( tOut < 0. )THEN ! Print available times
+    IF( iOut > 0 )THEN
+      !-- Write to output file
+      OPEN(FILE=outFile,UNIT=lun_ext,IOSTAT=ios)
+      IF( ios /= 0 )THEN
+        WRITE(6,*)'Error opening output file'
+        WRITE(6,*)'File='//TRIM(outFile)
+        WRITE(6,*)'Check Path/File name'
+        GOTO 9999
+      END IF
+      DO i = 1,nTimeOut
+        WRITE(lun_ext,*,IOSTAT=ios)TimeOut(i)%time%runTime
+        IF( ios /= 0 )THEN
+          WRITE(6,*)'Error opening writing time to output file'
+          WRITE(6,*)'File='//TRIM(outFile)
+          WRITE(6,*)'Check Path/File name'
+          EXIT
+        END IF
+      END DO
+      CLOSE(lun_ext)
+    ELSE
+      !-- Write to standard output
+      DO i = 1,nTimeOut
+        WRITE(6,*,IOSTAT=ios)TimeOut(i)%time%runTime
+        IF( ios /= 0 )THEN
+          WRITE(6,*)'Error opening writing time to standard output'
+          WRITE(6,*)'Time break = ',i
+          EXIT
+        END IF
+      END DO
+    END IF
+    GOTO 9999
+  END IF
+END IF
 
 irv = GetProjectModes( )
 IF( irv /= SCIPsuccess )GOTO 9999
@@ -153,6 +199,7 @@ END
 SUBROUTINE SelectExtractionMethod()
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -184,13 +231,37 @@ loop: DO
     WRITE(6,'(/,"Extraction Method Number? : ",$)')
   END IF
 
-  READ(lun_in,'(A)',IOSTAT=ios)string
-  IF( ios /= 0 )THEN
-    nError   = UK_ERROR
-    eMessage = 'Error reading extraction method'
-    WRITE(eInform,'(A,I0)')'error =',ios
-  END IF
-  CALL cupper( string )
+  IF ( iFld > 0 )THEN
+
+    string = 'NG'
+    IF( LEN_TRIM(extType) > 0 )THEN
+      SELECT CASE( TRIM(extType) )
+      CASE( 'sag','ntv' )
+        string = 'NG'
+      CASE( 'ovl' )
+        IF( iCnt > 0 )THEN
+          string = 'CC'
+        ELSE
+          string = 'AC'
+        END IF
+      CASE DEFAULT
+        nError   = UK_ERROR
+        eMessage = 'Invalid extraction method : '//TRIM(string)
+        GOTO 9999
+      END SELECT
+    END IF
+
+  ELSE
+
+    READ(lun_in,'(A)',IOSTAT=ios)string
+    IF( ios /= 0 )THEN
+      nError   = UK_ERROR
+      eMessage = 'Error reading extraction method'
+      WRITE(eInform,'(A,I0)')'error =',ios
+    END IF
+    CALL cupper( string )
+
+  ENDIF
 
   IF( UseKey )THEN
     string = ADJUSTL(string)

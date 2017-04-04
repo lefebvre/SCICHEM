@@ -388,7 +388,6 @@ CHARACTER(24) tmpstr
 ! Header String
 !==============================================================================
 header(1) = '#CONTOUR'
-
 WRITE(tmpstr,*,IOSTAT=ios)contour%listPtr(indx)%contour
 IF( ios /= 0 )THEN
   tmpstr = '**ERROR**'
@@ -452,7 +451,6 @@ INTEGER outMode
 REAL    swap
 REAL, DIMENSION(:), ALLOCATABLE :: xp         !X work array
 REAL, DIMENSION(:), ALLOCATABLE :: yp         !Y work array
-
 !==============================================================================
 ! Initialize
 !==============================================================================

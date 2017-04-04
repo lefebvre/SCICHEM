@@ -75,6 +75,15 @@ struct updateRelT
   struct releaseT     release;
   struct environmentT environment;
 };
+struct updateRelMCT
+{
+  int                 mode;
+  float               currentTime;
+  float               nextUpdate;
+  struct releaseT     release;
+  struct environmentT environment;
+  char MCfile[PATH_MAXLENGTH];
+}; 
 struct computeEffT
 {
   int incidentID;

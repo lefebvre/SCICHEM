@@ -1088,9 +1088,8 @@ TYPE( FirstObs   ), INTENT( IN    ) :: First
 REAL,               INTENT( IN    ) :: tfac
 
 REAL    wt, ziObs
-INTEGER i, nstaZi, nstaHflux, nstaL, nstaCC
+INTEGER i, nstaZi, nstaHflux, nstaL, nstaCC, nstaPr, nstaUst
 LOGICAL DoneZI, DoneHflux, DoneL, DoneCC, DonePrcp, DoneUst
-INTEGER nstaUst
 
 TYPE( ObsMet ), POINTER :: Obs
 
@@ -1098,7 +1097,7 @@ SWIMobsInterpSrf = SWIMfailure
 
 !------ Initialize depending on which obs are available
 
-nstaZi = 0; nstaHflux = 0; nstaL = 0; nstaCC = 0; nstaUst = 0
+nstaZi = 0; nstaHflux = 0; nstaL = 0; nstaCC = 0; nstaPr = 0; nstaUst = 0
 
 DoneZi    = .NOT.BTEST(First%type,OTB_ZI)
 DoneHflux = .NOT.BTEST(First%type,OTB_HFLX)
@@ -1156,9 +1155,16 @@ StaLoop : DO i = 1,NearObs%numObs
   END IF
 
   IF( .NOT.DonePrcp .AND. Obs%varSrf%prcp /= OBP_NODATA )THEN
-    InterpPrf%Prcp%obs = Obs%varSrf%prcp
-    InterpPrf%Prcp%wt  = 1.0
-    DonePrcp = .TRUE.
+    IF( BTEST(First%type,OTB_PRATE) )THEN
+      InterpPrf%Prcp%obs = InterpPrf%Prcp%obs + wt*Obs%varSrf%prcp
+      InterpPrf%Prcp%wt  = InterpPrf%Prcp%wt + wt
+      nstaPr   = nstaPr + 1
+      DonePrcp = nstaPr == NearObs%numInterp
+    ELSE
+      InterpPrf%Prcp%obs = Obs%varSrf%prcp
+      InterpPrf%Prcp%wt  = 1.0
+      DonePrcp = .TRUE.
+    END IF
   END IF
 
   IF( DoneZI .AND. DoneHflux .AND. DoneL .AND. DoneCC .AND. DonePrcp )EXIT StaLoop

@@ -1,7 +1,7 @@
 MODULE GUImatl_fi
 
   USE GUImatl_fd
-  USE winAPI_fd, ONLY: POINTER_LEN
+  USE myWinAPI_fd, ONLY: POINTER_LEN
 
   SAVE
 

@@ -29,7 +29,7 @@ SUBROUTINE MouseStart(idc,ihwnd,ihdb)
 
 USE resource_fd
 USE mouse_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -104,7 +104,7 @@ LOGICAL FUNCTION MouseDown(ix,iy,flag)
 USE resource_fd
 USE mouse_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -358,7 +358,7 @@ SUBROUTINE MouseClear(flag)
 
 USE resource_fd
 USE mouse_fi
-USE winAPI, ONLY: POINTER_LEN
+USE myWinAPI, ONLY: POINTER_LEN
 
 IMPLICIT NONE
 
@@ -462,7 +462,7 @@ END
 !******************************************************************************
 SUBROUTINE MouseMap(ihwnd,ihdc)
 
-USE winAPI_fd, ONLY: POINTER_LEN
+USE myWinAPI_fd, ONLY: POINTER_LEN
 
 IMPLICIT NONE
 
@@ -667,7 +667,7 @@ SUBROUTINE MouseLoad(inst)
 
 USE resource_fd
 USE mouse_fi
-USE winAPI_fd
+USE myWinAPI_fd
 
 IMPLICIT NONE
 
@@ -726,7 +726,7 @@ END
 !******************************************************************************
 SUBROUTINE SetMouseBox(MouseBox)
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -834,7 +834,7 @@ END
 SUBROUTINE DrawRectangle(idc,Box,flag)
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

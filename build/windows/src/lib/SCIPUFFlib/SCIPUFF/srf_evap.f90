@@ -862,7 +862,7 @@ rate_d = (dnew - depth)/dt
 RETURN
 END
 
-!-----------------------------------------------------------------------
+!===============================================================================
 
 REAL FUNCTION sherwd_sec( pe )
 
@@ -1009,7 +1009,6 @@ REAL hvd   !used in CALL lqd() only
 
 TYPE( puff_material ) pmatlIn
 
-
 !---- Get liquid puff properties
 
 ityp_evap = material(imat)%ioffp + 2
@@ -1021,10 +1020,10 @@ depth = 0.0
 diam  = pq%d*pmatl%sf
 awet  = 3.0*dmass*pmatl%sf*pmatl%sf/(2.0*pq%d*pmatl%rho)
 
-CALL get_srf_met( p%xbar,p%ybar )
+CALL get_srf_met( SNGL(p%xbar),SNGL(p%ybar) )
 
 IF( BTEST(run_mode,EVAP2D) )THEN  !it won't be called in srf_evap_rate in this case, call it here
-   CALL lqd( pmatl,tsrf,rhod,cs,hvd,difd )
+  CALL lqd( pmatl,tsrf,rhod,cs,hvd,difd )
 END IF
 
 !---- We shouldn't worry about evaporation 2D split is this case

@@ -13,7 +13,7 @@ USE pcscipuf_fi
 USE create_fi
 USE dialog_fi
 USE restart_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine uses the OpenFile Common Dialog to input various input
 !     filenames and paths

@@ -2216,13 +2216,13 @@ END
 
 VS_VERSION_INFO VERSIONINFO
 #ifdef NGIC
- // SCIP_API_VERSION, SCIP_TAG, SCIPUFFgui version (Update if needed)
- FILEVERSION 6,1,136,1201
+ // SCIP_API_VERSION, SCIPTOOL_TAG, SCIPUFFgui version (Update if needed)
+ FILEVERSION 6,1,178,1201
 #elif AFTAC
- // SCIP_API_VERSION, SCIP_TAG, SCIPUFFgui version (Update if needed)
- FILEVERSION 6,1,136,1201
+ // SCIP_API_VERSION, SCIPTOOL_TAG, SCIPUFFgui version (Update if needed)
+ FILEVERSION 6,1,178,1201
 #else
- FILEVERSION 6,1,136,1201
+ FILEVERSION 6,1,178,1201
  PRODUCTVERSION 1,2,0,1
 #endif
  FILEFLAGSMASK 0x17L
@@ -2246,24 +2246,8 @@ BEGIN
             VALUE "InternalName", "SCIPUFFgui"
             VALUE "LegalCopyright", "Copyright (C) 2011"
             VALUE "OriginalFilename", "SCIPUFFgui.exe"
-#ifdef NGIC
-            VALUE "ProductName", "SCIPUFFgui (NGIC)"
-			// SCIP_API_VERSION, SCIP_TAG, Build date (Update if needed)
-            VALUE "ProductVersion", "6,1,136, 150608"
-#elif AFTAC
-            VALUE "ProductName", "SCIPUFFgui (AF)"
-			// SCIP_API_VERSION, SCIP_TAG, Build date (Update if needed)
-			VALUE "ProductVersion", "6,1,136, 150512"
-#else
-#ifdef _WIN64
-            VALUE "ProductName", "SCIPUFFgui.x64"
-			VALUE "ProductVersion", "6,1,136,1201"
-#else
             VALUE "ProductName", "SCIPUFFgui"
-			VALUE "ProductVersion", "6,1,136,1201"
-#endif
-#endif
-
+			VALUE "ProductVersion", "6,1,178,1201"
         END
     END
     BLOCK "VarFileInfo"

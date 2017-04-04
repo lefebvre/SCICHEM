@@ -4,8 +4,11 @@
 !$Date$
 !*******************************************************************************
 MODULE  prog_inc
+  USE release_fd
+  USE prjstruct_fd
   LOGICAL :: lProg = .FALSE.
   INTEGER :: nProg = 0
+  TYPE( projectIDT ) callbackProject
 END MODULE prog_inc
 
 !==============================================================================
@@ -18,11 +21,12 @@ USE default_fd
 USE param_fd
 USE SCIPtool
 USE prog_inc
-USE winAPI
+USE myWinAPI
 USE mpi_fi, ONLY: UseMPI, isSerial, numprocs, myid, ierr
 USE localmpi
 USE SCIPUFFdriver_fi
 USE LoadSen_fi
+USE UpdateRelList_fi
 
 !     This program creates a new SCIP project from an existing project
 !     through calls to the SCIPtool.
@@ -62,13 +66,8 @@ INTEGER                  :: ios, lun_in
 LOGICAL                  :: Init,lexist,restart, create
 LOGICAL                  :: lsensor
 LOGICAL                  :: lAermod
-
 CHARACTER(PATH_MAXLENGTH), EXTERNAL :: AddExtension
 CHARACTER(PATH_MAXLENGTH), EXTERNAL :: StripNull, AddNull
-INTEGER, EXTERNAL :: InitAERMOD, InitSCIPUFFProject, ReadAERMODInput
-INTEGER, EXTERNAL :: GenSCIPUFFWeather, GenSCIPUFFSensor, GetTimeFromWeather
-INTEGER, EXTERNAL :: GenSCIPUFFAreaSource, SetSCIPUFFDomain, SetEmissions
-INTEGER, EXTERNAL :: FileInput, ReadArrayLimits
 
 INTEGER,        EXTERNAL :: sysGetProfileString
 INTEGER,        EXTERNAL :: sysGetProfileInt
@@ -118,6 +117,7 @@ OldPrjName  = ''
 lun_in      = 5
 irv = runSCIRdCmdLine( script_file,ini_file,OldPrjName,maxGrd )
 IF( irv /= 0 )THEN
+  IF( irv == -999 )GO TO 9998
   WRITE(6,*)'runSCI RdCmdLine error',irv
   GO TO 9999
 END IF
@@ -194,8 +194,8 @@ SELECT CASE( TRIM(mode) )
 
   CASE DEFAULT
     limit%met1D       = HUGE(1)
-    limit%puffs       = 20000
-    limit%surfaceGrid = 25000
+    limit%puffs       = 60000
+    limit%surfaceGrid = 100000
 
     string2 = AddNull( 'MaxMet1D' )
     idefault = limit%met1D
@@ -316,8 +316,10 @@ IF( lAerMod )THEN
     WRITE(*,'(A)') 'File name = '//TRIM(fname)
     GOTO 9999
   END IF
-  CALL RunAERMODInp( ToolUserID,restart )
+  CALL RunAERMODInp( ToolUserID,restart,error )
+  IF( error%iParm /= 0 )GOTO 9999
 ELSE
+
 !==== Load project data
 
 WRITE(6,*)
@@ -326,7 +328,7 @@ WRITE(6,*)'Loading input from '//TRIM(OldPrjName)
 input%project%name = TRIM(string2)
 input%project%path = TRIM(string3)
 
-irv = SCIPSizeProject( ToolUserID,input%project,nMtl,nRel )
+irv = SCIPSizeProjectMC( ToolUserID,input%project,nMtl,nRel,nMCrel )
 IF( irv == SCIPfailure )THEN
   irv = SCIPGetLastError( error )
   IF( irv == SCIPfailure )THEN
@@ -457,8 +459,8 @@ IF( BTEST(input%input%flags%mode,HFB_REVERSE) )THEN
 
   ! Approximate max number of hits for Adjoint Filter
   WRITE(6,'(/,"Total number of hits are ",I4," from a total of ",I4)')nRel - nNull, nRel
-  WRITE(6,'("Approximate maximum number of hits after filtering( will override value from inifile)? ")',ADVANCE='NO')
-  READ(lun_in,'(I4)',IOSTAT=ios)nhit_target
+  !WRITE(6,'("Approximate maximum number of hits after filtering( will override value from inifile)? ")',ADVANCE='NO')
+  !READ(lun_in,'(I4)',IOSTAT=ios)nhit_target
 
 ELSE
   lsensor = .FALSE.
@@ -516,6 +518,7 @@ WRITE(6,*)
 WRITE(6,*)'Loading releases  from '//TRIM(OldPrjName)
 
 ALLOCATE( relList(nRel),STAT=ios )
+IF( ios == 0 )ALLOCATE( relMCList(nMCrel),STAT=ios )
 IF( ios /= 0 )THEN
   error%iParm   = 999
   error%routine = 'runSCI'
@@ -526,7 +529,7 @@ END IF
 DO i = 1,nRel
     relList(i)%padding   = NOT_SET_I
     relList(i)%type      = NOT_SET_I
-    relList(i)%status    = 1  !HS_VALID
+    relList(i)%status    = HS_VALID
     relList(i)%tRel      = NOT_SET_R
     relList(i)%xRel      = NOT_SET_R
     relList(i)%yRel      = NOT_SET_R
@@ -540,14 +543,14 @@ DO i = 1,nRel
     relList(i)%material   = ' '
     relList(i)%relName    = ' '
     relList(i)%relDisplay = ' '
-    relList(i)%nMC        = 0
-    DO j = 1,MAX_MCR
-      relList(i)%MCname(j) = NOT_SET_C
-      relList(i)%MCmass(j) = NOT_SET_R
-    END DO
 END DO
 
-irv = SCIPLoadReleaseF( ToolUserID,scenario,relList )
+DO i = 1,nMCrel
+    relMCList(i)%relID   = NOT_SET_I
+    relMCList(i)%MCname  = NOT_SET_C
+    relMCList(i)%MCmass  = NOT_SET_R
+END DO
+irv = SCIPLoadReleaseMCF( ToolUserID,scenario,relList,relMCList )
 IF( irv == SCIPfailure )THEN
   irv = SCIPGetLastError( error )
   IF( irv == SCIPfailure )THEN
@@ -569,6 +572,13 @@ END DO
 
 ENDIF
 
+!FirstUpdateRel%id   = NOT_SET_C
+!FirstUpdateRel%rate = NOT_SET_R
+!FirstUpdateRel%wmom = NOT_SET_R
+!FirstUpdateRel%buoy = NOT_SET_R
+!FirstUpdateRel%name = NOT_SET_C
+NULLIFY(FirstUpdateRel%Rel)
+
 CALL SplitName( OldPrjName,string2,string3 )
 
 new%project%ID      = 0
@@ -583,6 +593,8 @@ new%input%mtlHead   = input%input%mtlHead
 
 new%weather = weather%weather
 new%scnHead = scenario%scnHead
+
+callbackProject = new%project
 
 !**************************************************************
 new%input%flags%mode = IBSET(new%input%flags%mode,HFB_DINCRMNT)
@@ -599,7 +611,7 @@ IF ( .NOT.restart )THEN
   WRITE(6,*)
   WRITE(6,*)'Creating '//TRIM(OldPrjName)
 
-  irv = SCIPNewProject( ToolUserID,new,mtlList,relList )
+  irv = SCIPNewProjectMC( ToolUserID,new,mtlList,relList,nMCrel,relMCList )
   IF( irv == SCIPfailure )THEN
     irv = SCIPGetLastError( error )
     IF( irv == SCIPfailure )THEN
@@ -693,6 +705,7 @@ END IF ! myid == 0
 
 9998 CONTINUE
 IF( ALLOCATED(relList)   )DEALLOCATE( relList,  STAT=ios )
+IF( ALLOCATED(relMCList) )DEALLOCATE( relMCList,STAT=ios )
 IF( ALLOCATED(mtlList)   )DEALLOCATE( mtlList,  STAT=ios )
 IF( myid == 0 )THEN
 IF( lun_in /= 5 )CLOSE(UNIT=lun_in )
@@ -747,7 +760,7 @@ USE tooluser_fd
 USE prog_inc
 USE basic_fd
 USE SCIPtool
-USE SCIPUFFdriver_fi, ONLY: SUCCESS
+USE SCIPUFFdriver_fi, ONLY: SUCCESS, nMC, prjname
 
 IMPLICIT NONE
 
@@ -764,12 +777,29 @@ INTEGER i
 INTEGER irv
 TYPE ( messageT ) message
 TYPE( updateRelT ) update
+INTEGER :: nMCup
+TYPE( releaseMCT ), DIMENSION(:), ALLOCATABLE, TARGET :: upMCList
+TYPE( updateRelMCT ) updateMC
+TYPE( preleaseT ) prel
+TYPE( releaseT  ), DIMENSION(1) :: upList
+TYPE( releaseMCT ), DIMENSION(:), POINTER :: ptr_upMCList
+CHARACTER(PATH_MAXLENGTH), EXTERNAL :: AddExtension
 
 LOGICAL default
 CHARACTER(128) string(3),StripNull,Routine
 
 INTEGER(LEN_ADDRESS), EXTERNAL ::  ADDRESSOF
-INTEGER, EXTERNAL :: UpdateStackEmission
+INTEGER, EXTERNAL :: UpdateContRel
+INTERFACE
+  INTEGER FUNCTION UpdateStackEmission( relMC,update,updateMC,nMCup )
+    USE SCIPUFFdriver_fi
+    USE update_fd
+    TYPE( releaseMCT ),   DIMENSION(:),               POINTER         :: relMC
+    TYPE( updateRelT ),   OPTIONAL,                   INTENT( INOUT ) :: update
+    TYPE( updateRelMCT ), OPTIONAL,                   INTENT( INOUT ) :: updateMC
+    INTEGER,              OPTIONAL,                   INTENT( IN    ) :: nMCup
+  END FUNCTION UpdateStackEmission
+END INTERFACE
 
 CALL VALUE_REFERENCE( arg1, iCaller )
 CALL VALUE_REFERENCE( arg2, iMessage )
@@ -790,15 +820,57 @@ SELECT CASE( iMessage )
     jParm = ADDRESSOF( iParm )
     CALL ADDRESS_UPDATE( jParm,update )
 
-    irv = UpdateStackEmission( update )
+      NULLIFY(ptr_upMCList)
+      irv = UpdateStackEmission( ptr_upMCList,update=update )
     IF( irv /= SUCCESS )THEN
       ToolCallBack = SCIPfailure
       GOTO 9999
     END IF
 
-    update%release%status = 1   !HS_VALID
-
+    update%release%status = HS_VALID
     CALL UPDATE_ADDRESS( update,jParm )
+
+  CASE( HM_UPDATERELMC )
+    jParm = ADDRESSOF( iParm )
+    CALL ADDRESS_UPDATEMC( jParm,updateMC )
+
+    IF( nMC > 0 )THEN
+      nMCup = nMC
+      ALLOCATE( upMCList(nMCup),STAT=irv )
+      IF( irv /= 0 )THEN
+        ToolCallBack = SCIPfailure
+        GOTO 9999
+      END IF
+      ptr_upMCList => upMCList
+      irv = UpdateStackEmission( ptr_upMCList,updateMC=updateMC,nMCup=nMCup )
+      IF( irv /= SUCCESS )THEN
+        ToolCallBack = SCIPfailure
+        GOTO 9999
+      END IF
+    END IF
+    updateMC%release%status = HS_VALID
+    !Write updated release and MClist to a file
+    prel%project = callbackProject
+    prel%project%name = TRIM(prjname)//'_updateMC'
+    prel%scnHead%max = 1
+    prel%scnHead%number = 1
+    prel%control%mode = HC_FILE
+    prel%control%searchID = ' '
+    prel%control%fileextension = 'scn'
+    upList(1) = updateMC%release
+    irv = SCIPWriteReleaseMCF( iCaller*10,prel,upList,nMCup,upMCList )
+    IF( irv /= SCIPSuccess )THEN
+      ToolCallBack = SCIPfailure
+      GOTO 9999
+    END IF
+
+    !Update the update structure
+    updateMC%updateSCN = TRIM(prel%project%name)
+    updateMC%updateSCN = AddExtension(updateMC%updateSCN,TRIM(prel%control%fileextension))
+    CALL AddPath(updateMC%updateSCN,TRIM(prel%project%path))
+    CALL UPDATEMC_ADDRESS( updateMC,jParm )
+  CASE( HM_STOP )
+    CALL ClearRelList()
 
   CASE DEFAULT
     GOTO 9999
@@ -807,7 +879,7 @@ IF( iMessage > HM_MESSAGE )default = message%jParm /= FALSE
 
 ToolCallBack = SCIPsuccess
 SELECT CASE( iMessage )
-  CASE( HM_CHECK )
+CASE( HM_CHECK )
     i = SCIPCheckButtons( 99990 )
     IF( i /= SCIPsuccess )THEN
       WRITE(6,*) 'SCIPCheckButtons error',i
@@ -948,6 +1020,7 @@ END
 INTEGER FUNCTION runSCIRdCmdLine(script_file, ini_file, prjname, maxGrd)
 
 USE tooluser_fd
+USE SCIPversion_fd, ONLY: SCIPUFF_TAG
 
 IMPLICIT NONE
 
@@ -1064,6 +1137,10 @@ DO iArg = 1,numCommand
           WRITE(6,*)'Please specify the name of the desired script file'
           GOTO 9999
         END IF
+      CASE( 'V','v')
+        WRITE(6,'(A)')TRIM(SCIPUFF_TAG)
+        runSCIRdCmdLine = -999
+        GO TO 9999
       CASE DEFAULT
         WRITE(6,*)'Invalid command line switch : '//TRIM(Switch)
         WRITE(6,'(" Valid switches for ini file, project name, max grid ")',ADVANCE='NO')

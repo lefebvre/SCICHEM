@@ -163,8 +163,8 @@ lymd = .NOT.( Prj%julStart == 0 .OR. Prj%julStart == NOT_SET_I )
 
 CALL TimeConvert( fld%t,Prj%localMet,lymd,hour,min,sec,year,month,day,string )
 
-IF( year  == NOT_SET_I )year  = dum
-IF( month == NOT_SET_I )month = dum
+IF( year  == NOT_SET_I )year  = idum
+IF( month == NOT_SET_I )month = idum
 
 !------ Third record - current calculation time
 !                      (day  month  year  hour  minute  second)

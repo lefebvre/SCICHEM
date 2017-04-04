@@ -9,6 +9,7 @@
 SUBROUTINE setPlotClassData( doMet,doInput )
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
@@ -46,6 +47,7 @@ END IF
 IF( Field%class > 0 )THEN
   nClassData = NumClassData( Field )
 
+  IF( ALLOCATED( ClassData ) )DEALLOCATE( ClassData,STAT=ios )
   ALLOCATE( ClassData(MAX(nClassData,1)),STAT=ios )
   IF( ios /= 0 )THEN
     nError   = UK_ERROR
@@ -136,6 +138,8 @@ END
 SUBROUTINE FillClassData( inField,mClassData,xClassData )
 
 USE Extract_fi
+USE cmd_fi
+
 
 IMPLICIT NONE
 
@@ -284,11 +288,13 @@ END
 SUBROUTINE inputClassData( inField )
 
 USE Extract_fi
+USE cmd_fi
 
 IMPLICIT NONE
 
 TYPE( SCIPPlotFieldT ), INTENT (IN ) :: inField
 
+INTEGER, EXTERNAL :: parseString
 INTEGER, EXTERNAL :: getInput
 
 INTEGER itry, ios
@@ -301,131 +307,107 @@ CHARACTER(120) string
 WRITE(6,*)
 SELECT CASE( inField%Category )
   CASE( HP_VSLICE,HP_HINT )
-!== Slice Start Point
-    ios  = 1
-    itry = 0
-    string = 'Slice starting point'
-    DO WHILE( ios > 0 )
-      itry = itry + 1
-      ios = getInput( string,2,x )
-      IF( ios > 0 )THEN
-        IF( itry < maxTry )THEN
-          WRITE(6,'(A)')'Error reading input, try again'
+   IF( iFld > 0 )THEN
+      IF( Vslc > 0 .OR. Hpro > 0 )THEN
+        IF( Vslc > 0 )THEN
+          cmd = TRIM(cmds(Vslc)%cargs)
         ELSE
-          nError   = UK_ERROR
-          eMessage = 'Error reading '//TRIM(string)
-          GOTO 9999
+          cmd = TRIM(cmds(Hpro)%cargs)
         END IF
-      ELSE IF( ios == 0 )THEN
-        sliceXmin = x(1)
-        sliceYmin = x(2)
-      END IF
-    END DO
-!== Slice End Point
-    ios  = 1
-    itry = 0
-    string = 'Slice ending point'
-    DO WHILE( ios > 0 )
-      itry = itry + 1
-      ios = getInput( string,2,x )
-      IF( ios > 0 )THEN
-        IF( itry < maxTry )THEN
-          WRITE(6,'(A)')'Error reading input, try again'
+        sliceZmin = DEF_VAL_R
+        sliceZmax = DEF_VAL_R
+        sliceNz   = 100
+        narg = 0
+        CALL SplitString( cmd,',',narg,cargs,lerr )
+        IF( narg >= 4 .AND. .NOT.lerr )THEN
+          ! Slice lower, left point
+          READ( cargs(1),*,IOSTAT=ios )sliceXmin
+          IF( ios == 0 )READ( cargs(2),*,IOSTAT=ios )sliceYmin
+          ! Slice upper, right point
+          IF( ios == 0 )READ( cargs(3),*,IOSTAT=ios )sliceXmax
+          IF( ios == 0 )READ( cargs(4),*,IOSTAT=ios )sliceYmax
+          IF( narg == 6 )THEN
+            IF( ios == 0 )READ( cargs(5),*,IOSTAT=ios )sliceZmin
+            IF( ios == 0 )READ( cargs(6),*,IOSTAT=ios )sliceZmax
+          END IF
         ELSE
-          nError   = UK_ERROR
-          eMessage = 'Error reading '//TRIM(string)
-          GOTO 9999
+          sliceXmin = DEF_VAL_R
+          sliceYmin = DEF_VAL_R
+          sliceXmax = DEF_VAL_R
+          sliceYmax = DEF_VAL_R
         END IF
-      ELSE IF( ios == 0 )THEN
-        sliceXmax = x(1)
-        sliceYmax = x(2)
+      ELSE
+        nError = UK_ERROR
       END IF
-    END DO
-!== Slice vertical Range
-    ios  = 1
-    itry = 0
-    string = 'Slice vertical range'
-    DO WHILE( ios > 0 )
-      itry = itry + 1
-      ios = getInput( string,2,x )
-      IF( ios > 0 )THEN
-        IF( itry < maxTry )THEN
-          WRITE(6,'(A)')'Error reading input, try again'
-        ELSE
-          nError   = UK_ERROR
-          eMessage = 'Error reading '//TRIM(string)
-          GOTO 9999
-        END IF
-      ELSE IF( ios == 0 )THEN
-        sliceZmin = x(1)
-        sliceZmax = x(2)
+      IF( nError == UK_ERROR .OR. ios /= 0 )THEN
+        eMessage = 'Error reading horizontal slice arguments [xMin,yMin,Xmax,yMax,]ZSlice'
+        GOTO 9999
       END IF
-    END DO
-!== Slice number vertical of Points
-    ios  = 1
-    itry = 0
-    string = 'Slice no. of vertical pts'
-    DO WHILE( ios > 0 )
-      itry = itry + 1
-      ios = getInput( string,1,x )
-      IF( ios > 0 )THEN
-        IF( itry < maxTry )THEN
-          WRITE(6,'(A)')'Error reading input, try again'
-        ELSE
-          nError   = UK_ERROR
-          eMessage = 'Error reading '//TRIM(string)
-          GOTO 9999
-        END IF
-      ELSE IF( ios == 0 )THEN
-        sliceNz = MAX(0,NINT(x(1))-5) !Create field adds 5
-      END IF
-    END DO
-  CASE( HP_HSLICE )
-!== Slice lower, left point
-    ios  = 1
-    itry = 0
-    string = 'Slice lower, left point'
-    DO WHILE( ios > 0 )
-      itry = itry + 1
-      ios = getInput( string,2,x )
-      IF( ios > 0 )THEN
-        IF( itry < maxTry )THEN
-          WRITE(6,'(A)')'Error reading input, try again'
-        ELSE
-          nError   = UK_ERROR
-          eMessage = 'Error reading '//TRIM(string)
-          GOTO 9999
-        END IF
-      ELSE IF( ios == 0 )THEN
-        sliceXmin = x(1)
-        sliceYmin = x(2)
-      END IF
-    END DO
-!== Slice upper, right point
-    ios  = 1
-    itry = 0
-    string = 'Slice upper, right point'
-    DO WHILE( ios > 0 )
-      itry = itry + 1
-      ios = getInput( string,2,x )
-      IF( ios > 0 )THEN
-        IF( itry < maxTry )THEN
-          WRITE(6,'(A)')'Error reading input, try again'
-        ELSE
-          nError   = UK_ERROR
-          eMessage = 'Error reading '//TRIM(string)
-          GOTO 9999
-        END IF
-      ELSE IF( ios == 0 )THEN
-        sliceXmax = x(1)
-        sliceYmax = x(2)
-      END IF
-    END DO
-    IF( .NOT. output3D )THEN
-!== Slice height
+   ELSE
+      !== Slice Start Point
       ios  = 1
       itry = 0
-      string = 'Slice height'
+      string = 'Slice starting point'
+      DO WHILE( ios > 0 )
+        itry = itry + 1
+        ios = getInput( string,2,x )
+        IF( ios > 0 )THEN
+          IF( itry < maxTry )THEN
+            WRITE(6,'(A)')'Error reading input, try again'
+          ELSE
+            nError   = UK_ERROR
+            eMessage = 'Error reading '//TRIM(string)
+            GOTO 9999
+          END IF
+        ELSE IF( ios == 0 )THEN
+          sliceXmin = x(1)
+          sliceYmin = x(2)
+        END IF
+      END DO
+      !== Slice End Point
+      ios  = 1
+      itry = 0
+      string = 'Slice ending point'
+      DO WHILE( ios > 0 )
+        itry = itry + 1
+        ios = getInput( string,2,x )
+        IF( ios > 0 )THEN
+          IF( itry < maxTry )THEN
+            WRITE(6,'(A)')'Error reading input, try again'
+          ELSE
+            nError   = UK_ERROR
+            eMessage = 'Error reading '//TRIM(string)
+            GOTO 9999
+          END IF
+        ELSE IF( ios == 0 )THEN
+          sliceXmax = x(1)
+          sliceYmax = x(2)
+        END IF
+      END DO
+      !== Slice vertical Range
+      ios  = 1
+      itry = 0
+      string = 'Slice vertical range'
+      DO WHILE( ios > 0 )
+        itry = itry + 1
+        ios = getInput( string,2,x )
+        IF( ios > 0 )THEN
+          IF( itry < maxTry )THEN
+            WRITE(6,'(A)')'Error reading input, try again'
+          ELSE
+            nError   = UK_ERROR
+            eMessage = 'Error reading '//TRIM(string)
+            GOTO 9999
+          END IF
+        ELSE IF( ios == 0 )THEN
+          sliceZmin = x(1)
+          sliceZmax = x(2)
+        END IF
+      END DO
+      !== Slice number vertical of Points
+      ios  = 1
+      itry = 0
+      string = 'Slice no. of vertical pts'
       DO WHILE( ios > 0 )
         itry = itry + 1
         ios = getInput( string,1,x )
@@ -438,51 +420,181 @@ SELECT CASE( inField%Category )
             GOTO 9999
           END IF
         ELSE IF( ios == 0 )THEN
-          sliceHeight = x(1)
+          sliceNz = MAX(0,NINT(x(1))-5) !Create field adds 5
+        END IF
+      END DO
+  END IF
+  CASE( HP_HSLICE )
+    IF( iFld > 0 )THEN
+      IF( Hslc > 0 )THEN
+        cmd  = TRIM(cmds(Hslc)%cargs)
+        narg = 0
+        CALL SplitString( cmd,',',narg,cargs,lerr )
+        IF( narg > 1 .AND. .NOT.lerr )THEN
+          ! Slice lower, left point
+          READ( cargs(1),*,IOSTAT=ios )sliceXmin
+          IF( ios == 0 )READ( cargs(2),*,IOSTAT=ios )sliceYmin
+          ! Slice upper, right point
+          IF( ios == 0 )READ( cargs(3),*,IOSTAT=ios )sliceXmax
+          IF( ios == 0 )READ( cargs(4),*,IOSTAT=ios )sliceYmax
+          ! Slice height
+          IF( ios == 0 )READ( cargs(5),*,IOSTAT=ios )sliceHeight
+        ELSE IF ( narg == 1 .AND. .NOT.lerr )THEN
+          ! Slice height
+          READ( cargs(1),*,IOSTAT=ios )sliceHeight
+          sliceXmin = DEF_VAL_R
+          sliceYmin = DEF_VAL_R
+          sliceXmax = DEF_VAL_R
+          sliceYmax = DEF_VAL_R
+        ELSE
+          nError = UK_ERROR
+        END IF
+      ELSE
+        nError = UK_ERROR
+      END IF
+      IF( nError == UK_ERROR .OR. ios /= 0 )THEN
+        eMessage = 'Error reading horizontal slice arguments [xMin,yMin,Xmax,yMax,]ZSlice'
+        GOTO 9999
+      END IF
+    ELSE
+      !== Slice lower, left point
+      ios  = 1
+      itry = 0
+      string = 'Slice lower, left point'
+      DO WHILE( ios > 0 )
+        itry = itry + 1
+        ios = getInput( string,2,x )
+        IF( ios > 0 )THEN
+          IF( itry < maxTry )THEN
+            WRITE(6,'(A)')'Error reading input, try again'
+          ELSE
+            nError   = UK_ERROR
+            eMessage = 'Error reading '//TRIM(string)
+            GOTO 9999
+          END IF
+        ELSE IF( ios == 0 )THEN
+          sliceXmin = x(1)
+          sliceYmin = x(2)
+        END IF
+      END DO
+      !== Slice upper, right point
+      ios  = 1
+      itry = 0
+      string = 'Slice upper, right point'
+      DO WHILE( ios > 0 )
+        itry = itry + 1
+        ios = getInput( string,2,x )
+        IF( ios > 0 )THEN
+          IF( itry < maxTry )THEN
+            WRITE(6,'(A)')'Error reading input, try again'
+          ELSE
+            nError   = UK_ERROR
+            eMessage = 'Error reading '//TRIM(string)
+            GOTO 9999
+          END IF
+        ELSE IF( ios == 0 )THEN
+          sliceXmax = x(1)
+          sliceYmax = x(2)
+        END IF
+      END DO
+      IF( .NOT. output3D )THEN
+      !== Slice height
+        ios  = 1
+        itry = 0
+        string = 'Slice height'
+        DO WHILE( ios > 0 )
+          itry = itry + 1
+          ios = getInput( string,1,x )
+          IF( ios > 0 )THEN
+            IF( itry < maxTry )THEN
+              WRITE(6,'(A)')'Error reading input, try again'
+            ELSE
+              nError   = UK_ERROR
+              eMessage = 'Error reading '//TRIM(string)
+              GOTO 9999
+            END IF
+          ELSE IF( ios == 0 )THEN
+            sliceHeight = x(1)
+          END IF
+        END DO
+      END IF
+    END IF
+  CASE( HP_VINT,HP_SSLICE )
+    IF( iFld > 0 )THEN
+      IF( Vint > 0 .OR. Sslc > 0 )THEN
+        IF( Sslc > 0 )THEN
+          cmd = TRIM(cmds(Sslc)%cargs)
+        ELSE
+          cmd = TRIM(cmds(Vint)%cargs)
+        END IF
+        narg = 0
+        CALL SplitString( cmd,',',narg,cargs,lerr )
+        IF( narg == 4 .AND. .NOT.lerr )THEN
+          ! Slice lower, left point
+          READ( cargs(1),*,IOSTAT=ios )sliceXmin
+          IF( ios == 0)READ( cargs(2),*,IOSTAT=ios )sliceYmin
+          ! Slice upper, right point
+          IF( ios == 0)READ( cargs(3),*,IOSTAT=ios )sliceXmax
+          IF( ios == 0)READ( cargs(4),*,IOSTAT=ios )sliceYmax
+        ELSE
+          sliceXmin = DEF_VAL_R
+          sliceYmin = DEF_VAL_R
+          sliceXmax = DEF_VAL_R
+          sliceYmax = DEF_VAL_R
+        END IF
+      ELSE
+        nError   = UK_ERROR
+      END IF
+      IF( nError == UK_ERROR .OR. ios /= 0 )THEN
+        IF( Sslc > 0 )THEN
+          eMessage = 'Error reading surface slice arguments xMin,yMin,Xmax,yMax'
+        ELSE
+          eMessage = 'Error reading vertical integrated slice arguments xMin,yMin,Xmax,yMax'
+        END IF
+        GOTO 9999
+      END IF
+    ELSE
+      !== Slice lower, left point
+      ios  = 1
+      itry = 0
+      string = 'Slice lower, left point'
+      DO WHILE( ios > 0 )
+        itry = itry + 1
+        ios = getInput( string,2,x )
+        IF( ios > 0 )THEN
+          IF( itry < maxTry )THEN
+            WRITE(6,'(A)')'Error reading input, try again'
+          ELSE
+            nError   = UK_ERROR
+            eMessage = 'Error reading '//TRIM(string)
+            GOTO 9999
+          END IF
+        ELSE IF( ios == 0 )THEN
+          sliceXmin = x(1)
+          sliceYmin = x(2)
+        END IF
+      END DO
+      !== Slice upper, right point
+      ios  = 1
+      itry = 0
+      string = 'Slice upper, right point'
+      DO WHILE( ios > 0 )
+        itry = itry + 1
+        ios = getInput( string,2,x )
+        IF( ios > 0 )THEN
+          IF( itry < maxTry )THEN
+            WRITE(6,'(A)')'Error reading input, try again'
+          ELSE
+            nError   = UK_ERROR
+            eMessage = 'Error reading '//TRIM(string)
+            GOTO 9999
+          END IF
+        ELSE IF( ios == 0 )THEN
+          sliceXmax = x(1)
+          sliceYmax = x(2)
         END IF
       END DO
     END IF
-  CASE( HP_VINT,HP_SSLICE )
-!== Slice lower, left point
-    ios  = 1
-    itry = 0
-    string = 'Slice lower, left point'
-    DO WHILE( ios > 0 )
-      itry = itry + 1
-      ios = getInput( string,2,x )
-      IF( ios > 0 )THEN
-        IF( itry < maxTry )THEN
-          WRITE(6,'(A)')'Error reading input, try again'
-        ELSE
-          nError   = UK_ERROR
-          eMessage = 'Error reading '//TRIM(string)
-          GOTO 9999
-        END IF
-      ELSE IF( ios == 0 )THEN
-        sliceXmin = x(1)
-        sliceYmin = x(2)
-      END IF
-    END DO
-!== Slice upper, right point
-    ios  = 1
-    itry = 0
-    string = 'Slice upper, right point'
-    DO WHILE( ios > 0 )
-      itry = itry + 1
-      ios = getInput( string,2,x )
-      IF( ios > 0 )THEN
-        IF( itry < maxTry )THEN
-          WRITE(6,'(A)')'Error reading input, try again'
-        ELSE
-          nError   = UK_ERROR
-          eMessage = 'Error reading '//TRIM(string)
-          GOTO 9999
-        END IF
-      ELSE IF( ios == 0 )THEN
-        sliceXmax = x(1)
-        sliceYmax = x(2)
-      END IF
-    END DO
 
   CASE( HP_TABLE )
 !== Risk Level

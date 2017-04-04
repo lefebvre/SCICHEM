@@ -139,7 +139,7 @@ END IF
 IF( SWIMPathLength() /= PATH_MAXLENGTH )THEN
   nError   = IV_ERROR
   eRoutine = 'InitTool'
-  eMessage = 'Incompatible path length in the LandUse dll'
+  eMessage = 'Incompatible path length in the SWIM dll'
   WRITE(eInform,*)'SWIM=',SWIMPathLength(), &
                  ' Expected=',PATH_MAXLENGTH
   GOTO 9999

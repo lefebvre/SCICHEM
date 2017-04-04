@@ -2,23 +2,33 @@
 
 CLEAN=$1
 
-CurDir=`pwd`
-#LSuf="a"
-LSuf="so"
+LSuf="a"
 x64='On'
-PSrcDir=../..
+
+# Set compiler and version
+Compiler=ifort
 Compiler_Version=ifort
-export Compiler=ifort
-export NETCDF_LIB_PATH=../../../lib/linux/netcdf/4.1.2/${Compiler}/x64/static
-export HDF_LIB_PATH=../../../lib/linux/hdf/hdf5-1.8.7-linux-x86_64-shared
+
+# Setup netcdf and hdf relative library path 
+CurDir=`pwd`
+NETCDF_LIB_PATH=../../lib/linux/netcdf/4.1.2/${Compiler}/x64/static
+HDF_LIB_PATH=../../lib/linux/hdf/hdf5-1.8.7-linux-x86_64-shared
+PSrcDir=../..
+
+export HDF_LIB_PATH=`readlink -f $HDF_LIB_PATH`
+export NETCDF_LIB_PATH=`readlink -f $NETCDF_LIB_PATH`
+export LD_LIBRARY_PATH=$HDF_LIB_PATH:$CurDir/$Compiler_Version
+echo "HDF_LIB_PATH=$HDF_LIB_PATH"
+echo "NETCDF_LIB_PATH=$NETCDF_LIB_PATH"
+echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
 
 Makelist="libarap libodepack libsag liblocalMPI libaqaer libscipuff libprime libfdatums libsystool libmessages liblanduse libswim libsciptool libxpp metsci tersci runsci scipp sciDOSpost srf2smp smp2post"
 
 #
 # export required variables
 #
-export Compiler_Version LSuf LD_LIBRARY_PATH
-export PSrcDir x64
+export Compiler_Version
+export LSuf PSrcDir x64
 
 if [ "$Compiler_Version" == "lahey" ]; then 
   source /usr/local/lf6481/bash_laheyfort_setup
@@ -43,12 +53,6 @@ if [ "$CLEAN" = clean ]; then
 else
   echo 'Creating object and mod files ...' 
 fi
-
-#Create memcpy if shared library
-if [ "$LSuf" == "so" ]; then
-  make -f memcpy.mak $CLEAN
-fi
-
 #
 # library files
 #
@@ -63,4 +67,11 @@ do
     exit 1
   fi
   cd ${CurDir}
+done
+
+for fex in metsci tersci runsci sciDOSpost scipp smp2post srf2smp 
+do
+  if [ -e $Compiler_Version/$fex ];then
+    cp -v $Compiler_Version/$fex ../../bin/linux
+  fi
 done

@@ -147,6 +147,8 @@ WRITE(lun,IOSTAT=ios)((cDefinition(i)%rSet%rels(j)%plen,                        
                                                         i=1,numDefinition)
 IF( ios /= 0 )GOTO 9998
 
+CALL FLUSH(lun)
+
 9999 CONTINUE
 
 DEALLOCATE( IDrel,STAT=ios )
@@ -180,7 +182,7 @@ IMPLICIT NONE
 
 INTEGER ios
 
-!------ Open the puff file - exisiting, read/write, append
+!------ Open the puff file - existing, read/write, append
 
 CALL OpenPuffFile( lun_puf,file_puf,.FALSE.,.FALSE. )
 IF( nError /= NO_ERROR )GOTO 9999
@@ -263,7 +265,6 @@ ELSE
   WRITE(eAction,'(A,I10)') 'No. for restart   =',npuf
   GOTO 9999
 END IF
-
 
 9999 CONTINUE
 

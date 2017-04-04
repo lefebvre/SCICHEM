@@ -5,7 +5,7 @@ RECURSIVE SUBROUTINE process_radio( iwnd_db,MyCmd )
 
 USE resource_fd
 USE pcscipuf_fi
-USE winAPI_fd
+USE myWinAPI_fd
 
 !     This routine processes RADIOBUTTONs from Dialog Boxes
 

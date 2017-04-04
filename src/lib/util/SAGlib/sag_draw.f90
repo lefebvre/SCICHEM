@@ -429,7 +429,18 @@ INTERFACE
     USE sagtri_fd
     USE sagstr_fd
     TYPE( SAGtriangleT_str ), POINTER :: triT
-    INTEGER, EXTERNAL :: UserFunction
+    INTERFACE
+      INTEGER FUNCTION UserFunction( nid,node,dat,nfld,UserDisplay,grd )
+        USE sagnod_fd
+        USE sagstr_fd
+        INTEGER,                           INTENT( IN ) :: nfld
+        INTEGER,             DIMENSION(3), INTENT( IN ) :: nid
+        TYPE( SAGnode_str ), DIMENSION(:), POINTER      :: node
+        REAL,                DIMENSION(:), POINTER      :: dat
+        INTEGER, EXTERNAL :: UserDisplay
+        TYPE( SAGgrid_str ), POINTER  :: grd
+      END FUNCTION UserFunction
+    END INTERFACE
     INTEGER, EXTERNAL :: UserDisplay
     TYPE ( SAGgrid_str ),     POINTER      :: grd
   END FUNCTION SAG_TriangleFunction
@@ -631,7 +642,18 @@ INTERFACE
     USE sagtri_fd
     USE sagstr_fd
     TYPE( SAGtriangleT_str ), POINTER :: triT
-    INTEGER, EXTERNAL :: UserFunction
+    INTERFACE
+      INTEGER FUNCTION UserFunction( nid,node,dat,nfld,UserDisplay,grd )
+        USE sagnod_fd
+        USE sagstr_fd
+        INTEGER,                           INTENT( IN ) :: nfld
+        INTEGER,             DIMENSION(3), INTENT( IN ) :: nid
+        TYPE( SAGnode_str ), DIMENSION(:), POINTER      :: node
+        REAL,                DIMENSION(:), POINTER      :: dat
+        INTEGER, EXTERNAL :: UserDisplay
+        TYPE( SAGgrid_str ), POINTER  :: grd
+      END FUNCTION UserFunction
+    END INTERFACE
     INTEGER, EXTERNAL :: UserDisplay
     TYPE( SAGgrid_str ),      POINTER :: grd
   END FUNCTION SAG_TriangleFunction

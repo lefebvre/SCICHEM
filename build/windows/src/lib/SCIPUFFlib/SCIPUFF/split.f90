@@ -68,7 +68,7 @@ snn      = puff(ipuf)%szz
 
 IF( lter )THEN
   IF( puff(ipuf)%zbar < MAX(puff(ipuf)%zi,puff(ipuf)%zc) )THEN
-    CALL get_topogIn( puff(ipuf)%xbar,puff(ipuf)%ybar,hp,hx,hy,ifld )
+    CALL get_topogIn( SNGL(puff(ipuf)%xbar),SNGL(puff(ipuf)%ybar),hp,hx,hy,ifld )
     IF( check_slope(hx,hy) )THEN
       fac = 1.0/SQRT(1.0+hx*hx+hy*hy)
       normal(1) = -fac*hx
@@ -204,115 +204,6 @@ GOTO 9999
 
 END
 
-!-----------------------------------------------------------------------
-SUBROUTINE set_rot_norm( normal,amat )
-
-USE scipuff_fi
-
-IMPLICIT NONE
-
-REAL, DIMENSION(3),   INTENT( IN    ) :: normal
-REAL(8), DIMENSION(3,3), INTENT( OUT   ) :: amat
-
-REAL(8) xn0, yn0, zn0, xt1, yt1, cs, sn
-
-REAL(8), DIMENSION(3,3) :: bmat, cmat, at
-
-xn0 = DBLE(normal(1))
-yn0 = DBLE(normal(2))
-zn0 = DBLE(normal(3))
-
-cs = zn0
-
-xt1 =  yn0
-yt1 = -xn0
-sn = SQRT(xt1*xt1+yt1*yt1)
-
-xt1 = xt1/sn
-yt1 = yt1/sn
-
-amat(1,1) = xn0
-amat(1,2) = yn0
-amat(1,3) = zn0
-amat(2,1) = xt1
-amat(2,2) = yt1
-amat(2,3) = 0.
-amat(3,1) = -zn0*yt1
-amat(3,2) = zn0*xt1
-amat(3,3) = xn0*yt1 - yn0*xt1
-
-bmat(1,1) = cs
-bmat(1,2) = 0.
-bmat(1,3) = sn
-bmat(2,1) = 0.
-bmat(2,2) = 1.
-bmat(2,3) = 0.
-bmat(3,1) = -sn
-bmat(3,2) = 0.
-bmat(3,3) = cs
-
-at = TRANSPOSE( amat )
-cmat = MATMUL( bmat,amat )
-amat = MATMUL( at,cmat )
-!amat = MATMUL( TRANSPOSE(amat),MATMUL( bmat,amat ) )
-
-RETURN
-END
-
-!-----------------------------------------------------------------------
-SUBROUTINE apply_rot_norm( p,amat,at )
-
-USE scipuff_fi
-
-IMPLICIT NONE
-
-TYPE( puff_str ),     INTENT( INOUT ) :: p
-REAL(8), DIMENSION(3,3), INTENT( IN    ) :: amat, at
-
-REAL(8), DIMENSION(3,3) :: bmat, cmat
-
-bmat(1,1) = DBLE(p%sxx)
-bmat(1,2) = DBLE(p%sxy)
-bmat(1,3) = DBLE(p%sxz)
-bmat(2,1) = DBLE(p%sxy)
-bmat(2,2) = DBLE(p%syy)
-bmat(2,3) = DBLE(p%syz)
-bmat(3,1) = DBLE(p%sxz)
-bmat(3,2) = DBLE(p%syz)
-bmat(3,3) = DBLE(p%szz)
-
-cmat = MATMUL( amat,bmat )
-bmat = MATMUL( cmat,at )
-
-p%sxx = SNGL(bmat(1,1))
-p%sxy = SNGL(bmat(1,2))
-p%sxz = SNGL(bmat(1,3))
-p%syy = SNGL(bmat(2,2))
-p%syz = SNGL(bmat(2,3))
-p%szz = SNGL(bmat(3,3))
-
-RETURN
-END
-
-!==============================================================================
-SUBROUTINE RotateDel( delx,dely,delz,amat )
-
-IMPLICIT NONE
-
-REAL,                    INTENT( INOUT ) :: delx, dely, delz
-REAL(8), DIMENSION(3,3), INTENT( IN    ) :: amat
-
-REAL(8), DIMENSION(3) :: vec, vecr
-
-vec = (/ DBLE(delx),DBLE(dely),DBLE(delz) /)
-vecr = MATMUL( amat,vec )
-delx = SNGL(vecr(1))
-dely = SNGL(vecr(2))
-delz = SNGL(vecr(3))
-
-RETURN
-END
-
 !==============================================================================
 REAL FUNCTION DzSplit( p,ifld,chkBL ) RESULT( chkz )
 
@@ -333,14 +224,14 @@ REAL hc, hp, hx, hy, zi
 chkz = FACV*delz2
 
 IF( lter )THEN
-  CALL get_topogIn( p%xbar,p%ybar,hp,hx,hy,ifld )
+  CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),hp,hx,hy,ifld )
 ELSE
   hp = 0.0
 END IF
 
 !----- Improve vertical resolution in canopy
 
-CALL get_canopyIn( p%xbar,p%ybar,hc,ifld )
+CALL get_canopyIn( SNGL(p%xbar),SNGL(p%ybar),hc,ifld )
 
 IF( p%zbar-hp < 2.*hc .AND. p%sv < hc .AND. dzg > 0.5*hc )THEN
 
@@ -427,14 +318,14 @@ IF( mgrd >= 0 )THEN
     IF( lter )THEN
       IF( IsNearGround(p) )THEN
 
-        CALL get_topogIn( p%xbar,p%ybar,hp,hx,hy,ifld )
-        CALL mapfac( p%xbar,p%ybar,xmap,ymap )
+        CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),hp,hx,hy,ifld )
+        CALL mapfac( SNGL(p%xbar),SNGL(p%ybar),xmap,ymap )
 
         sx   = SQRT(p%sxx)          !Check along x-split direction
         delx = 2.*sx * xmap
         dely = 2.*p%sxy/sx * ymap
-        CALL get_topogIn( p%xbar+delx,p%ybar+dely,hz1,hx1,hy1,ifld )
-        CALL get_topogIn( p%xbar-delx,p%ybar-dely,hz2,hx2,hy2,ifld )
+        CALL get_topogIn( SNGL(p%xbar)+delx,SNGL(p%ybar)+dely,hz1,hx1,hy1,ifld )
+        CALL get_topogIn( SNGL(p%xbar)-delx,SNGL(p%ybar)-dely,hz2,hx2,hy2,ifld )
         IF( ldense )THEN
           hxmx = MAX(hx1,hx2,hx)
           hxmn = MIN(hx1,hx2,hx)
@@ -453,8 +344,8 @@ IF( mgrd >= 0 )THEN
           sy   = SQRT(p%syy)        !Check along y-split direction
           dely = 2.*sy * ymap
           delx = 2.*p%sxy/sy * xmap
-          CALL get_topogIn( p%xbar+delx,p%ybar+dely,hz1,hx1,hy1,ifld )
-          CALL get_topogIn( p%xbar-delx,p%ybar-dely,hz2,hx2,hy2,ifld )
+          CALL get_topogIn( SNGL(p%xbar)+delx,SNGL(p%ybar)+dely,hz1,hx1,hy1,ifld )
+          CALL get_topogIn( SNGL(p%xbar)-delx,SNGL(p%ybar)-dely,hz2,hx2,hy2,ifld )
           IF( ldense )THEN
             hxmx = MAX(hx1,hx2,hx)
             hxmn = MIN(hx1,hx2,hx)
@@ -644,7 +535,8 @@ REAL,             INTENT( INOUT ) :: delx, dely, delz
 LOGICAL,          INTENT( IN    ) :: ldense
 
 REAL    h0, hx0, hy0, xmap, ymap, dxx, dyy
-REAL    x0, y0, z0
+REAL(8) x0, y0
+REAL    z0
 REAL    h, hx, hy
 REAL    zrefl, rat, zreflx
 INTEGER ifld
@@ -662,19 +554,19 @@ p2%idtl = p1%idtl
 p2%idtn = 0
 p2%ipgd = p1%ipgd
 
-CALL mapfac( p1%xbar,p1%ybar,xmap,ymap )
-
-delx = delx*xmap
-dely = dely*ymap
-
 x0 = p1%xbar
 y0 = p1%ybar
 z0 = p1%zbar
 
+CALL mapfac( SNGL(x0),SNGL(y0),xmap,ymap )
+
+delx = delx*xmap
+dely = dely*ymap
+
 ifld = getPuffifld( p1 )
 
 IF( lter )THEN
-  CALL get_topogIn( p1%xbar,p1%ybar,h0,hx0,hy0,ifld )
+  CALL get_topogIn( SNGL(x0),SNGL(y0),h0,hx0,hy0,ifld )
 ELSE
   h0 = 0.
 END IF
@@ -682,7 +574,7 @@ END IF
 lzinv = p1%zbar <= p1%zi .AND. lbl
 lcap  = p1%zc > 0.
 IF( lzinv )THEN
-  IF( SWIMcappedBL(ifld,p1%xbar,p1%ybar) )THEN
+  IF( SWIMcappedBL(ifld,SNGL(x0),SNGL(y0)) )THEN
     lrefl = .TRUE.
     zrefl = p1%zi
   ELSE
@@ -699,37 +591,37 @@ END IF
 rat = 1.0
 IF( p1%zbar < p1%zi .AND. .NOT.lrefl )THEN
   IF( p1%zbar + ABS(delz) > p1%zi )THEN
-    CALL get_met( p1%xbar,p1%ybar,p1%zbar,0.0,0.0,0,inField=ifld )
+    CALL get_met( SNGL(x0),SNGL(y0),z0,0.0,0.0,0,inField=ifld )
     IF( difb*p1%c < p1%zwc )rat = difb*p1%c/p1%zwc
   END IF
 END IF
 
-p2%xbar = p1%xbar + delx
-p1%xbar = p1%xbar - delx
-p2%ybar = p1%ybar + dely
-p1%ybar = p1%ybar - dely
+p2%xbar = p1%xbar + DBLE(delx)
+p1%xbar = p1%xbar - DBLE(delx)
+p2%ybar = p1%ybar + DBLE(dely)
+p1%ybar = p1%ybar - DBLE(dely)
 p2%zbar = p1%zbar + delz
 p1%zbar = p1%zbar - delz
 
 IF( global_lon )THEN
-  IF( p1%ybar > 90.0 .OR. p1%ybar < -90.0 )THEN
-    p1%xbar = p1%xbar + 180.0
-    IF( p1%ybar > 90.0 )THEN
-      p1%ybar = 180.0 - p1%ybar
+  IF( p1%ybar > 90.D0 .OR. p1%ybar < -90.D0 )THEN
+    p1%xbar = p1%xbar + 180.D0
+    IF( p1%ybar > 90.D0 )THEN
+      p1%ybar = 180.D0 - p1%ybar
     ELSE
-      p1%ybar = -180.0 - p1%ybar
+      p1%ybar = -180.D0 - p1%ybar
     END IF
   END IF
-  IF( p2%ybar > 90.0 .OR. p2%ybar < -90.0 )THEN
-    p2%xbar = p2%xbar + 180.0
-    IF( p2%ybar > 90.0 )THEN
-      p2%ybar = 180.0 - p2%ybar
+  IF( p2%ybar > 90.D0 .OR. p2%ybar < -90.D0 )THEN
+    p2%xbar = p2%xbar + 180.D0
+    IF( p2%ybar > 90.D0 )THEN
+      p2%ybar = 180.D0 - p2%ybar
     ELSE
-      p2%ybar = -180.0 - p2%ybar
+      p2%ybar = -180.D0 - p2%ybar
     END IF
   END IF
-  CALL SetGlobalLon( p1%xbar )
-  CALL SetGlobalLon( p2%xbar )
+  CALL SetGlobalLonD( p1%xbar )
+  CALL SetGlobalLonD( p2%xbar )
 END IF
 
 !------ check for splitting below the surface
@@ -751,7 +643,7 @@ END IF
 IF( lrefl )THEN
   zreflx = zrefl
   IF( lter )THEN
-    CALL get_topogIn( p1%xbar,p1%ybar,h,hx,hy,ifld )
+    CALL get_topogIn( SNGL(p1%xbar),SNGL(p1%ybar),h,hx,hy,ifld )
     zreflx = zrefl + h - h0
   ELSE
     h = 0.
@@ -762,7 +654,7 @@ IF( lrefl )THEN
     IF( p1%zbar < h )p1%zbar = 0.5*(zreflx+h)
   END IF
   IF( lter )THEN
-    CALL get_topogIn( p2%xbar,p2%ybar,h,hx,hy,ifld )
+    CALL get_topogIn( SNGL(p2%xbar),SNGL(p2%ybar),h,hx,hy,ifld )
     zreflx = zrefl + h - h0
   END IF
   p2%zc = zreflx
@@ -773,9 +665,9 @@ IF( lrefl )THEN
 END IF
 
 IF( lblSplit )THEN
-  CALL get_topogIn( p1%xbar,p1%ybar,h,hx,hy,ifld )
+  CALL get_topogIn( SNGL(p1%xbar),SNGL(p1%ybar),h,hx,hy,ifld )
   CALL dense_rot_norm( hx0,hy0,hx,hy,p1 )
-  CALL get_topogIn( p2%xbar,p2%ybar,h,hx,hy,ifld )
+  CALL get_topogIn( SNGL(p2%xbar),SNGL(p2%ybar),h,hx,hy,ifld )
   CALL dense_rot_norm( hx0,hy0,hx,hy,p2 )
 END IF
 
@@ -865,7 +757,8 @@ USE struct_fd
 IMPLICIT NONE
 
 TYPE( puff_str ), INTENT( INOUT ) :: p
-REAL,             INTENT( IN    ) :: x0, y0, z0
+REAL(8),          INTENT( IN    ) :: x0, y0
+REAL,             INTENT( IN    ) :: z0
 REAL,             INTENT( IN    ) :: h0, hx0, hy0
 LOGICAL,          INTENT( IN    ) :: ldense
 
@@ -874,7 +767,7 @@ REAL hp, hx, hy
 INTEGER, EXTERNAL :: getPuffifld
 INTEGER, EXTERNAL :: getPuffiskew
 
-CALL get_topogIn( p%xbar,p%ybar,hp,hx,hy,getPuffifld(p) )
+CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),hp,hx,hy,getPuffifld(p) )
 
 IF( p%zc > 0.0 )p%zc = p%zc + hp - h0
 p%zi = p%zi + hp - h0
@@ -902,7 +795,8 @@ USE struct_fd
 IMPLICIT NONE
 
 TYPE( puff_str ), INTENT( INOUT ) :: p
-REAL,             INTENT( IN    ) :: x0, y0, z0
+REAL(8),          INTENT( IN    ) :: x0, y0
+REAL,             INTENT( IN    ) :: z0
 REAL,             INTENT( IN    ) :: h0, hx0, hy0
 REAL,             INTENT( INOUT ) :: hp, hx, hy
 
@@ -915,13 +809,13 @@ del1 = hp - p%zbar
 rat  = (del0-del1) / (del0+del1)
 rm1  = 1.0 - rat
 
-p%xbar = rm1*x0 + rat*p%xbar
-p%ybar = rm1*y0 + rat*p%ybar
+p%xbar = DBLE(rm1)*x0 + DBLE(rat)*p%xbar
+p%ybar = DBLE(rm1)*y0 + DBLE(rat)*p%ybar
 p%zbar = rm1*z0 + rat*p%zbar
 
 hp0 = hp
 
-CALL get_topogIn( p%xbar,p%ybar,hp,hx,hy,getPuffifld(p) )
+CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),hp,hx,hy,getPuffifld(p) )
 
 p%zi = p%zi + hp - hp0
 IF( p%zc > 0.0 )p%zc = p%zc + hp - hp0
@@ -960,8 +854,8 @@ INTEGER, EXTERNAL :: getPuffiskew
 IF( p%zbar < 0.0 )THEN
   fac = 2.*ABS(p%zbar/delz)
   p%zbar = -p%zbar
-  p%xbar =  p%xbar + fac*delx
-  p%ybar =  p%ybar + fac*dely
+  p%xbar =  p%xbar + DBLE(fac*delx)
+  p%ybar =  p%ybar + DBLE(fac*dely)
   IF( getPuffiskew(p) == SKEW_DOWN )CALL setPuffiskew( p,SKEW_UP )
 END IF
 
@@ -985,7 +879,7 @@ INTEGER, EXTERNAL :: getPuffifld
 IF( lter )THEN
   sx = SQRT(p%sxx)
   sy = SQRT(p%syy)
-  CALL get_topogIn( p%xbar,p%ybar,h,hx,hy,getPuffifld(p) )
+  CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),h,hx,hy,getPuffifld(p) )
   ztest = MAX(p%zbar-h-fac_rfl*(ABS(hx)*sx + ABS(hy)*sy),0.)
 ELSE
   ztest = p%zbar

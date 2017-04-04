@@ -36,7 +36,7 @@ sdat(ISRF_TSCL) = NOT_SET_R
 
 !------ Define map factors based on puff location
 
-CALL mapfac( p%xbar,p%ybar,xmap,ymap )
+CALL mapfac( SNGL(p%xbar),SNGL(p%ybar),xmap,ymap )
 
 !------ Scale puff moment tensor by map factors
 
@@ -59,8 +59,8 @@ ey   = ylen / dist
 
 !------ Find location of max. concentration (min. arg) along slice
 
-delx = slice%xmin - p%xbar      !Prj coord.
-dely = slice%ymin - p%ybar
+delx = slice%xmin - SNGL(p%xbar)      !Prj coord.
+dely = slice%ymin - SNGL(p%ybar)
 
 tem = (axz*ex + ayz*ey) / azz
 
@@ -73,8 +73,8 @@ yp = slice%ymin + r*ey
 
 !------ Check distance from slice
 
-delx = xp - p%xbar              !Prj coord.
-dely = yp - p%ybar
+delx = xp - SNGL(p%xbar)              !Prj coord.
+dely = yp - SNGL(p%ybar)
 
 arg = axx*delx*delx + ayy*dely*dely + 2.*axy*delx*dely  &
                                     + 2.*axz*delx*zp + 2.*ayz*dely*zp + azz*zp*zp
@@ -158,6 +158,7 @@ REAL    xminus, xplus, cxy, h, hx, hy, xmap, ymap
 REAL    x, xs, xp, y, ys, yp, xprj, yprj, arg
 REAL    xm, ym, zm, facr, facs, faci, fac, zr
 REAL    xr(3), xnrm(3), znrm, deth, rat, zp, zfac, hp
+REAL    xbar, ybar
 REAL    del
 
 INTEGER, EXTERNAL :: getPuffifld
@@ -186,6 +187,9 @@ END IF
 
 !------ Setup grid sweep parameters
 
+xbar = SNGL(p%xbar)
+ybar = SNGL(p%ybar)
+
 dxs   = srf%dx
 dys   = srf%dy
 xmins = srf%xmin
@@ -204,9 +208,9 @@ rat  = 0.5/(p%det*deth)
 
 IF( lter )THEN
 
-  CALL mapfac( p%xbar,p%ybar,xmap,ymap )
+  CALL mapfac( xbar,ybar,xmap,ymap )
 
-  CALL get_topogIn( p%xbar,p%ybar,hp,hx,hy,getPuffifld(p) )
+  CALL get_topogIn( xbar,ybar,hp,hx,hy,getPuffifld(p) )
 
   zp = p%zbar - hp
   CALL puff_grnd_reflect( zp,p,hx,hy,xr,xnrm,deth,znrm )
@@ -255,8 +259,8 @@ IF( lter )THEN
       CALL zi_reflect( p%zbar,p%zc,p%zc-hp+h,ys,rat,faci ) !Move cap with terrain as in SCIP 3.2
       faci = 1. + faci
 
-      xm = (xprj-p%xbar)/xmap
-      ym = (yprj-p%ybar)/ymap
+      xm = (xprj-xbar)/xmap
+      ym = (yprj-ybar)/ymap
 
       zr = xnrm(1)*(xm-xr(1)) + xnrm(2)*(ym-xr(2)) + &
                                           xnrm(3)*(zm-xr(3))
@@ -590,7 +594,7 @@ sdat(ISRF_TSCL) = NOT_SET_R
 
 !------ Define map factors based on puff location
 
-CALL mapfac( p%xbar,p%ybar,xmap,ymap )
+CALL mapfac( SNGL(p%xbar),SNGL(p%ybar),xmap,ymap )
 
 !------ Scale puff moment tensor by map factors
 
@@ -613,8 +617,8 @@ ey   = ylen / dist
 
 !------ Find location of max. concentration (min. arg) along slice
 
-delx = p%xbar - slice%xmin     !Prj coord.
-dely = p%ybar - slice%ymin
+delx = SNGL(p%xbar) - slice%xmin     !Prj coord.
+dely = SNGL(p%ybar) - slice%ymin
 r    = ex*delx + ey*dely
 
 xp = slice%xmin + r*ex          !Prj coord.
@@ -698,6 +702,7 @@ REAL    xminus, xplus, cxy, h, hx, hy, xmap, ymap
 REAL    x, xs, xp, y, ys, yp, xprj, yprj, arg
 REAL    xm, ym, zm, facr, facs, faci, fac, zr
 REAL    xr(3), xnrm(3), znrm, deth, rat, zp, zfac, hp
+REAL    xbar, ybar
 
 INTEGER, EXTERNAL :: getPuffifld
 
@@ -725,6 +730,9 @@ END IF
 
 !------ Setup grid sweep parameters
 
+xbar = SNGL(p%xbar)
+ybar = SNGL(p%ybar)
+
 dxs   = srf%dx
 dys   = srf%dy
 xmins = srf%xmin
@@ -743,9 +751,9 @@ rat  = 0.5/(p%det*deth)
 
 IF( lter )THEN
 
-  CALL mapfac( p%xbar,p%ybar,xmap,ymap )
+  CALL mapfac( xbar,ybar,xmap,ymap )
 
-  CALL get_topogIn( p%xbar,p%ybar,hp,hx,hy,getPuffifld(p) )
+  CALL get_topogIn( xbar,ybar,hp,hx,hy,getPuffifld(p) )
 
   zp = p%zbar - hp
   CALL puff_grnd_reflect( zp,p,hx,hy,xr,xnrm,deth,znrm )
@@ -794,8 +802,8 @@ IF( lter )THEN
       CALL zi_reflect( p%zbar,p%zc,p%zc-hp+h,ys,rat,faci ) !Move cap with terrain as in SCIP 3.2
       faci = 1. + faci
 
-      xm = (xprj-p%xbar)/xmap
-      ym = (yprj-p%ybar)/ymap
+      xm = (xprj-xbar)/xmap
+      ym = (yprj-ybar)/ymap
 
       zr = xnrm(1)*(xm-xr(1)) + xnrm(2)*(ym-xr(2)) + &
                                           xnrm(3)*(zm-xr(3))

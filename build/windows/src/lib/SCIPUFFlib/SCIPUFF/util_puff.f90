@@ -503,7 +503,6 @@ p%aux(nskp+3) = TRANSFER(ps%isprv,p%aux(nskp+3))
 
 RETURN
 END
-
 !===============================================================================
 
 SUBROUTINE copy_puff( pold,pnew )
@@ -659,7 +658,7 @@ INTEGER icol
 
 DO icol = 1,numCollection
   IF( .NOT.cCollection(icol)%isActive )CYCLE
-  IF( cCollection(icol)%isPool )CYCLE
+!POOL  IF( cCollection(icol)%isPool )CYCLE
   CALL remove_static_puffs( cCollection(icol) )
 END DO
 
@@ -689,7 +688,7 @@ INTEGER, EXTERNAL :: remove_static_puffs_set
 
 NULLIFY(def)
 
-IF( col%isPool )GOTO 9999      !This may not be necessary as it should never get called for a pool collection
+!POOL IF( col%isPool )GOTO 9999      !This may not be necessary as it should never get called for a pool collection
 
 IF( col%rStat%hasStatics )THEN
   col%rstat%tlev = 0
@@ -1175,7 +1174,7 @@ IF( p%naux > 0 )THEN
   WRITE(lun_log,*,IOSTAT=ios)'nAux = ',p%naux
   WRITE(lun_log,*,IOSTAT=ios)'Aux  = ',(p%aux(i),i=1,p%naux)
 END IF
-CALL get_topogIn( p%xbar,p%ybar,h,hx,hy,getPuffifld(p) )
+CALL get_topogIn( SNGL(p%xbar),SNGL(p%ybar),h,hx,hy,getPuffifld(p) )
 WRITE(lun_log,*,IOSTAT=ios)'Topo = ',h,hx,hy
 WRITE(lun_log,'(A)',IOSTAT=ios)'*******************************'
 
@@ -1289,6 +1288,370 @@ DO i = 1,npuf
     END IF
   END IF
 END DO
+
+RETURN
+END
+
+!-----------------------------------------------------------------------
+SUBROUTINE set_rot_norm( normal,amat )
+
+USE scipuff_fi
+
+IMPLICIT NONE
+
+REAL, DIMENSION(3),   INTENT( IN    ) :: normal
+REAL(8), DIMENSION(3,3), INTENT( OUT   ) :: amat
+
+REAL(8) xn0, yn0, zn0, xt1, yt1, cs, sn
+
+REAL(8), DIMENSION(3,3) :: bmat, cmat, at
+
+xn0 = DBLE(normal(1))
+yn0 = DBLE(normal(2))
+zn0 = DBLE(normal(3))
+
+cs = zn0
+
+xt1 =  yn0
+yt1 = -xn0
+sn = DSQRT(xt1*xt1+yt1*yt1)
+
+xt1 = xt1/sn
+yt1 = yt1/sn
+
+amat(1,1) = xn0
+amat(1,2) = yn0
+amat(1,3) = zn0
+amat(2,1) = xt1
+amat(2,2) = yt1
+amat(2,3) = 0.
+amat(3,1) = -zn0*yt1
+amat(3,2) = zn0*xt1
+amat(3,3) = xn0*yt1 - yn0*xt1
+
+bmat(1,1) = cs
+bmat(1,2) = 0.
+bmat(1,3) = sn
+bmat(2,1) = 0.
+bmat(2,2) = 1.
+bmat(2,3) = 0.
+bmat(3,1) = -sn
+bmat(3,2) = 0.
+bmat(3,3) = cs
+
+at   = TRANSPOSE( amat )
+cmat = MATMUL( bmat,amat )
+amat = MATMUL( at,cmat )
+
+RETURN
+END
+
+!-----------------------------------------------------------------------
+SUBROUTINE apply_rot_norm( p,amat,at )
+
+USE scipuff_fi
+
+IMPLICIT NONE
+
+TYPE( puff_str ),     INTENT( INOUT ) :: p
+REAL(8), DIMENSION(3,3), INTENT( IN    ) :: amat, at
+
+REAL(8), DIMENSION(3,3) :: bmat, cmat
+
+bmat(1,1) = DBLE(p%sxx)
+bmat(1,2) = DBLE(p%sxy)
+bmat(1,3) = DBLE(p%sxz)
+bmat(2,1) = DBLE(p%sxy)
+bmat(2,2) = DBLE(p%syy)
+bmat(2,3) = DBLE(p%syz)
+bmat(3,1) = DBLE(p%sxz)
+bmat(3,2) = DBLE(p%syz)
+bmat(3,3) = DBLE(p%szz)
+
+cmat = MATMUL( amat,bmat )
+bmat = MATMUL( cmat,at )
+
+p%sxx = SNGL(bmat(1,1))
+p%sxy = SNGL(bmat(1,2))
+p%sxz = SNGL(bmat(1,3))
+p%syy = SNGL(bmat(2,2))
+p%syz = SNGL(bmat(2,3))
+p%szz = SNGL(bmat(3,3))
+
+RETURN
+END
+
+!==============================================================================
+SUBROUTINE RotateDel( delx,dely,delz,amat )
+
+IMPLICIT NONE
+
+REAL,                    INTENT( INOUT ) :: delx, dely, delz
+REAL(8), DIMENSION(3,3), INTENT( IN    ) :: amat
+
+REAL(8), DIMENSION(3) :: vec, vecr
+
+vec = (/ DBLE(delx),DBLE(dely),DBLE(delz) /)
+vecr = MATMUL( amat,vec )
+delx = SNGL(vecr(1))
+dely = SNGL(vecr(2))
+delz = SNGL(vecr(3))
+
+RETURN
+END
+
+!===============================================================================
+
+SUBROUTINE chop_puff( p,zlow,ztop,zrfl,hp,lrfl_top,lrfl_bot,frac, &
+                      delz,delx,dely,sxx0,sxy0,sxz0,syy0,syz0,szz0 )
+
+!------ Compute section mass fraction, centroid and and (all) second moments
+
+!USE scipuff_fi
+USE puffstruct_fd
+
+IMPLICIT NONE
+
+TYPE( puff_str ), INTENT( INOUT ) :: p
+REAL,             INTENT( IN    ) :: zlow
+REAL,             INTENT( IN    ) :: ztop
+REAL,             INTENT( IN    ) :: zrfl
+REAL,             INTENT( IN    ) :: hp
+LOGICAL,          INTENT( IN    ) :: lrfl_top, lrfl_bot
+REAL,             INTENT( OUT   ) :: frac
+REAL,             INTENT( OUT   ) :: delz, delx, dely
+REAL,             INTENT( OUT   ) :: sxx0, sxy0, sxz0, syy0, syz0, szz0
+
+REAL(8) rot, c, s
+REAL(8) I000, I100, I010, I001
+REAL(8) I200, I110, I101, I020, I011, I002
+REAL(8) z1, z2, del, zbar, zbart, xbar, ybar, xbart, ybart
+REAL(8) sxx, sxy, sxz, syy, syz, szz
+REAL(8) deth, xfac, yfac
+REAL(8) axx, axy, axz, ayy, ayz, azz, frac8, delx8, dely8, delz8
+
+REAL(8) amat(3,3)
+
+!------ Rotate to eliminate horizontal off-diagaonal term of inverse 2nd moment tensor
+
+IF( p%axy == 0. )THEN
+  rot = 0.
+ELSE
+  rot = 0.5*DATAN2(-2.*DBLE(p%axy),DBLE(p%axx)-DBLE(p%ayy))
+END IF
+c = DCOS(rot); s = DSIN(rot);
+
+axx = c*c*DBLE(p%axx) - 2.*s*c*DBLE(p%axy) + s*s*DBLE(p%ayy)
+ayy = s*s*DBLE(p%axx) + 2.*s*c*DBLE(p%axy) + c*c*DBLE(p%ayy)
+axz = c*DBLE(p%axz) - s*DBLE(p%ayz)
+ayz = s*DBLE(p%axz) + c*DBLE(p%ayz)
+azz = DBLE(p%azz)
+axy = 0. !s*c*(p%axx -p%ayy) + (c*c-s*s)*p%axy
+
+amat = RESHAPE( (/axx,axy,axz,axy,ayy,ayz,axz,ayz,azz/),(/3,3/));
+
+!------ Zero integrals
+
+I000 = 0.; I100 = 0.; I010 = 0.; I001 = 0.
+I200 = 0.; I110 = 0.; I101 = 0.; I020 = 0.; I011 = 0.; I002 = 0.
+frac8 = 0.
+
+frac  = 0.
+delx  = 0.
+dely  = 0.
+delz  = 0.
+sxx = 0.; sxy = 0.; sxz = 0.; syy = 0.; syz = 0.; szz = 0.
+
+!------ Integrals for base puff
+
+z1 = DBLE(zlow) - DBLE(p%zbar)
+z2 = DBLE(ztop) - DBLE(p%zbar)
+
+CALL gauss_int0( amat,z1,z2,frac8,I000,I100,I010,I001,I200,I110,I101,I020,I011,I002,0.D0,0.D0,0.D0 )
+
+IF( lrfl_top .OR. lrfl_bot )THEN
+  deth = axx*ayy - axy*axy
+  xfac = axz*ayy - ayz*axy
+  yfac = ayz*axx - axz*axy
+ENDIF
+
+!------ Reflections if necessary
+
+IF( lrfl_top )THEN      !Reflections about cap
+
+  del  = DBLE(zrfl) - DBLE(p%zbar)
+  zbar = DBLE(zrfl) + del
+  del  = -2.*del/deth
+  xbar = del*xfac
+  ybar = del*yfac
+
+  z1 = DBLE(zlow) - zbar
+  z2 = DBLE(ztop) - zbar
+  CALL gauss_int0( amat,z1,z2,frac8,I000,I100,I010,I001,I200,I110,I101,I020,I011,I002,xbar,ybar,zbar-DBLE(p%zbar) )
+
+  IF( lrfl_bot )THEN
+    zbart = zbar
+    xbart = xbar
+    ybart = ybar
+  END IF
+
+END IF
+
+IF( lrfl_bot )THEN     !Reflection about ground
+
+  del  = DBLE(p%zbar) - DBLE(hp)
+  zbar = DBLE(hp) - del
+  del  = 2.*del/deth
+  xbar = del*xfac
+  ybar = del*yfac
+
+  z1 = DBLE(zlow) - zbar
+  z2 = DBLE(ztop) - zbar
+  CALL gauss_int0( amat,z1,z2,frac8,I000,I100,I010,I001,I200,I110,I101,I020,I011,I002,xbar,ybar,zbar-DBLE(p%zbar) )
+
+  IF( lrfl_top )THEN
+
+    del  = DBLE(zrfl) - zbar    !Reflection of ground image about cap
+    zbar = DBLE(zrfl) + del
+    del  = -2.*del/deth
+    xbar = del*xfac + xbar
+    ybar = del*yfac + ybar
+
+    z1 = DBLE(zlow) - zbar
+    z2 = DBLE(ztop) - zbar
+    CALL gauss_int0( amat,z1,z2,frac8,I000,I100,I010,I001,I200,I110,I101,I020,I011,I002,xbar,ybar,zbar-DBLE(p%zbar) )
+
+    del  = zbart - DBLE(hp)
+    zbar = DBLE(hp) - del
+    del  = 2.*del/deth
+    xbar = del*xfac + xbart
+    ybar = del*yfac + ybart
+
+    z1 = DBLE(zlow) - zbar
+    z2 = DBLE(ztop) - zbar
+    CALL gauss_int0( amat,z1,z2,frac8,I000,I100,I010,I001,I200,I110,I101,I020,I011,I002,xbar,ybar,zbar-DBLE(p%zbar) )
+
+  END IF
+
+END IF
+
+!------ Computer overall centroid relative to base puff and 2nd moment tensor
+
+delx8 = I100/I000
+dely8 = I010/I000
+delz8 = I001/I000
+
+sxx = I200/I000 - delx8*delx8
+sxy = I110/I000 - delx8*dely8
+sxz = I101/I000 - delx8*delz8
+syy = I020/I000 - dely8*dely8
+syz = I011/I000 - dely8*delz8
+szz = I002/I000 - delz8*delz8
+
+!------ Rotate back to original coordinates
+
+sxx0 = SNGL(c*c*sxx + s*s*syy + 2.*s*c*sxy)
+sxy0 = SNGL((c*c-s*s)*sxy - s*c*(sxx-syy))
+syy0 = SNGL(s*s*sxx + c*c*syy - 2.*s*c*sxy)
+sxz0 = SNGL( c*sxz + s*syz)
+syz0 = SNGL(-s*sxz + c*syz)
+szz0 = SNGL(szz)
+
+delx = SNGL( c*delx8 + s*dely8)
+dely = SNGL(-s*delx8 + c*dely8)
+delz = SNGL(delz8)
+frac = SNGL(frac8)
+
+RETURN
+END
+
+!===============================================================================
+
+SUBROUTINE gauss_int0( amat,z1,z2,frac,I000,I100,I010,I001, &
+                                       I200,I110,I101,I020,I011,I002,x,y,z )
+
+USE constants_fd
+
+!------ Compute section integrals and sum
+!       N.B. Account for shifted centroid
+
+IMPLICIT NONE
+
+REAL(8), PARAMETER :: EPS  = 1.D-6
+REAL(8), PARAMETER :: PI8 = 3.141592653589793
+
+REAL(8), DIMENSION(3,3), &
+         INTENT( IN    ) :: amat
+REAL(8), INTENT( IN    ) :: z1, z2
+REAL(8), INTENT( INOUT ) :: frac
+REAL(8), INTENT( INOUT ) :: I000, I100, I010, I001
+REAL(8), INTENT( INOUT ) :: I200, I110, I101, I020, I011, I002
+REAL(8), INTENT( IN    ) :: x,  y, z                            !Centroid relative to base puff
+
+REAL(8) J000, J100, J010, J001, J200, J110, J101, J020, J011, J002
+
+REAL(8) t1, t2, e1, e2, q1, q2, d0, t0, q0, rd0
+REAL(8) Jxx, Jyy, Jzz
+
+REAL(8), EXTERNAL :: DERFC
+
+d0 = DSQRT(amat(1,1)*amat(2,2)*amat(3,3) - amat(1,3)**2*amat(2,2) - amat(2,3)**2*amat(1,1));
+t0 = DSQRT(amat(3,3) - amat(1,3)**2/amat(1,1) - amat(2,3)**2/amat(2,2));
+t1 = z1*t0; t2 = z2*t0;
+
+q0 = 0.5*(DERFC(t1) - DERFC(t2))
+
+
+IF( q0 < EPS )GOTO 9999
+
+rd0 = 1./d0
+
+e1 = DEXP(-t1**2); e2 = DEXP(-t2**2);
+q1 = 0.5*(e1 - e2);
+q2 = 0.5*(t1*e1 - t2*e2);
+
+J000 = PI8**1.5/d0*q0;
+J001 = PI8*q1/(d0*t0);
+J100 = -J001*amat(1,3)/amat(1,1);
+J010 = -J001*amat(2,3)/amat(2,2);
+
+Jxx = 0.5*PI8**1.5*q0; Jyy = Jxx;
+Jzz = PI8*(q2 + 0.5*DSQRT(PI8)*q0);
+
+J110 = rd0*amat(1,3)*amat(2,3)*Jzz/(amat(1,1)*amat(2,2)*t0**2);
+J200 = rd0/amat(1,1) * (Jxx + amat(1,3)**2*Jzz/(amat(1,1)*t0**2));
+J020 = rd0/amat(2,2) * (Jyy + amat(2,3)**2*Jzz/(amat(2,2)*t0**2));
+J002 = rd0*Jzz/t0**2;
+J101 = -rd0*amat(1,3)*Jzz/(amat(1,1)*t0**2);
+J011 = -rd0*amat(2,3)*Jzz/(amat(2,2)*t0**2);
+
+frac = frac + q0
+
+I000 = I000 + J000
+I100 = I100 + J100
+I010 = I010 + J010
+I001 = I001 + J001
+I200 = I200 + J200
+I110 = I110 + J110
+I101 = I101 + J101
+I020 = I020 + J020
+I011 = I011 + J011
+I002 = I002 + J002
+
+IF( x == 0.D0 .AND. y == 0.D0 .AND. z == 0.D0 )GOTO 9999
+
+I100 = I100 + x*J000
+I010 = I010 + y*J000
+I001 = I001 + z*J000
+
+I200 = I200 + x*J100 + x*J100 + x*x*J000
+I110 = I110 + x*J010 + y*J100 + x*y*J000
+I101 = I101 + x*J001 + z*J100 + x*z*J000
+I020 = I020 + y*J010 + y*J010 + y*y*J000
+I011 = I011 + y*J001 + z*J010 + y*z*J000
+I002 = I002 + z*J001 + z*J001 + z*z*J000
+
+9999 CONTINUE
 
 RETURN
 END

@@ -833,6 +833,8 @@ SUBROUTINE writeCaution()
 
 USE error_fi
 USE message_fd
+USE files_fi
+
 
 IMPLICIT NONE
 
@@ -852,7 +854,16 @@ END IF
 IF( nRelOutsideDomain > 0 )THEN
   WRITE(number,*,IOSTAT=ios)nRelOutsideDomain
   IF( ios /= 0 )number = '??'
-  eMessage = TRIM(ADJUSTL(number))//' release(s) were ignored'
+  eMessage = TRIM(ADJUSTL(number))//' instantaneous release(s) were ignored'
+  eInform  = 'These releases were outside the spatial domain'
+  eAction  = 'Consider increasing the spatial domain'
+  CALL CautionMessage()
+END IF
+
+IF( nCRelOutsideDomain > 0 )THEN
+  WRITE(number,*,IOSTAT=ios)nCRelOutsideDomain
+  IF( ios /= 0 )number = '??'
+  eMessage = TRIM(ADJUSTL(number))//' continuous release(s) were ignored'
   eInform  = 'These releases were outside the spatial domain'
   eAction  = 'Consider increasing the spatial domain'
   CALL CautionMessage()

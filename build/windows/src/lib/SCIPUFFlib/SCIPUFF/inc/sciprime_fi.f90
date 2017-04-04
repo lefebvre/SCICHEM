@@ -53,4 +53,4 @@ REAL, DIMENSION(2) :: ky_prm,kz_prm,wmom_prm,buoy_prm
 
 REAL, DIMENSION(:), ALLOCATABLE :: concPrime
 
-END MODULE sciprime_fi
+END MODULE

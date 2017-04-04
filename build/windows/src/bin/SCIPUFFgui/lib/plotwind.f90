@@ -1,7 +1,7 @@
 SUBROUTINE get_pwsize( iwnd,itool,ibox,itop,ilft,ihgt,iwid )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 
 !     computes location and height,width of plot window
 
@@ -96,7 +96,7 @@ SUBROUTINE reposition_plotwind()
 
 USE resource_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 USE guiAPI
 
 IMPLICIT NONE

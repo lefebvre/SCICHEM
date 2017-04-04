@@ -3,7 +3,7 @@ PROGRAM met2sci
 !------ Generate SCIPUFF weather observation files
 !       Based on AERMET (dated 12345)
 
-!       Written by D. Henn, Sage Management, Princeton, NJ
+!       Written by D. Henn, Sage / Xator Corp., Princeton, NJ
 
 USE met2sci_fi
 
@@ -12,33 +12,58 @@ IMPLICIT NONE
 INTEGER irv
 INTEGER iPathway
 
-INTEGER, EXTERNAL :: ParseJobInput, ParseUpperAirInput, ParseSurfaceInput
-INTEGER, EXTERNAL :: ExtractUAdata, ExtractSFCdata
+INTEGER, EXTERNAL :: ParseJobInput, ParseUpperAirInput, ParseSurfaceInput, ParseOnsiteInput
+INTEGER, EXTERNAL :: ExtractUAdata, ExtractSFCdata, ExtractOSdata
 
 !------ Initialization
 
 lun        =  1      !Basic input/control file
 lunUA      =  2
 lunSfc     =  3
-lunOutSFC  = 30
-lunOutUA   = 31
-lunTmp     = 99
-lunScratch = 98
-lunErr     = 97
+lunOS      =  4
+lunOutSFC  = 130
+lunOutUA   = 131
+lunOutOS   = 132
+lunTmp     = 199
+lunScratch = 198
+lunErr     = 197
 
 iPathway  = NoPathway
 lJob      = .FALSE.
 lUpperAir = .FALSE.
 lSurface  = .FALSE.
+lOnsite   = .FALSE.
 lUAQ      = .TRUE.
 lSFQ      = .TRUE.
+lRandUA   = .FALSE.
+lRandSFC  = .FALSE.
+dRan0     = 10.
+dRanUA    = 1.
+dRanSFC   = 1.
+
+nOSrecord = 0
+nOSformat = 0
+nOSrange  = 0
+nOSheight = 0
+iPress    = 0
+iPressSL  = 0
 
 UAlist%nFile  = 0; NULLIFY( UAlist%first )
 SFClist%nFile = 0; NULLIFY( SFClist%first )
+OSlist%nFile  = 0; NULLIFY( OSlist%first )
 
-UAfile = ''; SFCfile = ''
+UAfile = ''; SFCfile = ''; OSfile = ''
 reportFile = '';  messageFile = ''
 !QAfileUA = ''; QAfileSFC = ''
+
+OSdataLine = ''; OSqaoutLine = ''; OSxdatesLine = ''; OSlocationLine = ''; OSheightLine = ''
+OSauditLine = ''; OSobsperhourLine = ''; OSnomissingLine = ''; OSthresholdLine = ''
+
+nvars = 0; nvarp = 0
+
+NULLIFY( firstOSread%first )
+NULLIFY( firstOSformat%first )
+NULLIFY( firstOSrange%first )
 
 error%Number  = NO_ERROR
 error%Routine = ''
@@ -76,7 +101,7 @@ END IF
 DO
 
   line = ' '
-  CALL get_next_data( lun,line,nch,kwrd,narg,carg,MAXN,lerr )
+  CALL get_next_data( lun,line,nch,kwrd,narg,carg,-MAXN,lerr )  !-MAXN so '=' does not denot keyword input
   IF( lerr )EXIT !Assumed to be EOF error
 
   CALL cupper( carg(1) )
@@ -107,6 +132,12 @@ DO
       NULLIFY( currentFile )
       CYCLE
 
+    CASE( 'ONSITE' )
+      iPathway = ONSITE
+      lOnsite  = .TRUE.
+      NULLIFY( currentFile )
+      CYCLE
+
   END SELECT
 
 !------ Parse input for current pathway
@@ -123,6 +154,10 @@ DO
 
     CASE( SURFACE )
       irv = ParseSurfaceInput()
+      IF( irv /= SUCCESS )GOTO 9999
+
+    CASE( ONSITE )
+      irv = ParseOnsiteInput()
       IF( irv /= SUCCESS )GOTO 9999
 
   END SELECT
@@ -169,6 +204,11 @@ IF( SFClist%nFile > 0 )THEN
   IF( irv /= SUCCESS )GOTO 9999
 END IF
 
+IF( OSlist%nFile > 0 )THEN
+  irv = ExtractOSdata()
+  IF( irv /= SUCCESS )GOTO 9999
+END IF
+
 9999 CONTINUE
 
 !------ Write error messages to met2sci.err
@@ -179,7 +219,9 @@ END IF
 
 !------ Create (partial) Stage 1 AERMET report
 
-CALL SUMRY2( 1 )
+IF( UAlist%nFile + SFClist%nFile > 0  )THEN  !N.B. ONSITE does not generate any report info
+  CALL SUMRY2( 1 )
+END IF
 
 CLOSE(lun,   IOSTAT=ios)
 CLOSE(lunMsg,IOSTAT=ios)

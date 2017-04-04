@@ -110,7 +110,7 @@ USE GUImatl_fi
 USE dialog_fi
 USE GUItool_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 USE UtilMtlAux
 
 !     This routine sets the Lists for Materials
@@ -128,6 +128,7 @@ INTEGER nRel,nMtl
 LOGICAL LatLon
 LOGICAL ldos,lsrf,lunit,ltot,reldyn
 LOGICAL Cartesian,Def_axes,Def_map,Need_Def
+INTEGER nMC
 
 CHARACTER(16)  ctmp1
 
@@ -161,9 +162,10 @@ CALL GUI_SCIP_domain  ( prjdlg,dlgDomain(DEFAULT_LEVEL),domain )
 CALL GUI_SCIP_options ( prjdlg,dlgOptions(DEFAULT_LEVEL),prjOptions )
 CALL GUI_SCIP_met     ( prjdlg,metdef(DEFAULT_LEVEL),weather )
 
-irv = SCIPSizeProject(ToolCallerID,ctrl%project, &
-                       nMtl, &
-                       nRel )
+irv = SCIPSizeProjectMC(ToolCallerID,ctrl%project, &
+                        nMtl, &
+                        nRel, &
+                        nMC )
 IF( irv == SCIPfailure )THEN
   CALL GetToolError( eRoutine )
   GOTO 9999
@@ -182,7 +184,7 @@ END IF
 
 matdef%mtlHead%max    = MAXMTYP
 
-CALL AllocateRelList(nrel)
+CALL AllocateRelList(nrel,nMC)
 IF( hasError() )GOTO 9998
 
 CALL AllocateMtlList(nMtl)
@@ -203,9 +205,16 @@ loadPrj%weather       = weather%weather
 loadPrj%scnHead%max    = nRel
 loadPrj%scnHead%number = 0
 
-irv = SCIPLoadProject( ToolCallerID,loadPrj, &
-                       mtlList, &
-                       relList )
+IF( nMC > 0 )THEN
+  irv = SCIPLoadProjectMC( ToolCallerID,loadPrj, &
+                           mtlList, &
+                           relList, &
+                           relMCList )
+ELSE
+  irv = SCIPLoadProject( ToolCallerID,loadPrj, &
+                         mtlList, &
+                         relList )
+END IF
 IF( irv == SCIPfailure )THEN
   CALL GetToolError( eRoutine )
   GOTO 9999
@@ -250,8 +259,10 @@ ELSE IF( prj_version/100 < scipuff_version/100 )THEN
     WRITE(eMessage,'(A,I3)')'Project created by Version 0.',prj_version
   ELSE IF( prj_version < 2000 )THEN
     WRITE(eMessage,'(A,I3.3)')'Project created by Version 1.',prj_version - 1000
-  ELSE
+  ELSE IF( prj_version < 3000 )THEN
     WRITE(eMessage,'(A,I3.3)')'Project created by Version 2.',prj_version - 2000
+  ELSE
+    WRITE(eMessage,'(A,I3.3)')'Project created by Version 3.',prj_version - 3000
   END IF
   eInform  = 'Project may be plotted/reviewed but not continued'
   CALL SetError( nError,eMessage,eInform,eAction,eRoutine )
@@ -431,7 +442,7 @@ IF( Def_map )mapdef(BASE_LEVEL)%HiRes = mapdef(DEFAULT_LEVEL)%HiRes
 
 reldef%scnHead  = loadPrj%scnHead
 
-CALL SCIP_GUI_scenario( scenario(BASE_LEVEL),materials(BASE_LEVEL),reldef,relList )
+CALL SCIP_GUI_scenario( scenario(BASE_LEVEL),materials(BASE_LEVEL),reldef,relList,nMC,relMCList )
 IF( hasError() )GOTO 9998
 
 IF( scenario(BASE_LEVEL)%nrel > 0 )THEN
@@ -921,7 +932,7 @@ USE errorParam_fd
 USE GUImatl_fi
 USE GUItool_fi
 USE dialog_fi
-USE winAPI
+USE myWinAPI
 
 !     Read .scn file and build release list
 
@@ -981,8 +992,8 @@ nignore = 0
 
 !---- Get file size
 fileT%string = file_scn
-irv = SCIPCountRelease(ToolCallerID,fileT,nrel)
-CALL AllocateRelList(nrel)
+irv = SCIPCountReleaseMC(ToolCallerID,fileT,nrel,nMC)
+CALL AllocateRelList(nrel,nMC)
 IF( hasError() )GOTO 9999
 
 nrel_start = rel%nrel
@@ -1007,11 +1018,15 @@ DO i = 1,nrel
   NULLIFY( GUIscn%release(i)%mc )
 END DO
 CALL CopyScenario( scenario(DEFAULT_LEVEL),GUIscn )
-CALL GUI_SCIP_scenario( prjdlg,GUIscn,mat,reldef,relList,SIZE(relList) )
+CALL GUI_SCIP_scenario( prjdlg,GUIscn,mat,reldef,relList,SIZE(relList),relMCList,nMC )
 IF( hasError() )GOTO 9999
 
 i = SetCursor( hcur_wait ) !  Set Arrow
-irv = SCIPLoadReleaseF( ToolCallerID,reldef,relList )
+IF( nMC > 0 )THEN
+  irv = SCIPLoadReleaseMCF( ToolCallerID,reldef,relList,relMCList )
+ELSE
+  irv = SCIPLoadReleaseF( ToolCallerID,reldef,relList )
+END IF
 IF( irv == SCIPfailure )THEN
   CALL GetToolError( eRoutine )
   IF( lastError() == SZ_ERROR )THEN
@@ -1026,7 +1041,8 @@ i = SetCursor( hcur_arrow ) !  Set Arrow
 
 lok = irv == SCIPsuccess
 
-CALL SCIP_GUI_scenario( GUIscn,mat,reldef,relList )
+CALL SCIP_GUI_scenario( GUIscn,mat,reldef,relList,nMC,relMCList )
+IF( ALLOCATED(relMCList) )DEALLOCATE(relMCList,STAT=ios)
 IF( hasError() )THEN
   lfirst = .FALSE.
   GOTO 9999

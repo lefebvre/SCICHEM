@@ -9,15 +9,16 @@ USE SWIM_fi
 USE SWIMparam_fd
 USE SWIMinit_fd
 USE VertGrid_fd
+USE constants_fd
 
 IMPLICIT NONE
 
 TYPE( MetField ), INTENT( INOUT ) :: fld
 INTEGER,          INTENT( IN    ) :: metType
 
-INTEGER irv, alloc_stat, nmax, jObs, i, k, i0
+INTEGER irv, alloc_stat, nmax, jObs, i, k, i0, k0
 INTEGER nxy, nz, nxyz
-REAL    zmax, ztem, p_usa, t_usa, dum
+REAL    zmax, ztem, pr, ta, dum
 REAL    InitHflx, InitZi, tLocal, x, y, lat, lon
 LOGICAL lRifl
 
@@ -39,7 +40,7 @@ INTEGER, EXTERNAL :: SWIMreadTerrain
 INTEGER, EXTERNAL :: SWIMalloc3dField, SWIMallocBLParam, SWIMallocBLaux
 INTEGER, EXTERNAL :: SWIMallocObsWt, SWIMallocBLprof
 INTEGER, EXTERNAL :: SetBLType, SWIMgetLL
-REAL,    EXTERNAL :: LocalTime, UTCtime, SolarTime
+REAL,    EXTERNAL :: LocalTime, UTCtime, SolarTime, StndRelativeHumid
 
 SWIMinitObsField = SWIMfailure
 
@@ -145,7 +146,8 @@ ELSE
       prj%Ymax == NOT_SET_R .OR. prj%Ymax == DEF_VAL_R )THEN
     error%Number  = IV_ERROR
     error%Routine = 'SWIMinintObsField'
-    error%Message = 'Project domain must be set'
+    error%Message = 'Unable to define a Project domain from Observations.'
+    error%Action = 'Options: Provide a domain, Add a terrain file, Switch to gridded meteorology'
     GOTO 9999
   END IF
 
@@ -380,37 +382,58 @@ IF( BTEST(fld%type,FTB_W) )THEN
   END DO
 END IF
 
-IF( BTEST(fld%type,FTB_H) )THEN
-  DO i = 1,nxyz
-    fld%Field%Humid(i) = 0.; fld%NextField%Humid(i) = 0.
-  END DO
-END IF
-
 IF( BTEST(fld%type,FTB_QCLD) )THEN
   DO i = 1,nxyz
     fld%Field%Qcloud(i) = 0.; fld%NextField%Qcloud(i) = 0.
   END DO
 END IF
 
-!------ Initialize Temperature and/or Pressure with standard atmosphere
+!------ Initialize Temperature and/or Pressure and/or humidity with standard atmosphere
 
-IF( BTEST(fld%type,FTB_T) .OR. BTEST(fld%type,FTB_P) )THEN
+IF( BTEST(fld%type,FTB_T) .OR. BTEST(fld%type,FTB_P) .OR. BTEST(fld%type,FTB_H) )THEN
+
+  IF( BTEST(fld%grid%type,GTB_STAGGERZ) )THEN
+    k0 = nxy
+  ELSE
+    k0 = 0
+  END IF
 
   DO k = 1,fld%grid%nZ
-    i0 = (k-1)*nxy
+    i0 = k0 + (k-1)*nxy
     DO i = 1,nxy
       ztem = fld%grid%Hmin + fld%grid%terrain%H(i) + fld%grid%z(k)*fld%grid%terrain%d(i)
-      CALL stnd_atmos( ztem,p_usa,t_usa,dum,1 )
+      CALL stnd_atmos( ztem,pr,ta,dum,1 )
       IF( BTEST(fld%type,FTB_T) )THEN
-        fld%Field%Tpot(i0+i)     = t_usa
-        fld%NextField%Tpot(i0+i) = t_usa
+        fld%Field%Tpot(i0+i)     = ta
+        fld%NextField%Tpot(i0+i) = ta
       END IF
       IF( BTEST(fld%type,FTB_P) )THEN
-        fld%Field%Press(i0+i)     = LOG(p_usa)
+        fld%Field%Press(i0+i)     = LOG(pr)
         fld%NextField%Press(i0+i) = fld%Field%Press(i0+i)
+      END IF
+      IF( BTEST(fld%type,FTB_H) )THEN
+        fld%Field%Humid(i)     = StndRelativeHumid( pr*PSURF )
+        fld%NextField%Humid(i) = fld%Field%Humid(i)
       END IF
     END DO
   END DO
+
+  IF( BTEST(fld%grid%type,GTB_STAGGERZ) )THEN
+    DO i = 1,nxy
+      IF( BTEST(fld%type,FTB_T) )THEN
+        fld%Field%Tpot(i)     = fld%Field%Tpot(nxy+i)
+        fld%NextField%Tpot(i) = fld%NextField%Tpot(nxy+i)
+      END IF
+      IF( BTEST(fld%type,FTB_P) )THEN
+        fld%Field%Press(i)     = fld%Field%Press(nxy+i)
+        fld%NextField%Press(i) = fld%NextField%Press(nxy+i)
+      END IF
+      IF( BTEST(fld%type,FTB_H) )THEN
+        fld%Field%Humid(i)     = fld%Field%Humid(nxy+i)
+        fld%NextField%Humid(i) = fld%NextField%Humid(nxy+i)
+      END IF
+    END DO
+  END IF
 
 END IF
 

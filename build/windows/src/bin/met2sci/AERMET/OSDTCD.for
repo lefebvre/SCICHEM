@@ -126,7 +126,8 @@ C------- Search for match on variable name
                ENDIF
 C ---          Check for parameters that are not supported 
 C              by AERMET and issue warning message
-               IF( J.EQ.1 .OR. J.EQ.4 .OR. J.EQ.5 .OR.
+C*******************Allow HFLX and ZOHT *********               IF( J.EQ.1 .OR. J.EQ.4 .OR. J.EQ.5 .OR.
+               IF( J.EQ.5 .OR.
      &                                     J.GT.9 )THEN
 C ---             HFLX, Z0HT, SAMT, DT02, DT03, US01, US02, 
 C                 and US03 are not used (see Table B-3a)

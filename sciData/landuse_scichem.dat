@@ -1,0 +1,306 @@
+!Land Use Parameters by Season (spring,summer,autumn,winter)
+!SCICHEM VERSION 3.1
+num_cat= 28
+num_sup= 5
+super_class= 1 2 2 2 2 2 2 2 2 2 3 3 3 3 3 5 2 3 4 2 3 2 4 4 1 2 2 2 
+Roughness (m)    
+1     1     1     1                  !  1=Developed
+0.03     0.15     0.15     0.02      !  2=Dry Cropland & Pasture
+0.03     0.2     0.2     0.2         !  3=Irrigated Cropland
+5.00E-02 1.00E-01 5.00E-02 1.00E-02  !  4=Missing
+0.03     0.15     0.15     0.02      !  5=Cropland/Grassland
+0.2     0.3     0.3     0.1          !  6=Cropland/Woodland
+0.05     0.1     0.1     0.01        !  7=Grassland
+0.3     0.3     0.3     0.3          !  8=Shrubland
+0.15     0.15     0.15     0.15      !  9=Shrubland/Grassland
+0.05     0.1     0.1     0.01        !  10=Savanna
+1     1.3     1.3     0.6            !  11=Deciduous Broadleaf Forest
+1     1.3     1.3     0.6            !  12=Deciduous Needleleaf Forest
+1.3     1.3     1.3     1.3          !  13=Evergreen Broadleaf Forest
+1.3     1.3     1.3     1.3          !  14=Evergreen Needleleaf Forest
+1.1     1.3     1.3     0.9          !  15=Mixed Forest
+0.001     0.001     0.001     0.001  !  16=Water
+0.2     0.2     0.2     0.2          !  17=Herbaceous Wetland
+0.5     0.5     0.5     0.4          !  18=Wooded Wetland
+0.05     0.05     0.05     0.05      !  19=Barren
+0.05     0.1     0.1     0.01        !  20=Herbaceous Tundra
+0.3     0.3     0.3     0.3          !  21=Wooded Tundra
+0.15     0.15     0.15     0.1       !  22=Mixed Tundra
+0.05     0.05     0.05     0.05      !  23=Bare Tundra
+0.002     0.002     0.002     0.002  !  24=Snow or Ice
+0.4     0.4     0.4     0.3          !  25=Partly Developed
+5.00E-02 1.00E-01 5.00E-02 1.00E-02  !  26=Not Used
+5.00E-02 1.00E-01 5.00E-02 1.00E-02  !  27=Not Used
+5.00E-02 1.00E-01 5.00E-02 1.00E-02  !  28=Unclassified
+1     1     1     1                  !  29=Urban Superclass
+5.00E-02 1.00E-01 1.00E-01 5.00E-02  !  30=Grassland Superclass
+1.1     1.3     1.3     0.9          !  31=Forest Superclass
+0.05     0.05     0.05     0.05      !  32=Desert Superclass
+0.001     0.001     0.001     0.001  !  33=Water Superclass
+Canopy Height (m)    
+10     10     10     10              !  1=Developed
+0.3     1.5     1.5     0.2          !  2=Dry Cropland & Pasture
+0.3     2     2     2                !  3=Irrigated Cropland
+0.5     1     0.5     0.1            !  4=Missing
+0.3     1.5     1.5     0.2          !  5=Cropland/Grassland
+2     3     3     1                  !  6=Cropland/Woodland
+0.5     1     1     0.1              !  7=Grassland
+3     3     3     3                  !  8=Shrubland
+1.5     1.5     1.5     1.5          !  9=Shrubland/Grassland
+0.5     1     1     0.1              !  10=Savanna
+10     13     13     6               !  11=Deciduous Broadleaf Forest
+10     13     13     6               !  12=Deciduous Needleleaf Forest
+13     13     13     13              !  13=Evergreen Broadleaf Forest
+13     13     13     13              !  14=Evergreen Needleleaf Forest
+11     13     13     9               !  15=Mixed Forest
+0     0     0     0                  !  16=Water
+2     2     2     2                  !  17=Herbaceous Wetland
+5     5     5     4                  !  18=Wooded Wetland
+0.5     0.5     0.5     0.5          !  19=Barren
+0.5     1     1     0.1              !  20=Herbaceous Tundra
+3     3     3     3                  !  21=Wooded Tundra
+1.5     1.5     1.5     1            !  22=Mixed Tundra
+0.5     0.5     0.5     0.5          !  23=Bare Tundra
+0.02     0.02     0.02     0.02      !  24=Snow or Ice
+4     4     4     3                  !  25=Partly Developed
+0.5     1     0.5     0.1            !  26=Not Used
+0.5     1     0.5     0.1            !  27=Not Used
+0.5     1     0.5     0.1            !  28=Unclassified
+10     10     10     10              !  29=Urban Superclass
+0.5     1     1     0.5              !  30=Grassland Superclass
+11     13     13     9               !  31=Forest Superclass
+0.5     0.5     0.5     0.5          !  32=Desert Superclass
+0     0     0     0                  !  33=Water Superclass
+Velocity Profile Parameter Alpha        
+   2.0e+0    2.0e+0    2.0e+0    2.0e+0   !  1=Developed 
+   3.0e+0    3.0e+0    3.0e+0    3.0e+0   !  2=Dry Cropland & Pasture
+   2.0e+0    2.0e+0    2.0e+0    0.0e+0   !  3=Irrigated Cropland 
+   2.0e+0    2.0e+0    2.0e+0    2.0e+0   !  4=Missing 
+   2.5e+0    2.5e+0    2.5e+0    2.0e+0   !  5=Cropland/Grassland 
+   1.0e+0    1.0e+0    1.0e+0    1.0e+0   !  6=Cropland/Woodland 
+   2.0e+0    2.0e+0    2.0e+0    2.0e+0   !  7=Grassland 
+   1.0e+0    1.0e+0    1.0e+0    1.0e+0   !  8=Shrubland 
+   1.5e+0    1.5e+0    1.5e+0    1.5e+0   !  9=Shrubland/Grassland
+   2.0e+0    2.0e+0    2.0e+0    2.0e+0   ! 10=Savanna 
+   2.0e+0    3.0e+0    2.0e+0    1.0e+0   ! 11=Deciduous Broadleaf Forest 
+   2.0e+0    3.0e+0    2.0e+0    1.0e+0   ! 12=Deciduous Needleleaf Forest 
+   4.0e+0    4.0e+0    4.0e+0    4.0e+0   ! 13=Evergreen Broadleaf Forest 
+   4.0e+0    4.0e+0    4.0e+0    4.0e+0   ! 14=Evergreen Needleleaf Forest 
+   3.0e+0    3.5e+0    3.0e+0    2.0e+0   ! 15=Mixed Forest 
+   0.0e+0    0.0e+0    0.0e+0    0.0e+0   ! 16=Water 
+   1.5e+0    1.5e+0    1.5e+0    1.0e+0   ! 17=Herbaceous Wetland 
+   2.0e+0    2.0e+0    2.0e+0    1.0e+0   ! 18=Wooded Wetland 
+   0.0e+0    0.0e+0    0.0e+0    0.0e+0   ! 19=Barren 
+   2.0e+0    2.0e+0    2.0e+0    0.0e+0   ! 20=Herbaceous Tundra 
+   1.0e+0    1.0e+0    1.0e+0    1.0e+0   ! 21=Wooded Tundra 
+   1.5e+0    1.5e+0    1.5e+0    1.0e+0   ! 22=Mixed Tundra 
+   0.0e+0    0.0e+0    0.0e+0    0.0e+0   ! 23=Bare Tundra 
+   0.0e+0    0.0e+0    0.0e+0    0.0e+0   ! 24=Snow or Ice 
+   1.0e+0    1.0e+0    1.0e+0    1.0e+0   ! 25=Partly Developed 
+   2.0e+0    2.0e+0    2.0e+0    2.0e+0   ! 26=Missing 
+   2.0e+0    2.0e+0    2.0e+0    2.0e+0   ! 27=Missing 
+   2.0e+0    2.0e+0    2.0e+0    2.0e+0   ! 28=Unclassified 
+   1.5e+0    1.5e+0    1.5e+0    1.5e+0   ! 1001=Urban Superclass 
+   2.0e+0    2.0e+0    2.0e+0    2.0e+0   ! 1002=Grassland Superclass
+   3.0e+0    3.5e+0    3.0e+0    2.0e+0   ! 1003=Forest Superclass  
+   0.0e+0    0.0e+0    0.0e+0    0.0e+0   ! 1004=Desert Superclass 
+   0.0e+0    0.0e+0    0.0e+0    0.0e+0   ! 1005=Water Superclass 
+Albedo        
+   1.6e-1    1.6e-1    1.6e-1    1.6e-1   !  1=Developed 
+   1.8e-1    1.8e-1    1.8e-1    1.8e-1   !  2=Dry Cropland & Pasture
+   1.8e-1    1.8e-1    1.8e-1    1.8e-1   !  3=Irrigated Cropland 
+   1.8e-1    1.8e-1    1.8e-1    1.8e-1   !  4=Missing 
+   1.8e-1    1.8e-1    1.8e-1    1.8e-1   !  5=Cropland/Grassland 
+   1.5e-1    1.5e-1    1.5e-1    1.5e-1   !  6=Cropland/Woodland 
+   1.8e-1    1.8e-1    1.8e-1    1.8e-1   !  7=Grassland 
+   1.4e-1    1.4e-1    1.4e-1    1.4e-1   !  8=Shrubland 
+   1.6e-1    1.6e-1    1.6e-1    1.6e-1   !  9=Shrubland/Grassland
+   1.8e-1    1.8e-1    1.8e-1    1.8e-1   ! 10=Savanna 
+   1.2e-1    1.2e-1    1.2e-1    1.2e-1   ! 11=Deciduous Broadleaf Forest 
+   1.2e-1    1.2e-1    1.2e-1    1.2e-1   ! 12=Deciduous Needleleaf Forest 
+   1.2e-1    1.2e-1    1.2e-1    1.2e-1   ! 13=Evergreen Broadleaf Forest 
+   1.2e-1    1.2e-1    1.2e-1    1.2e-1   ! 14=Evergreen Needleleaf Forest 
+   1.2e-1    1.2e-1    1.2e-1    1.2e-1   ! 15=Mixed Forest 
+   1.2e-1    1.2e-1    1.2e-1    2.0e-1   ! 16=Water 
+   1.2e-1    1.2e-1    1.2e-1    1.2e-1   ! 17=Herbaceous Wetland 
+   1.2e-1    1.2e-1    1.2e-1    1.2e-1   ! 18=Wooded Wetland 
+   3.0e-1    3.0e-1    3.0e-1    3.0e-1   ! 19=Barren 
+   1.8e-1    1.8e-1    1.8e-1    5.0e-1   ! 20=Herbaceous Tundra 
+   1.2e-1    1.2e-1    1.2e-1    3.0e-1   ! 21=Wooded Tundra 
+   1.5e-1    1.5e-1    1.5e-1    4.0e-1   ! 22=Mixed Tundra 
+   3.0e-1    3.0e-1    3.0e-1    5.0e-1   ! 23=Bare Tundra 
+   6.0e-1    6.0e-1    6.0e-1    6.0e-1   ! 24=Snow or Ice 
+   1.6e-1    1.6e-1    1.6e-1    1.6e-1   ! 25=Partly Developed 
+   1.8e-1    1.8e-1    1.8e-1    1.8e-1   ! 26=Not Used 
+   1.8e-1    1.8e-1    1.8e-1    1.8e-1   ! 27=Not Used 
+   1.8e-1    1.8e-1    1.8e-1    1.8e-1   ! 28=Unclassified 
+   1.6e-1    1.6e-1    1.6e-1    1.6e-1   ! 1001=Urban Superclass
+   1.8e-1    1.8e-1    1.8e-1    1.8e-1   ! 1002=Grassland Superclass
+   1.2e-1    1.2e-1    1.2e-1    1.2e-1   ! 1003=Forest Superclass  
+   3.0e-1    3.0e-1    3.0e-1    3.0e-1   ! 1004=Desert Superclass 
+   1.2e-1    1.2e-1    1.2e-1    2.0e-1   ! 1005=Water Superclass 
+Bowen Ratio - Dry        
+   2.0e+0    4.0e+0    4.0e+0    2.0e+0   !  1=Developed 
+   2.0e+0    3.0e+0    3.0e+0    3.0e+0   !  2=Dry Cropland & Pasture
+   7.0e-1    7.0e-1    7.0e-1    1.5e+0   !  3=Irrigated Cropland 
+   1.0e+0    2.0e+0    2.0e+0    2.0e+0   !  4=Missing 
+   1.0e+0    1.5e+0    2.0e+0    2.0e+0   !  5=Cropland/Grassland 
+   1.0e+0    1.0e+0    1.5e+0    2.0e+0   !  6=Cropland/Woodland 
+   1.0e+0    2.0e+0    2.0e+0    2.0e+0   !  7=Grassland 
+   1.0e+0    1.0e+0    1.5e+0    2.0e+0   !  8=Shrubland 
+   1.0e+0    1.5e+0    1.8e+0    2.0e+0   !  9=Shrubland/Grassland
+   1.0e+0    2.0e+0    2.0e+0    2.0e+0   ! 10=Savanna 
+   1.5e+0    6.0e-1    1.5e+0    2.0e+0   ! 11=Deciduous Broadleaf Forest 
+   1.5e+0    6.0e-1    1.5e+0    2.0e+0   ! 12=Deciduous Needleleaf Forest 
+   1.5e+0    6.0e-1    1.5e+0    2.0e+0   ! 13=Evergreen Broadleaf Forest 
+   1.5e+0    6.0e-1    1.5e+0    2.0e+0   ! 14=Evergreen Needleleaf Forest 
+   1.5e+0    6.0e-1    1.5e+0    2.0e+0   ! 15=Mixed Forest 
+   1.0e-1    1.0e-1    1.0e-1    1.0e-1   ! 16=Water 
+   2.0e-1    2.0e-1    2.0e-1    2.0e-1   ! 17=Herbaceous Wetland 
+   4.0e-1    4.0e-1    4.0e-1    4.0e-1   ! 18=Wooded Wetland 
+   5.0e+0    6.0e+0    1.0e+1    1.0e+1   ! 19=Barren 
+   6.0e-1    6.0e-1    6.0e-1    2.0e+0   ! 20=Herbaceous Tundra 
+   8.0e-1    8.0e-1    8.0e-1    2.0e+0   ! 21=Wooded Tundra 
+   7.0e-1    7.0e-1    7.0e-1    2.0e+0   ! 22=Mixed Tundra 
+   2.0e+0    2.0e+0    2.0e+0    2.0e+0   ! 23=Bare Tundra 
+   2.0e+0    2.0e+0    2.0e+0    2.0e+0   ! 24=Snow or Ice 
+   2.0e+0    4.0e+0    4.0e+0    2.0e+0   ! 25=Partly Developed 
+   1.0e+0    2.0e+0    2.0e+0    2.0e+0   ! 26=Not Used 
+   1.0e+0    2.0e+0    2.0e+0    2.0e+0   ! 27=Not Used
+   1.0e+0    2.0e+0    2.0e+0    2.0e+0   ! 28=Unclassified 
+   2.0e+0    4.0e+0    4.0e+0    2.0e+0   ! 1001=Urban Superclass 
+   1.0e+0    2.0e+0    2.0e+0    2.0e+0   ! 1002=Grassland Superclass
+   1.5e+0    6.0e-1    1.5e+0    2.0e+0   ! 1003=Forest Superclass  
+   5.0e+0    6.0e+0    1.0e+1    1.0e+1   ! 1004=Desert Superclass 
+   1.0e-1    1.0e-1    1.0e-1    1.0e-1   ! 1005=Water Superclass 
+Bowen Ratio - Normal        
+   1.0e+0    2.0e+0    2.0e+0    1.0e+0   !  1=Developed 
+   1.0e+0    1.5e+0    1.5e+0    1.5e+0   !  2=Dry Cropland & Pasture
+   5.0e-1    5.0e-1    5.0e-1    7.0e-1   !  3=Irrigated Cropland 
+   5.0e-1    1.0e+0    1.0e+0    1.0e+0   !  4=Missing 
+   5.0e-1    7.0e-1    1.0e+0    1.0e+0   !  5=Cropland/Grassland 
+   5.0e-1    5.0e-1    7.0e-1    1.0e+0   !  6=Cropland/Woodland 
+   5.0e-1    1.0e+0    1.0e+0    1.0e+0   !  7=Grassland 
+   5.0e-1    5.0e-1    7.0e-1    1.0e+0   !  8=Shrubland 
+   5.0e-1    7.0e-1    9.0e-1    1.0e+0   !  9=Shrubland/Grassland
+   5.0e-1    1.0e+0    1.0e+0    1.0e+0   ! 10=Savanna 
+   8.0e-1    3.0e-1    8.0e-1    1.0e+0   ! 11=Deciduous Broadleaf Forest 
+   8.0e-1    3.0e-1    8.0e-1    1.0e+0   ! 12=Deciduous Needleleaf Forest 
+   8.0e-1    3.0e-1    8.0e-1    1.0e+0   ! 13=Evergreen Broadleaf Forest 
+   8.0e-1    3.0e-1    8.0e-1    1.0e+0   ! 14=Evergreen Needleleaf Forest 
+   8.0e-1    3.0e-1    8.0e-1    1.0e+0   ! 15=Mixed Forest 
+   1.0e-1    1.0e-1    1.0e-1    1.0e-1   ! 16=Water 
+   1.0e-1    1.0e-1    1.0e-1    1.0e-1   ! 17=Herbaceous Wetland 
+   2.0e-1    2.0e-1    2.0e-1    2.0e-1   ! 18=Wooded Wetland 
+   3.0e+0    4.0e+0    6.0e+0    6.0e+0   ! 19=Barren 
+   3.0e-1    3.0e-1    3.0e-1    1.0e+0   ! 20=Herbaceous Tundra 
+   4.0e-1    4.0e-1    4.0e-1    1.0e+0   ! 21=Wooded Tundra 
+   4.0e-1    4.0e-1    4.0e-1    1.0e+0   ! 22=Mixed Tundra 
+   3.0e+0    3.0e+0    3.0e+0    1.0e+0   ! 23=Bare Tundra 
+   1.0e+0    1.0e+0    1.0e+0    1.0e+0   ! 24=Snow or Ice 
+   1.0e+0    2.0e+0    2.0e+0    1.0e+0   ! 25=Partly Developed 
+   5.0e-1    1.0e+0    1.0e+0    1.0e+0   ! 26=Not Used 
+   5.0e-1    1.0e+0    1.0e+0    1.0e+0   ! 27=Not Used 
+   5.0e-1    1.0e+0    1.0e+0    1.0e+0   ! 28=Unclassified 
+   1.0e+0    2.0e+0    2.0e+0    1.0e+0   ! 1001=Urban Superclass 
+   5.0e-1    1.0e+0    1.0e+0    1.0e+0   ! 1002=Grassland Superclass
+   8.0e-1    3.0e-1    8.0e-1    1.0e+0   ! 1003=Forest Superclass  
+   3.0e+0    4.0e+0    6.0e+1    6.0e+1   ! 1004=Desert Superclass 
+   1.0e-1    1.0e-1    1.0e-1    1.0e-1   ! 1005=Water Superclass 
+Bowen Ratio - Wet        
+   5.0e-1    1.0e+0    1.0e+0    5.0e-1   !  1=Developed 
+   5.0e-1    7.0e-1    7.0e-1    7.0e-1   !  2=Dry Cropland & Pasture
+   5.0e-1    5.0e-1    5.0e-1    7.0e-1   !  3=Irrigated Cropland 
+   3.0e-1    4.0e-1    5.0e-1    5.0e-1   !  4=Missing 
+   2.0e-1    3.0e-1    4.0e-1    5.0e-1   !  5=Cropland/Grassland 
+   2.0e-1    3.0e-1    4.0e-1    5.0e-1   !  6=Cropland/Woodland 
+   3.0e-1    4.0e-1    5.0e-1    5.0e-1   !  7=Grassland 
+   3.0e-1    3.0e-1    4.0e-1    5.0e-1   !  8=Shrubland 
+   3.0e-1    4.0e-1    5.0e-1    5.0e-1   !  9=Shrubland/Grassland
+   3.0e-1    4.0e-1    5.0e-1    5.0e-1   ! 10=Savanna 
+   3.0e-1    2.0e-1    4.0e-1    5.0e-1   ! 11=Deciduous Broadleaf Forest 
+   3.0e-1    2.0e-1    4.0e-1    5.0e-1   ! 12=Deciduous Needleleaf Forest 
+   3.0e-1    2.0e-1    3.0e-1    3.0e-1   ! 13=Evergreen Broadleaf Forest 
+   3.0e-1    2.0e-1    3.0e-1    3.0e-1   ! 14=Evergreen Needleleaf Forest 
+   3.0e-1    2.0e-1    3.0e-1    4.0e-1   ! 15=Mixed Forest 
+   1.0e-1    1.0e-1    1.0e-1    1.0e-1   ! 16=Water 
+   1.0e-1    1.0e-1    1.0e-1    1.0e-1   ! 17=Herbaceous Wetland 
+   2.0e-1    2.0e-1    2.0e-1    2.0e-1   ! 18=Wooded Wetland 
+   1.0e+0    1.5e+0    2.0e+0    2.0e+0   ! 19=Barren 
+   2.0e-1    2.0e-1    2.0e-1    5.0e-1   ! 20=Herbaceous Tundra 
+   3.0e-1    3.0e-1    3.0e-1    5.0e-1   ! 21=Wooded Tundra 
+   3.0e-1    3.0e-1    3.0e-1    5.0e-1   ! 22=Mixed Tundra 
+   1.0e+0    1.0e+0    1.0e+0    5.0e-1   ! 23=Bare Tundra 
+   5.0e-1    5.0e-1    5.0e-1    5.0e-1   ! 24=Snow or Ice 
+   5.0e-1    1.0e+0    1.0e+0    5.0e-1   ! 25=Partly Developed 
+   3.0e-1    4.0e-1    5.0e-1    5.0e-1   ! 26=Not Used 
+   3.0e-1    4.0e-1    5.0e-1    5.0e-1   ! 27=Not Used 
+   3.0e-1    4.0e-1    5.0e-1    5.0e-1   ! 28=Unclassified 
+   5.0e-1    1.0e+0    1.0e+0    5.0e-1   ! 1001=Urban Superclass 
+   3.0e-1    4.0e-1    5.0e-1    5.0e-1   ! 1002=Grassland Superclass
+   3.0e-1    2.0e-1    3.0e-1    4.0e-1   ! 1003=Forest Superclass  
+   1.0e+0    1.5e+0    2.0e+0    2.0e+0   ! 1004=Desert Superclass 
+   1.0e-1    1.0e-1    1.0e-1    1.0e-1   ! 1005=Water Superclass 
+
+Substrate categories  8
+Name       Porosity    Tortuosity    Grain size
+Concrete   0.20         2.5            1.e-4
+Sand       0.35         2.0            1.e-3
+Aluminum   0.010        6.0            1.e-6
+Artgrass   0.20         4.0            1.e-1
+Asphalt    0.20         6.0            1.e-4
+Glass      0.010        6.0            1.e-6
+Soil       0.35         2.0            1.e-2
+Water      0.35         2.0            1.e-2       0.6    1.43E-7
+
+!ENSCO Dry Deposition Data
+NUM_DEP_TYPE = 8
+DEP_TYPE = 1 2 2 0 2 3 4 4 4 4 5 6 7 6 3 0 8 8 0 0 0 0 0 0 1 0 0 0 1 4 3 0 0
+  TYPE = 1             !Urban and built up
+  Spring    = 1000, 1000, 1000, 1000, 1000
+  Summer    = 1000, 1000, 1000, 1000,    0
+  EarlyFall = 1000, 1000, 1000, 1000, 1000
+  Winter    =  200,  200,  200,  200,  200
+
+  TYPE = 2             !Cropland
+  Spring    =   75,  100,  150,  250,    0
+  Summer    =  100,  140,  200,  500,    0
+  EarlyFall =  500,  500,  500,  500,  100
+  Winter    =  100,  100,  100,  100,  100
+
+  TYPE = 3             !Mixed cover
+  Spring    =  125,  200,  400, 1000,    0
+  Summer    =  105,  185,  350, 1000,    0
+  EarlyFall =  900,  900,  900,  900,  300
+  Winter    =  750,  750,  750,  750,  750
+
+  TYPE = 4             !Closed shrubland
+  Spring    =  100,  140,  200,  400,    0
+  Summer    =  100,  140,  200,  500,    0
+  EarlyFall =  500,  500,  500,  500,  100
+  Winter    =  100,  100,  100,  100,  100
+
+  TYPE = 5            !Deciduous broadleaf tree
+  Spring    =  100,  200,  400, 1000,    0
+  Summer    =   60,  130,  300, 1000,    0
+  EarlyFall = 1000, 1000, 1000, 1000,  500
+  Winter    = 1000, 1000, 1000, 1000, 1000
+
+  TYPE = 6            !Deciduous needleleaf tree
+  Spring    =  150,  240,  400, 1000,    0
+  Summer    =  150,  240,  400, 1000,    0
+  EarlyFall =  800,  800,  800,  800,  100
+  Winter    =  500,  500,  500,  500,  500
+
+  TYPE = 7            !Evergreen broadleaf tree
+  Spring    =  100,  200,  400, 1000,    0
+  Summer    =   60,  130,  300, 1000,    0
+  EarlyFall =  100,  200,  400, 1000,    0
+  Winter    =  100,  200,  400, 1000,    0
+
+  TYPE = 8            !Bog or marsh
+  Spring    =   50,   60,   75,  100,    0
+  Summer    =   50,   60,   75,  100,    0
+  EarlyFall =  100,  100,  100,  100,   75
+  Winter    =  100,  100,  100,  100,  100
+

@@ -25,7 +25,7 @@ REAL, EXTERNAL :: ScaleReal
 !==== Steps
 
 delt    = end%step%max
-dt_save = ScaleReal(end%step%output,HCF_HOUR2SEC)
+dt_save = ScaleReal( end%step%output,HCF_HOUR2SEC )
 
 !==== End time
 
@@ -61,7 +61,7 @@ REAL, EXTERNAL :: ScaleReal
 !==== Steps
 
 end%step%max    = delt
-end%step%output = ScaleReal(dt_save,HCF_SEC2HOUR)
+end%step%output = ScaleReal( dt_save,HCF_SEC2HOUR )
 
 !==== End time
 

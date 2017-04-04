@@ -238,9 +238,9 @@ IMPLICIT NONE
 !DEC$ ATTRIBUTES DLLEXPORT :: SCIPCheckInpF
 !DEC$ ENDIF
 
-INTEGER,                         INTENT( IN ) :: UserID
-TYPE( inputT ),                  INTENT( IN ) :: inputIO
-TYPE( materialT ), DIMENSION(*), INTENT( IN ) :: mtlListIO
+INTEGER,                         INTENT( IN    ) :: UserID
+TYPE( inputT ),                  INTENT( INOUT ) :: inputIO
+TYPE( materialT ), DIMENSION(*), INTENT( INOUT ) :: mtlListIO
 
 INTEGER, EXTERNAL :: CheckInpF
 

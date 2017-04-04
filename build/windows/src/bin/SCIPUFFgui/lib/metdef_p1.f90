@@ -4,7 +4,7 @@
 SUBROUTINE init_dialog_metdef( iwnd_db,id_level )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE units_fd
 USE pcscipuf_fi
@@ -202,7 +202,7 @@ END
 SUBROUTINE init_dialog_meteorology( iwnd_db,id_level )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE dialog_fi
@@ -666,7 +666,7 @@ END
 SUBROUTINE clear_met_edit( iwnd_db,ilev )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE create_fi
@@ -821,7 +821,7 @@ END
 SUBROUTINE load_met_edit( iwnd_db,id_level )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE dialog_fi
@@ -921,7 +921,7 @@ END
 SUBROUTINE update_met_edit( iwnd_db,ilev,iflag )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE dialog_fi
@@ -1122,7 +1122,7 @@ END
 SUBROUTINE show_met_basic( iwnd_db,ilev )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE pcscipuf_fi
 USE create_fi
 USE met_flags_fd
@@ -1163,7 +1163,7 @@ END
 SUBROUTINE show_met_srf( iwnd_db,iopt )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE create_fi
 USE met_flags_fd
 
@@ -1211,7 +1211,7 @@ END
 SUBROUTINE show_ens_inp( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE create_fi
 USE met_flags_fd
 
@@ -1255,7 +1255,7 @@ END
 SUBROUTINE show_ens_MOD( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE create_fi
 USE met_flags_fd
 
@@ -1299,7 +1299,7 @@ END
 SUBROUTINE hide_ens( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE create_fi
 USE met_flags_fd
 
@@ -1343,7 +1343,7 @@ END
 SUBROUTINE show_ens_obs( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE create_fi
 USE met_flags_fd
 
@@ -1387,7 +1387,7 @@ END
 SUBROUTINE show_BL_calc( iwnd_db,iflag,jflag )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE create_fi
 USE met_flags_fd
 
@@ -1528,7 +1528,7 @@ END
 SUBROUTINE hide_BL( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE create_fi
 USE met_flags_fd
 
@@ -1608,7 +1608,7 @@ END
 SUBROUTINE show_terrain( iwnd_db,edit,lAvailT,lAvailL,lUseT,lUseL )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE pcscipuf_fi
 USE create_fi
 
@@ -1683,7 +1683,7 @@ END
 SUBROUTINE hide_terrain(iwnd_db)
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE create_fi
@@ -1740,7 +1740,7 @@ END
 SUBROUTINE show_metsave( iwnd_db,id_level,enable )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 
@@ -1779,7 +1779,7 @@ END
 SUBROUTINE hide_metsave( iwnd_db,id_level )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 
@@ -1817,7 +1817,7 @@ END
 SUBROUTINE show_BL_obs( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE create_fi
@@ -1899,7 +1899,7 @@ END
 SUBROUTINE show_BL_std( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE create_fi
@@ -1981,7 +1981,7 @@ END
 SUBROUTINE show_BL_pro( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE create_fi
@@ -2063,7 +2063,7 @@ END
 SUBROUTINE show_gridded( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE create_fi
@@ -2096,7 +2096,7 @@ END
 SUBROUTINE hide_gridded( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE create_fi
@@ -2129,7 +2129,7 @@ END
 SUBROUTINE show_assim( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE create_fi
@@ -2162,7 +2162,7 @@ END
 SUBROUTINE hide_assim( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE create_fi
@@ -2195,7 +2195,7 @@ END
 SUBROUTINE show_time( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE create_fi
@@ -2228,7 +2228,7 @@ END
 SUBROUTINE show_tbin( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE create_fi
@@ -2260,7 +2260,7 @@ END
 SUBROUTINE hide_tbin( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE create_fi
@@ -2292,7 +2292,7 @@ END
 SUBROUTINE hide_time( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE pcscipuf_fi
 USE create_fi
@@ -2325,7 +2325,7 @@ END
 SUBROUTINE show_profile( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE create_fi
 USE met_flags_fd
@@ -2359,7 +2359,7 @@ END
 SUBROUTINE hide_profile( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE create_fi
 USE met_flags_fd
@@ -2393,7 +2393,7 @@ END
 SUBROUTINE show_surface( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE create_fi
 USE met_flags_fd
@@ -2427,7 +2427,7 @@ END
 SUBROUTINE hide_surface( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE create_fi
 USE met_flags_fd
@@ -2461,7 +2461,7 @@ END
 SUBROUTINE show_fixwnds( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE create_fi
 USE met_flags_fd
@@ -2499,7 +2499,7 @@ END
 SUBROUTINE hide_fixwnds( iwnd_db )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE create_fi
 USE met_flags_fd
@@ -2537,7 +2537,7 @@ END
 SUBROUTINE meteorology_button( iwnd_db,id_dialog,id_button,id_level )
 
 USE resource_fd
-USE winAPI_fd
+USE myWinAPI_fd
 USE mettype_fd
 USE tooluser_fd
 USE pcscipuf_fi

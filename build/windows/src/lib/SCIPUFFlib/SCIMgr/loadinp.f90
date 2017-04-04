@@ -41,7 +41,6 @@ TYPE( materialT  ), DIMENSION(:), ALLOCATABLE :: mtlListIO
 TYPE( releaseT   ), DIMENSION(:), ALLOCATABLE :: relListIO
 INTEGER,            DIMENSION(:), ALLOCATABLE :: statListIO
 
-INTEGER, EXTERNAL :: Load_Status
 INTEGER, EXTERNAL :: Load_Time
 INTEGER, EXTERNAL :: Load_Run
 INTEGER, EXTERNAL :: Load_Inp
@@ -221,34 +220,6 @@ SELECT CASE( iInput )
     ReturnValue = Load_Weather( weatherIO )
 
     tInput0(1:n) = TRANSFER(weatherIO,tInput0(1:n))
-
-  CASE( SCIP_STATUS )
-
-    n = SIZE_pstatusT / SIZE_I
-    statusIO = TRANSFER(tInput0(1:n),statusIO)
-
-    m = statusIO%statHead%max
-    ALLOCATE( statListIO(m),STAT=alloc_stat )
-    IF( alloc_stat /= 0 )THEN
-      ReturnValue = SCIPfailure
-      nError      = UK_ERROR
-      eRoutine    = 'LoadInput'
-      eMessage    = 'Error allocating status list array'
-      GOTO 9999
-    END IF
-
-    DO i = 1,m
-      statListIO(i) = tInput1(i)
-    END DO
-
-    ReturnValue = Load_Status( statusIO,statListIO )
-
-    tInput0(1:n) = TRANSFER(statusIO,tInput0(1:n))
-    DO i = 1,m
-      tInput1(i) = statListIO(i)
-    END DO
-
-    DEALLOCATE( statListIO,STAT=alloc_stat )
 
   CASE( SCIP_RUN )
 
@@ -734,6 +705,53 @@ CALL reset_messaging()
 RETURN
 END
 !*******************************************************************************
+!            Load Project Release
+!*******************************************************************************
+INTEGER FUNCTION LoadReleaseMCF( UserID,releaseIO,relListIO,relMCListIO )
+
+USE SCIMgr_fd
+USE error_fi
+USE SCIMgrState
+
+IMPLICIT NONE
+
+INTEGER,                         INTENT( IN    ) :: UserID
+TYPE( preleaseT ),               INTENT( INOUT ) :: releaseIO
+TYPE( releaseT  ), DIMENSION(*), INTENT( INOUT ) :: relListIO
+TYPE( releaseMCT), DIMENSION(*), INTENT( INOUT ) :: relMCListIO
+
+INTEGER irv, currentState
+
+INTEGER, EXTERNAL :: Load_ReleaseMC
+
+!==== Initialize
+
+LoadReleaseMCF = SCIPfailure
+
+IF( SCIMgrCheckState( HS_IDLEBUSY ) )THEN !Not available during callbacks
+  currentState = SCIMgrSetState( HS_BUSY )
+ELSE
+  CALL SCIMgrSetBusyMsg()
+  RETURN
+END IF
+
+CALL set_messaging( userID )
+
+!==== Initialize error
+
+CALL ModuleInitError()
+
+!==== Call Load routine
+
+LoadReleaseMCF = Load_ReleaseMC( releaseIO,relListIO,relMCListIO )
+
+irv = SCIMgrSetState( currentState )
+
+CALL reset_messaging()
+
+RETURN
+END
+!*******************************************************************************
 !            Load Project Weather
 !*******************************************************************************
 INTEGER FUNCTION LoadWeatherF( UserID,weatherIO )
@@ -771,53 +789,6 @@ CALL ModuleInitError()
 !==== Call Load routine
 
 LoadWeatherF = Load_Weather( weatherIO )
-
-irv = SCIMgrSetState( currentState )
-
-CALL reset_messaging()
-
-RETURN
-END
-!*******************************************************************************
-!            Load Project Status
-!*******************************************************************************
-INTEGER FUNCTION LoadStatusF( UserID,statusIO,statListIO )
-
-USE SCIMgr_fd
-USE error_fi
-USE statstruct_fd
-USE SCIMgrState
-
-IMPLICIT NONE
-
-INTEGER,               INTENT( IN    ) :: UserID
-TYPE( pstatusT ),      INTENT( INOUT ) :: statusIO
-INTEGER, DIMENSION(*), INTENT( INOUT ) :: statListIO
-
-INTEGER irv, currentState
-
-INTEGER, EXTERNAL :: Load_Status
-
-!==== Initialize
-
-LoadStatusF = SCIPfailure
-
-IF( SCIMgrCheckState( HS_IDLEBUSY ) )THEN !Not available during callbacks
-  currentState = SCIMgrSetState( HS_BUSY )
-ELSE
-  CALL SCIMgrSetBusyMsg()
-  RETURN
-END IF
-
-CALL set_messaging( userID )
-
-!==== Initialize error
-
-CALL ModuleInitError()
-
-!==== Call Load routine
-
-LoadStatusF = Load_Status( statusIO,statListIO )
 
 irv = SCIMgrSetState( currentState )
 

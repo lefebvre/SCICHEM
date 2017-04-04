@@ -216,7 +216,7 @@ program smp2postfile
 !
   smp_version = 0.0
   if (line(3:10) == "Version:") read(line(11:),*) smp_version
-  if (smp_version < 0.3) then
+  if (smp_version == 0.1) then
 
      read(smp_file, 99999, iostat=ierr) line ! 2nd line
      if (ierr /= 0) goto 95
@@ -368,25 +368,16 @@ program smp2postfile
 !
 !---- Finally, read the "real" header, which is not commented with "#", looks
 !     something like this for a single-component file:
-!              T        C001        V001        T001        C002        V002
+!              T        C001        V001        C002        V002
 !     where the concentrations we want are C001, C002, etc.
 !
 !     And something like this for a multi-component file:
-!              T        C001        V001        T001    C001_001    C002_001
+!              T        C001        V001    C001_001    C002_001
 !     where the concentrations we want are C001_001, C002_001, etc.  That is,
 !     skip C001 for multi-component runs.
 !
         read(smp_file, 99999, iostat=ierr) line ! header line
         if (ierr /= 0) goto 95
-!
-!     Sometimes, the T001 is missing. Detect that and deal with it.
-!
-        call get_word( line, " ", 4, word)
-        if (word == "T001") then
-           num_skip = 1 ! skip Txxx
-        else
-           num_skip = 0 ! no Txxx to skip
-        end if
 !
 !---- Here's where to add blocks for future versions of the header format
 !
@@ -459,9 +450,9 @@ program smp2postfile
               ext = postfilename(j:len_trim(postfilename))
            end if
            open(postfile(i), file=postfilename(1:j-1) // "_" // &
-                trim(smp_species(i)) // trim(ext), status='unknown', err=92)
+                trim(usr_species(i)) // trim(ext), status='unknown', err=92)
            if (verbose) write(*,*) "Creating ",postfilename(1:j-1) &
-                // "_" // trim(smp_species(i)) // trim(ext)
+                // "_" // trim(usr_species(i)) // trim(ext)
         else ! if there's only one output file, use the given filename verbatim
            open(postfile(i), file=postfilename, status='unknown',err=92)
            if (verbose) write(*,*) "Creating ",trim(postfilename)
@@ -508,9 +499,9 @@ program smp2postfile
 ! Allocation size is 1 (Time) plus [C + V + T + number of species] for each rec
 !
   if (smp_filetype == "single") then ! which means num_smp_species = 1
-     num_skip = num_skip + 1 ! use Cxxx, skip Vxxx (and maybe Txxx)
+     num_skip = 2 ! use Cxxx, skip Vxxx and Txxx
   else if (smp_filetype == "multi") then
-     num_skip = num_skip + 2 ! skip the Cxxx, Vxxx, (and Txxx?) use Cnnn_xxx 
+     num_skip = 3 ! skip the Cxxx, Vxxx, and Txxx, use Cnnn_xxx 
   else
      write(*,*) "Error: smp_filetype not as expected."
      stop

@@ -436,7 +436,7 @@ SUBROUTINE SaveFileDlg( ccust,cbuff,name,path, &
 
 USE resource_fd
 USE files_fi
-USE winAPI
+USE myWinAPI
 USE guiAPI
 USE pcscipuf_fi
 

@@ -102,6 +102,8 @@ SELECT CASE( iMessage )
     sppCallback = SCIPfailure
   CASE( HM_UPDATEREL )
     sppCallback = SCIPfailure
+  CASE( HM_UPDATERELMC )
+    sppCallback = SCIPfailure
   CASE( HM_COMPUTEEFF,HM_INITEFF,HM_EXITEFF,HM_HASEFF )
     WRITE(6,*)'NWPN Effect callback encountered'
     WRITE(6,*)'NWPN effects require use of NWPN source model'

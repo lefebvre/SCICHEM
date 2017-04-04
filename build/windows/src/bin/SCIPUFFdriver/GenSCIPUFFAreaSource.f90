@@ -23,6 +23,7 @@ REAL, DIMENSION(:),   ALLOCATABLE :: x, y
 REAL, DIMENSION(:,:), ALLOCATABLE :: xs, ys, xr, yr
 
 INTEGER,       EXTERNAL :: SetMCrelease
+INTEGER,       EXTERNAL :: ReallocMCRelList
 INTEGER,       EXTERNAL :: ReallocRelList
 REAL,          EXTERNAL :: GetMatlDensity
 REAL,          EXTERNAL :: sind, cosd
@@ -86,7 +87,8 @@ DO irel = 1,nrel0
 
       IF( nMC > 0 )THEN
         DO i = 1,nMC
-          relList(irel)%MCmass(i) = relList(irel)%MCmass(i) * area
+          j = (irel-1)*nMC + i
+          relMCList(j)%MCmass = relMCList(j)%MCmass * area
         END DO
       END IF
 
@@ -106,6 +108,20 @@ DO irel = 1,nrel0
           relList(jrel) = relList(irel)
           relList(jrel)%relName = TRIM(relList(jrel)%relName)//':'//TRIM(int2str(i+1))
         END DO
+        IF( nMC > 0 )THEN
+          i = ReallocMCRelList( ns-1 )  !Increment MC rel list as needed
+          IF( i /= SUCCESS )GOTO 9999
+          is = (irel-1)*nMC
+          DO i = 1,ns-1
+            jrel = iAreaSrc(irel,2) + i
+            DO j = 1,nMC
+              nMCrel = nMCrel + 1
+              relMCList(nMCrel)%relID = jrel
+              relMCList(nMCrel)%MCname = relMCList(is+j)%MCname
+              relMCList(nMCrel)%MCmass = relMCList(is+j)%MCmass
+            END DO
+          END DO
+        END IF
       END IF
 
 !------ Set source locations
@@ -151,12 +167,12 @@ DO irel = 1,nrel0
 
       IF( new%input%domain%domain%coord == I_LATLON )THEN
 
-        xmap = SPHFACR/cosd(relList(irel)%yRel)
+        xmap = SPHFACR/cosd(SNGL(relList(irel)%yRel))
         ymap = SPHFACR
 
       ELSE
 
-        xmap = xfac; ymap = xfac
+        xmap = xfac*1.E-3; ymap = xmap  !Cartesian or UTM always kilometers
 
       END IF
 
@@ -276,24 +292,95 @@ INTEGER FUNCTION SetMCrelease()
 
 USE SCIPUFFdriver_fi
 
-INTEGER i, j
+IMPLICIT NONE
+
+INTEGER alloc_stat, i, j, k
+
+TYPE( MCrelData ), POINTER :: MCrel
 
 SetMCrelease = FAILURE
 
-IF( nMC > MAX_MCR )THEN
-  WRITE(*,*) 'Too many multicomponent species: ',nMC
-  WRITE(*,*) 'Maximum: ',MAX_MCR
+nMCrel = nMC * new%scnHead%number
+
+IF( nMCrel > 0 )THEN
+
+  ALLOCATE( relMCList(nMCrel),STAT=alloc_stat )
+  IF( alloc_stat /= 0 )THEN
+    WRITE(*,*) 'Error allocating multicomponent list array'
+    WRITE(*,*) 'No. of releases: ',new%scnHead%number
+    GOTO 9999
+  END IF
+
+  k = 0
+  DO i = 1,new%scnHead%number
+    DO j = 1,nMC
+      k = k + 1
+      relMCList(k)%relID = i
+      relMCList(k)%MCname = TRIM(MCname(j))
+      relMCList(k)%MCmass = MCrate(j,i)
+    END DO
+  END DO
+
 END IF
 
-DO i = 1,new%scnHead%number
-  relList(i)%nMC = nMC
-  DO j = 1,nMC
-    relList(i)%MCname(j) = TRIM(MCname(j))
-    relList(i)%MCmass(j) = MCrate(j,i)
-  END DO
+SetMCrelease = SUCCESS
+
+9999 CONTINUE
+
+RETURN
+END
+
+!==============================================================================
+
+INTEGER FUNCTION ReallocMCRelList( inc )
+
+USE SCIPUFFdriver_fi
+
+IMPLICIT NONE
+
+INTEGER, INTENT( IN ) :: inc  !Number of new releases
+
+INTEGER alloc_stat, i
+
+TYPE( releaseMCT ), DIMENSION(:), ALLOCATABLE :: tmpList
+
+ReallocMCRelList = FAILURE
+
+!------ Allocate temporary list
+
+ALLOCATE( tmpList(nMCrel),STAT=alloc_stat )
+IF( alloc_stat /= 0 )THEN
+  WRITE(*,'(A)') 'Error allocating temporary MC release array'
+  GOTO 9999
+END IF
+
+!------ Fill it with current releases
+
+DO i = 1,nMCrel
+  tmpList(i) = relMCList(i)
 END DO
 
-SetMCrelease = SUCCESS
+!------ Deallocate old list; reallocate with larger size
+
+DEALLOCATE( relMCList,STAT=alloc_stat )
+
+ALLOCATE( relMCList(nMCrel+inc*nMC),STAT=alloc_stat )
+IF( alloc_stat /= 0 )THEN
+  WRITE(*,'(A)') 'Error re-allocating new MC release array'
+  GOTO 9999
+END IF
+
+!------ Copy current releases back; increment new%scnHead%max
+
+DO i = 1,nMCrel
+  relMCList(i)   = tmpList(i)
+END DO
+
+!------ Deallocate temporary list
+
+DEALLOCATE( tmpList,STAT=alloc_stat )
+
+ReallocMCRelList = SUCCESS
 
 9999 CONTINUE
 

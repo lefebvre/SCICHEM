@@ -9,7 +9,7 @@ USE pcscipuf_fi
 USE script_fi
 USE mouse_fi
 USE GUItool_fi
-USE winAPI
+USE myWinAPI
 USE cscrollbar
 
 !     This is the message handler for the dialog boxes.
@@ -270,7 +270,7 @@ USE files_fi
 USE pcscipuf_fi
 USE script_fi
 USE pltchoice_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -342,7 +342,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE create_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine positions the dialog box
 
@@ -519,7 +519,7 @@ USE reldef_fd
 USE tooluser_fd
 USE pcscipuf_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine repositions the DIALOG Box - Called when ever the
 !     MAIN window moves

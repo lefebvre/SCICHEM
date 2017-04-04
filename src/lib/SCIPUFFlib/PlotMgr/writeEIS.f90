@@ -58,6 +58,8 @@ REAL    plotTime
 CHARACTER(80)  tmpstring
 CHARACTER(PATH_MAXLENGTH) filestr
 
+TYPE( releaseSpecT ) relSpec
+
 !==============================================================================
 ! Finction calls
 !==============================================================================
@@ -99,10 +101,11 @@ IF( LEN_TRIM(Field%project) > 0 )THEN
     plotTime = MOD( tstart + Field%userTime, 24.0 )
     OPEN( UNIT=lun_scn,FILE=file_scn,STATUS='OLD',ACTION="READ",IOSTAT=ios )
     IF( ios == 0 )THEN
-      CALL ReadNamelistScn( lun_scn )
+      CALL InitReleaseSpec( relSpec )
+      CALL ReadNamelistScn( lun_scn,relSpec )
       IF( nError == NO_ERROR )THEN
-        EIS_origin(1) = SNGL(xrel)
-        EIS_origin(2) = SNGL(yrel)
+        EIS_origin(1) = SNGL(relSpec%release%xrel)
+        EIS_origin(2) = SNGL(relSpec%release%yrel)
       END IF
       CLOSE(UNIT=lun_scn,IOSTAT=ios)
     END IF

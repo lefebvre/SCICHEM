@@ -789,3 +789,176 @@ SWIMgetRefLoc = SWIMresult
 RETURN
 END
 
+!==============================================================================
+
+INTEGER FUNCTION SWIMgetSpcDepMet( x,y,dxx,z,jday,SunZen,lat,lon,tsrf,ustr,ml,lucat )
+
+!DEC# ATTRIBUTES DLLEXPORT :: SWIMgetSpcDepMet
+
+USE SWIM_fi
+USE SWIMparam_fd
+USE SWIMpuff_fd
+USE SWIMcurrentMet_fi
+USE SWIMinterpPointer
+USE constants_fd
+
+IMPLICIT NONE
+
+REAL,               INTENT( IN  ) :: x, y     !Location (project coord)
+REAL,               INTENT( IN  ) :: dxx      !Grid box size (m^2)
+REAL,               INTENT( IN  ) :: z        !Height (agl) (m)
+
+INTEGER,            INTENT( OUT ) :: jday     !Julian Day
+REAL,               INTENT( OUT ) :: SunZen   !Solar zenith (0=overhead)
+REAL,               INTENT( OUT ) :: lat      !Puff Latitude
+REAL,               INTENT( OUT ) :: lon      !Puff Longitude
+REAL,               INTENT( OUT ) :: tsrf     !Temperature (K)
+REAL,               INTENT( OUT ) :: ustr     !ustar
+REAL,               INTENT( OUT ) :: ml       !ML
+INTEGER,            INTENT( OUT ) :: lucat    !Landuse category
+
+INTEGER irv, ifld
+REAL    t, tUTC, tsr, tss, t_sun, elv
+
+TYPE( PuffMetRequest ) :: Request
+TYPE( PuffMet        ) :: Met
+TYPE( MapCoord       ) :: coord
+
+INTEGER, EXTERNAL :: SWIMcurrentMet, SWIMcnvCoord, SWIMcurrentSrfMet
+INTEGER, EXTERNAL :: JulianPrj
+REAL,    EXTERNAL :: fun_rhoa, UTCtime, SolarTime, LocalTime
+
+SWIMgetSpcDepMet = SWIMfailure
+
+!------ Setup request
+
+Request%Zcap   = 0.
+Request%SigZ   = 0.
+Request%Shh    = dxx
+Request%type   = 0
+Request%iField = 0
+
+Request%X = x; Request%Y = y
+Request%z = z; Request%type = IBSET(Request%type,RTB_AGL)
+
+irv = SWIMcurrentSrfMet( x,y,Met )
+
+tsrf = Met%Mean%T
+
+!------ Get basic parameters
+
+irv = SWIMcurrentMet( Request,Met )
+IF( irv /= SWIMsuccess )GOTO 9999
+
+ustr = Met%BL%ustardep
+ml   = Met%BL%L
+
+!------ Get lat/lon and zenith angle
+
+ifld = Met%iField    !Use field just returned
+
+IF( PrjCoord%type /= field(ifld)%grid%coord%type )THEN
+  irv = SWIMcnvCoord( x,y,PrjCoord,Request%X,Request%Y,field(ifld)%grid%coord )
+  IF( irv /= SWIMsuccess )GOTO 9999
+ELSE
+  Request%X = x; Request%Y = y
+END IF
+
+!------ Get surface parameters for project landuse category; set those not set
+
+CALL SetXYfac( Request,field(ifld)%grid,mx,my,mxu,myv )
+CALL SetMXY( mx,my,mxy,field(ifld)%grid%nX,field(ifld)%grid%nXY,.FALSE. )
+
+IF( BTEST( field(ifld)%grid%type,GTB_LANDUSE) )THEN
+  luCat = field(ifld)%grid%landcover%LandUse(mxy%ij)
+ELSE
+  luCat = Prj%BL%i_cat
+END IF
+
+CALL IntXY( mxy,field(ifld)%grid%sunrise,tsr )
+CALL IntXY( mxy,field(ifld)%grid%sunset,tss )
+
+!------ Get solar angle and azimuth for specific lat/lon
+
+t    = field(ifld)%t
+jday = JulianPrj( t )
+tUTC = UTCTime( t )
+
+IF( PrjCoord%type == I_LATLON )THEN
+  lat = y; lon = x
+ELSE IF( field(ifld)%grid%coord%type == I_LATLON )THEN
+  lat = Request%Y; lon = Request%X
+ELSE
+  CALL SWIMinitCoord( coord )
+  coord%type = I_LATLON
+  irv = SWIMcnvCoord( x,y,PrjCoord,lon,lat,coord )
+END IF
+
+IF( tUTC == NOT_SET_R )THEN
+  t_sun = LocalTime( t )
+ELSE
+  t_sun = SolarTime( tUTC,lon )
+END IF
+
+CALL sun( lat,jday,t_sun,elv )
+
+SunZen = 90. - elv
+
+SWIMgetSpcDepMet = SWIMresult
+
+9999 CONTINUE
+
+RETURN
+END
+
+!==============================================================================
+
+SUBROUTINE SWIMgetSolarFlux( ifld,t,x,y,Qs )
+
+!DEC# ATTRIBUTES DLLEXPORT :: SWIMgetSolarFlux
+
+USE SWIM_fi
+USE SWIMparam_fd
+USE SWIMpuff_fd
+USE SWIMcurrentMet_fi
+USE SWIMinterpPointer
+
+IMPLICIT NONE
+
+INTEGER, INTENT( IN  ) :: ifld
+REAL,    INTENT( IN  ) :: t, x, y  !Project time and location
+REAL,    INTENT( OUT ) :: Qs
+
+INTEGER jday, irv
+REAL    t_local, cc, sun_ang, lon, lat
+
+TYPE( PuffMetRequest ) :: Request
+
+INTEGER, EXTERNAL :: JulianPrj, SWIMgetLL, SWIMcnvCoord
+REAL,    EXTERNAL :: UTCTime, SolarTime
+
+irv = SWIMgetLL( x,y,lon,lat )
+IF( irv /= SWIMsuccess )lat = 0.
+
+t_local = SolarTime( UTCTime(t),lon )
+
+CALL sun( lat,JulianPrj(t),t_local,sun_ang )
+
+IF( PrjCoord%type /= field(ifld)%grid%coord%type )THEN
+  irv = SWIMcnvCoord( x,y,PrjCoord,Request%X,Request%Y,field(ifld)%grid%coord )
+  IF( irv /= SWIMsuccess )GOTO 9999
+ELSE
+  Request%X = x; Request%Y = y
+END IF
+
+CALL SetXYfac( Request,field(ifld)%grid,mx,my,mxu,myv )
+CALL SetMXY( mx,my,mxy,field(ifld)%grid%nX,field(ifld)%grid%nXY,.FALSE. )
+
+CALL IntXY( mxy,field(ifld)%BL%cc,cc )
+
+CALL total( sun_ang,cc,Qs )
+
+9999 CONTINUE
+
+RETURN
+END

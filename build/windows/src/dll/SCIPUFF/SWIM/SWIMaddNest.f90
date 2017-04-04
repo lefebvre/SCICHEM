@@ -30,7 +30,8 @@ INTEGER irv, ifldp, i, nxy
 INTEGER ifld
 
 INTEGER, EXTERNAL :: SWIMreallocMetField, SWIMallocTerrain, SWIMwarningMessage, AddOutput
-LOGICAL, EXTERNAL :: SWIMaddNewNest, SWIMaddSmoothPotential
+INTEGER, EXTERNAL :: SWIMaddSmoothPotential
+LOGICAL, EXTERNAL :: SWIMaddNewNest
 
 CHARACTER(128), EXTERNAL :: ArraySizeStr
 
@@ -202,40 +203,41 @@ fld%grid%nZ = 0
 !------ Copy terrain and landcover parameters (if input)
 
   IF( PRESENT(H) )THEN
-  IF( H(1) /= NOT_SET_R )THEN
-    DO i = 1,nxy
-      fld%grid%terrain%H(i) = H(i)
-    END DO
-    fld%grid%type = IBSET(fld%grid%type,GTB_TERRAIN)
 
-  IF( PRESENT(Zruf) )THEN
-    DO i = 1,nxy
-      fld%grid%landcover%roughness(i) = Zruf(i)
-    END DO
-    fld%grid%type = IBSET(fld%grid%type,GTB_ZRUF)
-  END IF
+    IF( H(1) /= NOT_SET_R )THEN
+      DO i = 1,nxy
+        fld%grid%terrain%H(i) = H(i)
+      END DO
+      fld%grid%type = IBSET(fld%grid%type,GTB_TERRAIN)
 
-  IF( PRESENT(Hcnp) )THEN
-    DO i = 1,nxy
-      fld%grid%landcover%canopyHt(i) = Hcnp(i)
-    END DO
-    fld%grid%type = IBSET(fld%grid%type,GTB_HCNP)
-  END IF
+      IF( PRESENT(Zruf) )THEN
+        DO i = 1,nxy
+          fld%grid%landcover%roughness(i) = Zruf(i)
+        END DO
+        fld%grid%type = IBSET(fld%grid%type,GTB_ZRUF)
+      END IF
 
-  IF( PRESENT(Alpha) )THEN
-    DO i = 1,nxy
-      fld%grid%landcover%alpha(i) = Alpha(i)
-    END DO
-    fld%grid%type = IBSET(fld%grid%type,GTB_ALPHA)
-  END IF
+      IF( PRESENT(Hcnp) )THEN
+        DO i = 1,nxy
+          fld%grid%landcover%canopyHt(i) = Hcnp(i)
+        END DO
+        fld%grid%type = IBSET(fld%grid%type,GTB_HCNP)
+      END IF
 
-  IF( PRESENT(LandUse) )THEN
-    DO i = 1,nxy
-      fld%grid%landcover%LandUse(i) = LandUse(i)
-    END DO
-  END IF
+      IF( PRESENT(Alpha) )THEN
+        DO i = 1,nxy
+          fld%grid%landcover%alpha(i) = Alpha(i)
+        END DO
+        fld%grid%type = IBSET(fld%grid%type,GTB_ALPHA)
+      END IF
 
-  END IF
+      IF( PRESENT(LandUse) )THEN
+        DO i = 1,nxy
+          fld%grid%landcover%LandUse(i) = LandUse(i)
+        END DO
+      END IF
+
+    END IF
   END IF
 
 !------ Add output file
@@ -403,6 +405,7 @@ domain%xmin = TerGrid%Xmin; domain%dx = TerGrid%dX;; domain%nx = TerGrid%nX
 domain%ymin = TerGrid%Ymin; domain%dy = TerGrid%dY;; domain%ny = TerGrid%nY
 
 !------ Encode parent field number
+
 IF( ifldIn > 0 )THEN
   domain%mode = 10000*ifldIN + 1000*ifldp + TerGrid%coord%type
 ELSE

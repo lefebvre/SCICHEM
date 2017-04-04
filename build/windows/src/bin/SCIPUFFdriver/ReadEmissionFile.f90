@@ -67,9 +67,10 @@ DO iRel = 1,nrel
   emiTemp2(iRel) = emiTemp1(iRel)
   emiVel2(iRel)  = emiVel1(iRel)
 
-  IF( relList(iRel)%nMC > 0 )THEN
-    DO j = 1,relList(iRel)%nMC
-      emiMC1(j,iRel) = relList(iRel)%MCmass(j)
+  IF( nMC > 0 )THEN
+    i = (iRel-1)*nMC
+    DO j = 1,nMC
+      emiMC1(j,iRel) = relMCList(i+j)%MCmass
       emiMC2(j,iRel) = emiMC1(j,iRel)
     END DO
   END IF
@@ -118,7 +119,7 @@ IF( LEN_TRIM(emiFile) > 0 )THEN
         relStackData%rate     = 0.
         relStackData%exitTemp = 0.
         relStackData%exitVel  = 0.
-        relStackData%duration = 1000000.
+        relStackData%duration = 1000000.  !Persist indefinitely (reset if emissions file used)
         relList(iRel)%relData = TRANSFER(relStackData,relList(iRel)%relData)
       CASE( HR_CONT )
         relContData           = TRANSFER(relList(iRel)%relData,relContData)
@@ -156,10 +157,12 @@ IF( LEN_TRIM(emiFile) > 0 )THEN
   tEmi     = -HUGE(0.)*0.01  !Initialize so that first time will be read when updating release
   tNextEmi = -HUGE(0.)*0.01  !Apply 1E-2 factor to avoid precision problems with very large numbers
 
+  lEmissionFile  = .TRUE.
   lReadEmission  = .TRUE.
 
 ELSE
 
+  lEmissionFile  = .FALSE.
   lReadEmission  = .FALSE.
   tEmi           = 0.
   tNextEmi       = HUGE(0.)*0.01
@@ -222,7 +225,14 @@ DO WHILE( tNextEmi <= t )
         emiRate1 = emiRate2; emiTemp1 = emiTemp2; emiVel1 = emiVel2
         IF( nMC > 0 )emiMC1 = emiMC2
         tEmi = tNextEmi
-        lReadEmission = .FALSE.   !Assume error is EOF; read no more
+        IF( irv < 0 )THEN
+          lReadEmission = .FALSE.   !Assume error is EOF; read no more  
+        ELSE
+          ReadNextEmission = FAILURE
+          WRITE(*,'(A,1x,I4,1x,I2,1x,I2,1x,F4.1)') '**ERROR** reading emissions file at ',year,month,day,hour
+          WRITE(*,'(A)') 'For Source name '//TRIM(relName)
+          WRITE(*,'(A)') 'Check format for emission file '//TRIM(emiFile)          
+        ENDIF
         GOTO 9999
       ELSE
         BACKSPACE(lun_emi,IOSTAT=ios)
@@ -440,6 +450,8 @@ END IF
 ParseHourEmis = SUCCESS
 
 9999 CONTINUE
+
+IF( ios /= 0 )ParseHourEmis = ios
 
 RETURN
 END

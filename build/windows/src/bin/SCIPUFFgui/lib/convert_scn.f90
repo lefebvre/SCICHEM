@@ -1,7 +1,7 @@
 !***********************************************************************
 !               GUI_SCIP_scenario
 !***********************************************************************
-SUBROUTINE GUI_SCIP_scenario( prjdlg,scndlg,matdlg,tool,relList,mxRel )
+SUBROUTINE GUI_SCIP_scenario( prjdlg,scndlg,matdlg,tool,relList,mxRel,relMCList,nMC )
 
 USE status_fd
 USE relparam_fd
@@ -22,6 +22,8 @@ TYPE( reldef_str ) scndlg
 TYPE( matdef_str ) matdlg
 TYPE( ProjectStructure ) prjdlg
 INTEGER mxRel
+INTEGER nMC
+TYPE( releaseMCT  ) relMCList(*)
 
 INTEGER i
 INTEGER GUIgroup
@@ -47,6 +49,7 @@ tool%scnHead%number = scndlg%nrel
 
 !==== Material List
 
+imc = 0
 DO i = 1,scndlg%nrel
 
 !====== Basic parameters
@@ -67,11 +70,7 @@ DO i = 1,scndlg%nrel
   ELSE
     relList(i)%relDisplay = scndlg%release(i)%string(7:)
   END IF
-!!DEC$ IF DEFINED (OPVIEW) .AND. DEFINED (DBG_UPDT)
   relList(i)%relName = relList(i)%relDisplay
-!!DEC$ ELSE
-!  relList(i)%relName = ' '
-!!DEC$ ENDIF
 
 !====== Modify release parameters for liquid material vapor-phase and pool release
 
@@ -167,11 +166,13 @@ DO i = 1,scndlg%nrel
     CASE( 'CM' )
       relList(i)%type = HR_MOVE
       CALL GUI_SCIP_Move( scndlg%release(i),relList(i)%relData )
+    CASE( 'CS' )   !May be HR_STACK or HR_STACK3
+      relList(i)%type = GUI_SCIP_Stack( scndlg%release(i),relList(i)%relData )
+    CASE( 'CSF' )   !May be HR_STACK or HR_STACK3
+      relList(i)%type = GUI_SCIP_Stack( scndlg%release(i),relList(i)%relData )
     CASE( 'CSP' )
       relList(i)%type = HR_PRIME
       irv = GUI_SCIP_Stack( scndlg%release(i),relList(i)%relData )
-    CASE( 'CS' )   !May be HR_STACK or HR_STACK3
-      relList(i)%type = GUI_SCIP_Stack( scndlg%release(i),relList(i)%relData )
     CASE( 'CP ')
       relList(i)%type = HR_POOL
       CALL GUI_SCIP_Pool( scndlg%release(i),relList(i)%relData )
@@ -197,13 +198,20 @@ DO i = 1,scndlg%nrel
   IF( GUIgroup /= NOT_SET_I )THEN
     IF( IsMulti(matdlg%material(id)%icls) )THEN
       IF( ASSOCIATED(scndlg%release(i)%mc) )THEN
-        imc = 0
         DO j = 1,SIZE(scndlg%release(i)%mc)
           IF( scndlg%release(i)%mc(j) /= 0.0 )THEN
             imc = imc + 1
-            relList(i)%nMC = imc
-            relList(i)%MCname(imc) = matdlg%materialMC(id)%name(j)
-            relList(i)%MCmass(imc) = scndlg%release(i)%mc(j)
+            IF( imc <= nMC )THEN
+              relMCList(imc).relID = i
+              relMCList(imc).MCname = matdlg%materialMC(id)%name(j)
+              relMCList(imc).MCmass = scndlg%release(i)%mc(j)
+            ELSE
+              CALL SetError( IV_ERROR, &
+                            'Invalid release set', &
+                             'Releases contain too many multicomponent values',' ', &
+                            'GUI_SCIP_Release' )
+              GOTO 9999
+            END IF
           END IF
         END DO
       END IF
@@ -226,7 +234,7 @@ END
 !***********************************************************************
 !               SCIP_GUI_scenario
 !***********************************************************************
-SUBROUTINE SCIP_GUI_scenario( scndlg,matdlg,tool,relList )
+SUBROUTINE SCIP_GUI_scenario( scndlg,matdlg,tool,relList,nMC,relMCList )
 
 USE relparam_fd
 USE release_gui_fd
@@ -247,6 +255,8 @@ TYPE( releaseT  ) relList(1)
 TYPE( reldef_str ) scndlg
 TYPE( matdef_str ) matdlg
 INTEGER ios, id, jd
+INTEGER nMC
+TYPE( releaseMCT  ) relMCList(*)
 LOGICAL, EXTERNAL :: IsMulti
 
 INTEGER i, j
@@ -329,6 +339,14 @@ DO i = 1,tool%scnHead%number
       scndlg%release(i)%type = 'C'
       CALL SCIP_GUI_Cont( relList(i)%relData,scndlg%release(i) )
 
+    CASE( HR_CONTF )
+      scndlg%release(i)%type = 'CF'
+      CALL SCIP_GUI_ContFile( relList(i)%relData,scndlg%release(i) )
+
+    CASE( HR_STACKF, HR_STACK3F )
+      scndlg%release(i)%type = 'CSF'
+      CALL SCIP_GUI_StackFile( relList(i)%type,relList(i)%relData,scndlg%release(i) )
+
     CASE( HR_MOVE )
       scndlg%release(i)%type = 'CM'
       CALL SCIP_GUI_Move( relList(i)%relData,scndlg%release(i) )
@@ -393,17 +411,44 @@ DO i = 1,tool%scnHead%number
       DO j = 1,matdlg%material(id)%nmc
         scndlg%release(i)%mc(j) = 0.0
       END DO
-      IF( relList(i)%nMC > 0 )THEN
-        DO j = 1,relList(i)%nMC
-          CALL find_materialMC( matdlg%materialMC(id),relList(i)%MCname(j),jd )
-          IF( jd > 0 )THEN
-            scndlg%release(i)%mc(jd) = relList(i)%MCmass(j)
+      IF( nMC > 0 )THEN
+        DO j = 1,nMC
+          IF( relMCList(j)%relID == i )THEN
+            CALL find_materialMC( matdlg%materialMC(id),relMCList(j)%MCname,jd )
+            IF( jd > 0 )THEN
+              scndlg%release(i)%mc(jd) = relMCList(j)%MCmass
+            END IF
           END IF
         END DO
       END IF
     END IF
   END IF
 
+END DO
+
+DO i = 1,nMC
+  IF( scndlg%release(relMCList(i)%relID)%matl /= ' ' .AND. TRIM(scndlg%release(relMCList(i)%relID)%type) /= 'X' )THEN
+    CALL find_material_list( matdlg%material,matdlg%nmatl,scndlg%release(relMCList(i)%relID)%matl,id )
+    IF( id <= 0 .OR. id > matdlg%nmatl )THEN
+      CALL SetError( IV_ERROR, &
+                    'Invalid material specification', &
+                    'Material not found M='//TRIM(scndlg%release(i)%matl),' ', &
+                    'GUI->SCIP scenario' )
+      GOTO 9999
+    END IF
+    IF( .NOT.IsMulti(matdlg%material%icls) )EXIT   !Skip if not recognized as multi-component
+    CALL find_materialMC( matdlg%materialMC(id),relMCList(i)%MCname,jd )
+    IF( jd <= 0 .OR. jd > matdlg%material(id)%nmc )THEN
+      CALL SetError( IV_ERROR, &
+                    'Invalid multicomponent specification', &
+                    'multicomponent not found M='//TRIM(relMCList(i)%MCname),' ', &
+                    'GUI->SCIP scenario' )
+      GOTO 9999
+    END IF
+    IF( ASSOCIATED(scndlg%release(relMCList(i)%relID)%mc) )THEN
+      scndlg%release(relMCList(i)%relID)%mc(jd) = relMCList(i)%MCmass
+    END IF
+  END IF
 END DO
 
 9999 CONTINUE
@@ -444,6 +489,7 @@ relData%momentum = release%dynam(2)
 relData%buoyancy = release%dynam(1)
 
 relData%activeFrac = release%param(REL_AFRAC_INDX)
+relData%nextUpdtTime = release%param(REL_NXTUPDT_INDX)
 
 IF( release%param(REL_MMD_INDX)/= NOT_SET_R )THEN
   relData%MMD   = ScaleReal( release%param(REL_MMD_INDX),1./HCF_M2MICRON )
@@ -561,6 +607,7 @@ relData%momentum = release%dynam(2)
 relData%buoyancy = release%dynam(1)
 
 relData%activeFrac = release%param(REL_AFRAC_INDX)
+relData%nextUpdtTime = release%param(REL_NXTUPDT_INDX)
 
 IF( release%param(REL_MMD_INDX)/= NOT_SET_R )THEN
   relData%MMD   = ScaleReal( release%param(REL_MMD_INDX),1./HCF_M2MICRON )
@@ -665,6 +712,7 @@ IF( stackType == HR_STACK )THEN
   stackData%dryFrac = release%param(REL_WMFRAC_INDX)
 
   stackData%activeFrac = release%param(REL_AFRAC_INDX)
+  stackData%nextUpdtTime = release%param(REL_NXTUPDT_INDX)
 
   relData = TRANSFER(stackData,relData)
 ELSE
@@ -693,6 +741,7 @@ ELSE
   stack3Data%dryFrac = release%param(REL_WMFRAC_INDX)
 
   stack3Data%activeFrac = release%param(REL_AFRAC_INDX)
+  stack3Data%nextUpdtTime = release%param(REL_NXTUPDT_INDX)
 
   relData = TRANSFER(stack3Data,relData)
 END IF
@@ -781,6 +830,7 @@ ELSE
 END IF
 
 release%param(REL_AFRAC_INDX) = relData%activeFrac
+release%param(REL_NXTUPDT_INDX) = relData%nextUpdtTime
 
 IF( relData%buoyancy /= NOT_SET_R )THEN
   release%dynam(1) = relData%buoyancy
@@ -791,6 +841,62 @@ END IF
 release%param(REL_MMD_INDX)   = ScaleReal( relData%MMD,HCF_M2MICRON )
 release%param(REL_SIGMA_INDX) = relData%sigma
 release%param(REL_WMFRAC_INDX)= relData%dryFrac
+
+9999 CONTINUE
+
+RETURN
+END
+!*******************************************************************************
+!        SCIP_GUI_ContFile
+!*******************************************************************************
+SUBROUTINE SCIP_GUI_ContFile( relData,release )
+
+USE relparam_fd
+USE release_gui_fd
+USE reldef_fd
+USE tooluser_fd
+USE default_fd
+
+!     Load SCIPUFF commons from an SCIP Material structure
+
+IMPLICIT NONE
+
+TYPE( release_str  ) release
+TYPE( relContFileT ) relData
+
+REAL, EXTERNAL :: ScaleReal
+
+!==== Set pointer
+!==== Unload
+
+release%indx = relData%distribution
+
+release%rate = relData%rate
+release%dur  = relData%duration
+
+release%sig(1) = NOT_SET_R
+release%sig(2) = relData%sigY
+release%sig(3) = relData%sigZ
+
+IF( relData%momentum /= NOT_SET_R )THEN
+  release%dynam(2) = relData%momentum
+ELSE
+  release%dynam(2) = 0.0
+END IF
+
+release%param(REL_AFRAC_INDX) = relData%activeFrac
+
+IF( relData%buoyancy /= NOT_SET_R )THEN
+  release%dynam(1) = relData%buoyancy
+ELSE
+  release%dynam(1) = 0.0
+END IF
+
+release%param(REL_MMD_INDX)   = ScaleReal( relData%MMD,HCF_M2MICRON )
+release%param(REL_SIGMA_INDX) = relData%sigma
+release%param(REL_WMFRAC_INDX)= relData%dryFrac
+
+CALL SplitName( relData%relFile,release%file,release%path )
 
 9999 CONTINUE
 
@@ -1038,6 +1144,7 @@ release%param(REL_SIGMA_INDX) = relData%sigma
 release%param(REL_WMFRAC_INDX)= relData%dryFrac
 
 release%param(REL_AFRAC_INDX) = relData%activeFrac
+release%param(REL_NXTUPDT_INDX) = relData%nextUpdtTime
 
 9999 CONTINUE
 
@@ -1130,6 +1237,7 @@ IF( stackType == HR_STACK )THEN
   release%param(REL_WMFRAC_INDX)= stackData%dryFrac
 
   release%param(REL_AFRAC_INDX) = stackData%activeFrac
+  release%param(REL_NXTUPDT_INDX) = stackData%nextUpdtTime
 
 ELSE
   stack3Data = TRANSFER(relData,stack3Data)
@@ -1158,6 +1266,101 @@ ELSE
   release%param(REL_WMFRAC_INDX)= stack3Data%dryFrac
 
   release%param(REL_AFRAC_INDX) = stack3Data%activeFrac
+  release%param(REL_NXTUPDT_INDX) = stack3Data%nextUpdtTime
+
+END IF
+
+9999 CONTINUE
+
+RETURN
+END
+!*******************************************************************************
+!        SCIP_GUI_StackFile
+!*******************************************************************************
+SUBROUTINE SCIP_GUI_StackFile( stackType,relData,release )
+
+USE relparam_fd
+USE release_gui_fd
+USE reldef_fd
+USE tooluser_fd
+USE default_fd
+
+!     Load SCIPUFF commons from an SCIP Material structure
+
+IMPLICIT NONE
+
+INTEGER                stackType
+TYPE( release_str )    release
+TYPE( relGenT )        relData
+TYPE( relStackFileT )  stackData
+TYPE( relStack3FileT ) stack3Data
+
+REAL, EXTERNAL :: ScaleReal
+
+!==== Set pointer
+
+!==== Unload
+
+IF( stackType == HR_STACKF )THEN
+  stackData = TRANSFER(relData,stackData)
+
+  release%indx = stackData%distribution
+
+  release%rate = stackData%rate
+  release%dur  = stackData%duration
+
+  release%sig(1) = stackData%diameter
+  release%sig(2) = NOT_SET_R
+  release%sig(3) = NOT_SET_R
+
+  IF( stackData%exitVel /= NOT_SET_R )THEN
+    release%dynam(4) = stackData%exitVel
+  END IF
+  release%dynam(2) = DEF_VAL_R
+  release%dynam(3) = DEF_VAL_R
+
+  IF( stackData%exitTemp /= NOT_SET_R )THEN
+    release%dynam(1) = stackData%exitTemp
+  END IF
+
+  release%param(REL_MMD_INDX)   = ScaleReal( stackData%MMD,HCF_M2MICRON )
+  release%param(REL_SIGMA_INDX) = stackData%sigma
+  release%param(REL_WMFRAC_INDX)= stackData%dryFrac
+
+  release%param(REL_AFRAC_INDX) = stackData%activeFrac
+
+  CALL SplitName( stackData%relFile,release%file,release%path )
+
+ELSE
+
+  stack3Data = TRANSFER(relData,stack3Data)
+
+  release%indx = stack3Data%distribution
+
+  release%rate = stack3Data%rate
+  release%dur  = stack3Data%duration
+
+  release%sig(1) = stack3Data%diameter
+  release%sig(2) = NOT_SET_R
+  release%sig(3) = NOT_SET_R
+
+  IF( stack3Data%exitVel(3) /= NOT_SET_R )THEN
+    release%dynam(2) = stack3Data%exitVel(1)
+    release%dynam(3) = stack3Data%exitVel(2)
+    release%dynam(4) = stack3Data%exitVel(3)
+  END IF
+
+  IF( stack3Data%exitTemp /= NOT_SET_R )THEN
+    release%dynam(1) = stack3Data%exitTemp
+  END IF
+
+  release%param(REL_MMD_INDX)   = ScaleReal( stack3Data%MMD,HCF_M2MICRON )
+  release%param(REL_SIGMA_INDX) = stack3Data%sigma
+  release%param(REL_WMFRAC_INDX)= stack3Data%dryFrac
+
+  release%param(REL_AFRAC_INDX) = stack3Data%activeFrac
+
+  CALL SplitName( stack3Data%relFile,release%file,release%path )
 
 END IF
 
@@ -1245,14 +1448,14 @@ DO i = 1,scndlg%nrel
 
 END DO
 
-CALL AllocateRelList( nrel )
+CALL AllocateRelList( nrel,nmc )
 
 RETURN
 END
 !*******************************************************************************
 !        AllocateRelList
 !*******************************************************************************
-SUBROUTINE AllocateRelList( nRel )
+SUBROUTINE AllocateRelList( nRel,nMC )
 
 USE errorParam_fd
 USE guitool_fi
@@ -1261,7 +1464,7 @@ USE pcscipuf_fi
 IMPLICIT NONE
 
 INTEGER nRel
-INTEGER i
+INTEGER nMC
 
 INTEGER ios
 
@@ -1280,18 +1483,26 @@ ELSE
   IF( ios /= 0 )GOTO 9999
 END IF
 
-DO i = 1,SIZE(relList)
-  relList(i)%nMC = 0
-  relList(i)%MCname = ''
-  relList(i)%MCmass = 0.
-END DO
+IF( ALLOCATED(relMCList) )THEN
+  IF( SIZE(relMCList) < nMC )THEN
+    DEALLOCATE( relMCList,STAT=ios )
+    aString = 'Reallocation of relMCList'
+    ALLOCATE( relMCList(nMC),STAT=ios )
+    IF( ios /= 0 )GOTO 9999
+  END IF
+ELSE
+  aString = 'Allocation of relMCList'
+  ALLOCATE( relMCList(MAX(1,nMC)),STAT=ios )
+  IF( nMC == 0 )relMCList(1)%relID = -1
+  IF( ios /= 0 )GOTO 9999
+END IF
 
 1000 CONTINUE
 
 RETURN
 
 9999 CONTINUE
-WRITE(string1,*)'new size =',nRel
+WRITE(string1,*)'new size =',nRel,nMC
 WRITE(string2,*)'Allocation call sequence ='//TRIM(aString)
 CALL SetError( SZ_ERROR,'Allocation Error',string2,string1,'ReallocateScenario' )
 GOTO 1000
@@ -1309,6 +1520,8 @@ IMPLICIT NONE
 INTEGER ios
 
 IF( ALLOCATED(relList) )DEALLOCATE( relList,STAT=ios )
+
+IF( ALLOCATED(relMCList) )DEALLOCATE( relMCList,STAT=ios )
 
 RETURN
 END

@@ -9,8 +9,6 @@ INTEGER FUNCTION FileInput( restart )
 !       Check if input exists and open
 
 USE SCIPUFFdriver_fi
-USE winAPI
-
 IMPLICIT NONE
 
 LOGICAL, INTENT( OUT ) :: restart
@@ -21,6 +19,8 @@ LOGICAL lexist
 CHARACTER(128) string1, string2, string3
 
 CHARACTER(128), EXTERNAL :: StripNull
+INTEGER, EXTERNAL :: iargc   !Disable when compiling with Compaq Fortran on Windows
+
 
 FileInput = FAILURE
 
@@ -43,17 +43,6 @@ IF( numarg > 0 )THEN
       restart = .TRUE.
       fname = fname(5:)
   END SELECT
-
-ELSE
-
-  INQUIRE(file=fname,EXIST=lexist)         !Check current directory
-  IF( .NOT.lexist )THEN                    !Otherwise, check location of executable
-    CALL SplitName( fname,string2,string3 )
-    fname = StripNull( string2 )
-    irv = GetModuleFileName( 0,string1,LEN(string1) )
-    CALL SplitName( string1(1:irv),string2,string3 )
-    CALL AddPath( fname,TRIM(string3) )
-  END IF
 
 END IF
 

@@ -1263,8 +1263,8 @@ INTEGER nvar3d, npt
 REAL x0a, y0a, dxa, dya
 REAL xamb, yamb, zamb
 REAL t0, t1, dt
-REAL spec_mass1,spec_mass2
-REAL carea, pscale, mass_diff
+REAL spec_mass1,spec_mass2, mass_diff
+REAL carea, pscale
 
 LOGICAL leqm_set, lstartAmbStep
 
@@ -1315,6 +1315,7 @@ IF( .NOT. chem%Ambient%InterpAmb )THEN
 
   nfast     = chem%nFast
   nslow     = chem%nSlow
+  ngaseous  = chem%nGaseous
   nequil    = chem%nEquilibrium
   nparticle = chem%nParticle
   nspecies  = nfast + nslow + nparticle
@@ -1325,9 +1326,10 @@ IF( .NOT. chem%Ambient%InterpAmb )THEN
 
   IF( chem%nReactions == 0 )RETURN
 
-  fast  => chem%fast
-  slow  => chem%slow
-  equil => chem%equil
+  fast    => chem%fast
+  slow    => chem%slow
+  gaseous => chem%gaseous
+  equil   => chem%equil
 
   nsolve_eq = chem%nSolveEq
   nlin_eq   = chem%nLinearEq
@@ -1482,7 +1484,7 @@ IF( .NOT. chem%Ambient%InterpAmb )THEN
       END IF
 
       carea            = 0.
-      pscale              = 0.
+      pscale           = 0.
       chemMet%tab      = tb                                ! temp(k)
       chemMet%pb       = pb/1013.25                        ! press(atm)
       chemMet%hb       = hb                                ! humidity(g H2O/g dry air)
@@ -1492,7 +1494,7 @@ IF( .NOT. chem%Ambient%InterpAmb )THEN
       ELSE
         chemMet%pratepuf = prate                           ! convert type to precip rate (mm/hr)
       ENDIF
-      chemMet%fcc      = cc                                ! cloud cover fraction
+      chemMet%fcc      = cldcvr                            ! cloud cover fraction
       chemMet%fprcpc   = 0.0
       chemMet%xml      = xml
       chemMet%zb1      = 10.

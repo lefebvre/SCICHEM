@@ -36,7 +36,7 @@ SUBROUTINE dcwmap( xmin,xmax,ymin,ymax,lhires,lpop,lroad,ltext,lcc, &
                    lairtxt,lnuctxt,lprint,scale )
 
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -297,7 +297,7 @@ SUBROUTINE write_map_segments( filename,MyRect,ioff,scale )
 
 USE files_fi
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -425,7 +425,7 @@ SUBROUTINE write_map_areas( filename,MyRect,lcc,ioff,scale )
 
 USE files_fi
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -559,7 +559,7 @@ SUBROUTINE write_map_text( filename,MyRect,fsz,jreclen,ioff,cent,scale )
 
 USE files_fi
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -711,7 +711,7 @@ SUBROUTINE write_map_symbols( filename,MyRect,fsz,icol,scale )
 
 USE files_fi
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -824,7 +824,7 @@ SUBROUTINE write_map_airports( filename,MyRect,fsz,ioff,scale )
 
 USE files_fi
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -938,7 +938,7 @@ SUBROUTINE write_map_nucfac( filename,MyRect,fsz,ioff,scale )
 
 USE files_fi
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1193,7 +1193,7 @@ END
 
 SUBROUTINE write_segment_wrap( n,x,y,MyRect,scale,iflag )
 
-USE winAPI
+USE myWinAPI
 USE mapwrap
 
 IMPLICIT NONE
@@ -1273,7 +1273,7 @@ END
 
 LOGICAL FUNCTION CheckPoint( x,y,MyPt,scale,MyRect )
 
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -1314,7 +1314,7 @@ END
 
 SUBROUTINE write_symbol_wrap( x,y,xoff,yoff,MyRect,scale,iflag )
 
-USE winAPI
+USE myWinAPI
 USE mapwrap
 
 IMPLICIT NONE
@@ -1400,7 +1400,7 @@ END
 
 SUBROUTINE write_text_wrap( x,y,xoff,yoff,text,fsz,cent,MyRect,scale )
 
-USE winAPI
+USE myWinAPI
 USE mapwrap
 
 IMPLICIT NONE

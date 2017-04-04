@@ -11,7 +11,7 @@ USE pcscipuf_fi
 USE files_fi
 USE GUItool_fi
 USE create_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the release definition Dialog Box
 !
@@ -209,7 +209,7 @@ USE relparam_fd
 USE pcscipuf_fi
 USE create_fi
 USE GUImatl_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the Releases list ComboBox
 !
@@ -488,7 +488,7 @@ SUBROUTINE save_current_release( iwnd_db,id_level )
 USE pcscipuf_fi
 USE create_fi
 USE GUItool_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine saves the selection from current release
 
@@ -522,7 +522,7 @@ USE GUItool_fi
 USE GUImatl_fi
 USE files_fi
 USE dialog_fi
-USE winAPI
+USE myWinAPI
 USE errorParam_fd
 
 !     This routine initializes the release description part of the
@@ -997,11 +997,6 @@ SELECT CASE( tmp_release%type(1:1) )
 
       CASE( 'S' )
         irel = 4
-        IF( ichoice(1,ilev) == REL_DATA )THEN
-          tmp_release%type(3:3) = ' '
-        ELSE
-          tmp_release%type(3:3) = 'P'
-        END IF
 
       CASE DEFAULT
         irel = 1
@@ -1288,6 +1283,8 @@ ELSE
   tmp_release%string(7:) = TRIM(dbtext(4,ilev))
 END IF
 
+tmp_release%param(REL_NXTUPDT_INDX) = DEF_VAL_R
+
 CALL release_string( tmp_release,materials(EDIT_LEVEL_1) )
 
 !--- Check
@@ -1312,7 +1309,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE create_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine clears the release description part of the
 !     Release Definition dialog box
@@ -1462,7 +1459,7 @@ USE pcscipuf_fi
 USE create_fi
 USE GUItool_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine enables/disables the release buttons
 
@@ -1533,7 +1530,7 @@ USE tooluser_fd
 USE pcscipuf_fi
 USE create_fi
 USE files_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine enables/disables the release buttons
 
@@ -1594,7 +1591,7 @@ USE pcscipuf_fi
 USE create_fi
 USE files_fi
 USE guimatl_fi
-USE winAPI
+USE myWinAPI
 USE randef
 
 IMPLICIT NONE
@@ -1709,10 +1706,6 @@ IF( irel <= 2 .OR. irel == 4 )THEN
     CALL EnableControl( iwnd,IDB_COMBO7,kflag )
     IF( irel == 4 )THEN
       CALL EnableControl( iwnd,IDB_REAL7,kflag )
-      IF( cur_release%type(3:3) == 'P' )THEN
-        CALL EnableControl( iwnd,IDB_REAL6,   kflag )
-        CALL EnableControl( iwnd,IDB_BUTTON20,kflag )
-      END IF
     ELSE
       CALL EnableControl( iwnd,IDB_REAL8,kflag )
       CALL EnableControl( iwnd,IDB_REAL9,kflag )
@@ -1863,7 +1856,7 @@ USE relparam_fd
 USE files_fi
 USE pcscipuf_fi
 USE GUImatl_fi
-USE winAPI
+USE myWinAPI
 USE create_fi
 
 !--- This routine processes COMBOBOXes from the MATDEF Dialog Box
@@ -2224,7 +2217,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE create_fi
 USE dialog_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine loads the selection into current release
 
@@ -2262,7 +2255,7 @@ SUBROUTINE release_spec_radio( iwnd,ilev,flag )
 USE resource_fd
 USE pcscipuf_fi
 USE create_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine loads the selection into current release
 
@@ -2483,7 +2476,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE dialog_fi
 USE param_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -2624,7 +2617,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE dialog_fi
 USE param_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -2789,7 +2782,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE dialog_fi
 USE param_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -2939,7 +2932,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE dialog_fi
 USE param_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -3121,7 +3114,7 @@ END
 SUBROUTINE release_button( iwnd_db,id_dialog,id_button,id_level )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE pcscipuf_fi
 USE GUImatl_fi
 USE create_fi
@@ -3171,7 +3164,7 @@ SELECT CASE( id_button )
 
   CASE( 3 ) !DELETE Release
     ifocus = GetFocus()
-    string1 = 'Delete the current release defintion'
+    string1 = 'Delete the current release definition'
     lok = verify_button( iwnd_db,TRIM(string1) )
     IF( lok )THEN
       CALL delete_current_release( id_rel )
@@ -3811,7 +3804,7 @@ SUBROUTINE init_dialog_relnew( iwnd_db,id_level )
 USE resource_fd
 USE pcscipuf_fi
 USE create_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the new material Dialog Box
 !
@@ -4226,7 +4219,7 @@ SUBROUTINE show_distribution( iwnd_db,iflag,icls )
 USE resource_fd
 USE pcscipuf_fi
 USE create_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -4324,7 +4317,7 @@ SUBROUTINE show_liquid_pool( iwnd_db,lpool,lstack,ilev,jenable )
 USE resource_fd
 USE pcscipuf_fi
 USE create_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -4414,7 +4407,7 @@ SUBROUTINE show_dynamic( iwnd_db,iflag,jflag,frac )
 USE resource_fd
 USE pcscipuf_fi
 USE create_fi
-USE winAPI
+USE myWinAPI
 USE relparam_fd
 
 IMPLICIT NONE
@@ -4536,7 +4529,7 @@ SUBROUTINE show_multicomp( iwnd_db,iflag )
 USE resource_fd
 USE pcscipuf_fi
 USE create_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -4683,7 +4676,7 @@ SUBROUTINE init_dialog_random( iwnd_db,id_level )
 
 USE resource_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 USE randef
 !
 !     This routine initializes the new material Dialog Box
@@ -4784,7 +4777,7 @@ SUBROUTINE init_dialog_uncertainty( iwnd_db,id_level )
 
 USE resource_fd
 USE pcscipuf_fi
-USE winAPI
+USE myWinAPI
 !
 !     This routine initializes the Source Uncertainty Dialog Box
 !
@@ -4856,7 +4849,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE create_fi
 USE GUImatl_fi
-USE winAPI
+USE myWinAPI
 USE multicmn
 !
 !     This routine initializes the new material Dialog Box
@@ -4918,7 +4911,7 @@ END
 SUBROUTINE hide_multicomp_edit( iwnd_db )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE multicmn
 !
 !     This routine initializes the new material Dialog Box
@@ -4948,7 +4941,7 @@ END
 SUBROUTINE show_multicomp_edit( iwnd_db )
 
 USE resource_fd
-USE winAPI
+USE myWinAPI
 USE multicmn
 !
 !     This routine initializes the new material Dialog Box
@@ -5082,7 +5075,7 @@ END
 SUBROUTINE multicomp_button( iwnd_db,id_button,id_level )
 
 !     This routine processes PUSHBUTTONs from MULTCOMP Dialog Box
-USE winAPI_fd, ONLY: POINTER_LEN
+USE myWinAPI_fd, ONLY: POINTER_LEN
 USE multicmn
 
 IMPLICIT NONE

@@ -64,10 +64,11 @@ INTERFACE
 !==============================================================================
 ! DtmsInitDatums
 !==============================================================================
-  INTEGER FUNCTION DtmsInitDatums(pFile)  RESULT( irv )
+  INTEGER FUNCTION DtmsInitDatums( pFile )  RESULT( irv )
 !DEC# ATTRIBUTES STDCALL, DECORATE, ALIAS : 'DtmsInitDatums' :: DtmsInitDatums
 !DEC# ATTRIBUTES REFERENCE :: pFile
-    CHARACTER(*) pFile
+    USE DefSize_fd
+    CHARACTER(PATH_MAXLENGTH) pFile
   END FUNCTION DtmsInitDatums
 
 END INTERFACE
@@ -167,7 +168,7 @@ INTEGER, INTENT( INOUT ) :: zone
 REAL,    INTENT( OUT   ) :: x,y
 REAL,    INTENT( IN    ) :: lat,lon
 
-INTEGER irv, izone, idir, lipsoid
+INTEGER irv, izone, idir, lipsoid, izone0
 REAL    rlamda, rphi, xdecal
 
 idir    = 1
@@ -178,6 +179,28 @@ lipsoid = 0
 rlamda = lon
 rphi   = lat
 izone  = zone
+
+IF( izone == 0 )THEN
+  IF( rlamda < -180. )THEN
+    rlamda = rlamda + 360.
+  ELSE IF( rlamda > 180. )THEN
+    rlamda = rlamda - 360.
+  END IF
+!------ Handle longitude outside -/+180
+!       Move to nearby zone at same distance from central meridian
+ELSE IF( lon < -180. )THEN
+  izone0 = izone
+  DO izone = izone0+1,60
+    rlamda = rlamda + 6.
+    IF( rlamda >= -180. )EXIT
+  END DO
+ELSE IF( lon > 180. )THEN
+  izone0 = izone
+  DO izone = izone0-1,1,-1
+    rlamda = rlamda - 6.
+    IF( rlamda <= 180. )EXIT
+  END DO
+END IF
 
 irv = DtmsExtendedZone( rlamda,rphi,izone,xdecal,x,y, &
                         idir,ierr,lipsoid )
@@ -196,7 +219,7 @@ IF( rphi < 0. )THEN
   y = y - 10000.
   izone = -izone
 END IF
-IF( zone == 0)zone = izone
+IF( zone == 0 )zone = izone
 
 RETURN
 END FUNCTION LL2UTM

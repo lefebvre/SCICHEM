@@ -454,13 +454,13 @@ MODULE SCIPtool
       TYPE( pterrainHeadT ), INTENT( INOUT ) :: terrain !Project ID
     END FUNCTION SCIPGetProjectTerrainHeaderIn
 
-    INTEGER FUNCTION SCIPGetProjectPuff( CallerID,puff,timeID,transform,puffList,auxData,typeList,mcList )
+    INTEGER FUNCTION SCIPGetProjectPuff( CallerID,puff,timeID,flag,puffList,auxData,typeList,mcList )
       USE tooluser_fd
       USE mcstruct_fd
       INTEGER,                                   INTENT( IN    ) :: CallerID    !USER ID Tag
       TYPE( ppuffHeadT ),                        INTENT( INOUT ) :: puff        !Project ID
       INTEGER,                                   INTENT( IN    ) :: timeID      !time ID
-      INTEGER,                                   INTENT( IN    ) :: transform   !SCIPtrue => transform to LLA
+      INTEGER,                                   INTENT( IN    ) :: flag        !Bit to transform to LLA, MSL, terrain slope
       TYPE( puffT ),        DIMENSION(*),        INTENT( OUT   ) :: puffList    !puff data
       REAL,                 DIMENSION(*),        INTENT( OUT   ) :: auxData     !puff auxiliary data
       TYPE( puffTypeT ),    DIMENSION(*),        INTENT( OUT   ) :: typeList    !Puffs types
@@ -602,6 +602,14 @@ MODULE SCIPtool
       TYPE( releaseT  ), DIMENSION(*),           INTENT( INOUT ) :: relList
     END FUNCTION SCIPLoadReleaseF
 
+    INTEGER FUNCTION SCIPLoadReleaseMCF( CallerID,release,relList,relMCList )
+      USE relstruct_fd
+      INTEGER,                                   INTENT( IN    ) :: CallerID     !USER ID tag
+      TYPE( preleaseT ),                         INTENT( INOUT ) :: release
+      TYPE( releaseT  ), DIMENSION(*),           INTENT( INOUT ) :: relList
+      TYPE( releaseMCT), DIMENSION(*),           INTENT( INOUT ) :: relMCList
+    END FUNCTION SCIPLoadReleaseMCF
+
     INTEGER FUNCTION SCIPLoadRunF( CallerID,end )
       USE timstruct_fd
       INTEGER,                                   INTENT( IN    ) :: CallerID     !USER ID tag
@@ -613,13 +621,6 @@ MODULE SCIPtool
       INTEGER,                                   INTENT( IN    ) :: CallerID     !USER ID tag
       TYPE( pstartT ),                           INTENT( INOUT ) :: start
     END FUNCTION SCIPLoadStartF
-
-    INTEGER FUNCTION SCIPLoadStatusF( CallerID,status,statList )
-      USE statstruct_fd
-      INTEGER,                                   INTENT( IN    ) :: CallerID     !USER ID tag
-      TYPE( pstatusT ),                          INTENT( INOUT ) :: status
-      INTEGER, DIMENSION(*),                     INTENT( INOUT ) :: statList
-    END FUNCTION SCIPLoadStatusF
 
     INTEGER FUNCTION SCIPLoadTimeF( CallerID,time )
       USE timstruct_fd
@@ -857,6 +858,15 @@ MODULE SCIPtool
       TYPE( releaseT  ), DIMENSION(*),           INTENT( IN ) :: relList
     END FUNCTION SCIPWriteReleaseF
 
+    INTEGER FUNCTION SCIPWriteReleaseMCF( CallerID,release,relList,nMC,relMCList )
+      USE relstruct_fd
+      INTEGER,                                   INTENT( IN ) :: CallerID     !USER ID tag
+      TYPE( preleaseT ),                         INTENT( IN ) :: release
+      TYPE( releaseT  ), DIMENSION(*),           INTENT( IN ) :: relList
+      INTEGER,                                   INTENT( IN ) :: nMC
+      TYPE( releaseMCT ), DIMENSION(*),          INTENT( IN ) :: relMCList
+    END FUNCTION SCIPWriteReleaseMCF
+
     INTEGER FUNCTION SCIPWriteRunF( CallerID,end )
       USE timstruct_fd
       INTEGER,                                   INTENT( IN ) :: CallerID     !USER ID tag
@@ -869,13 +879,6 @@ MODULE SCIPtool
       TYPE( pstartT ),                           INTENT( IN ) :: start
     END FUNCTION SCIPWriteStartF
 
-    INTEGER FUNCTION SCIPWriteStatusF( CallerID,status,statList )
-      USE statstruct_fd
-      INTEGER,                                   INTENT( IN ) :: CallerID     !USER ID tag
-      TYPE( pstatusT ),                          INTENT( IN ) :: status
-      INTEGER, DIMENSION(*),                     INTENT( IN ) :: statList
-    END FUNCTION SCIPWriteStatusF
-
     INTEGER FUNCTION SCIPWriteTimeF( CallerID,time )
       USE timstruct_fd
       INTEGER,                                   INTENT( IN ) :: CallerID     !USER ID tag
@@ -887,7 +890,6 @@ MODULE SCIPtool
       INTEGER,                                   INTENT( IN ) :: CallerID     !USER ID tag
       TYPE( pweatherT ),                         INTENT( IN ) :: weather
     END FUNCTION SCIPWriteWeatherF
-
 
     INTEGER FUNCTION SCIPWriteSAGID( UserID,grdI,file,append )
       USE charT_fd

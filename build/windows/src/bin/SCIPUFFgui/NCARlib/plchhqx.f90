@@ -1,7 +1,7 @@
 SUBROUTINE plchhq( xx,yy,clab,fsz,rot,cntr )
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -113,7 +113,7 @@ END
 SUBROUTINE SetFont( ihdldc,font,ifsz,irot,iwgt,inew,iold )
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -141,7 +141,7 @@ END
 SUBROUTINE RestoreFont( ihdldc,inew,iold )
 
 USE ncarlib_fi
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 

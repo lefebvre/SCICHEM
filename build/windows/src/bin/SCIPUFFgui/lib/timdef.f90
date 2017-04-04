@@ -16,7 +16,7 @@ USE resource_fd
 USE pcscipuf_fi
 USE files_fi
 USE dialog_fi
-USE winAPI_fd
+USE myWinAPI_fd
 !
 !     This routine initializes the PLOT Dialog Box
 !
@@ -169,7 +169,7 @@ USE resource_fd
 !USE tim_winty
 USE pcscipuf_fi
 USE files_fi
-USE winAPI_fd
+USE myWinAPI_fd
 !
 !     This routine loads the PLOT Dialog Box
 !
@@ -422,7 +422,7 @@ USE dialog_fi
 USE errorParam_fd
 USE param_fd
 USE GUItool_fi
-USE winAPI
+USE myWinAPI
 
 !     This routine processes LOAD/DEFAULT PUSHBUTTONs from Dialog Boxes
 

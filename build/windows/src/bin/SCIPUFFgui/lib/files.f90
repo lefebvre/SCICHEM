@@ -10,7 +10,7 @@ USE mettype_fd
 USE tooluser_fd
 USE files_fi
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 
 IMPLICIT NONE
 
@@ -621,7 +621,7 @@ END
 SUBROUTINE SetFullPath( filename )
 
 USE errorParam_fd
-USE winAPI
+USE myWinAPI
 USE DefSize_fd
 
 IMPLICIT NONE
@@ -715,7 +715,7 @@ END
 !*******************************************************************************
 SUBROUTINE ChangePath( path )
 
-USE winAPI
+USE myWinAPI
 USE errorParam_fd
 USE DefSize_fd
 

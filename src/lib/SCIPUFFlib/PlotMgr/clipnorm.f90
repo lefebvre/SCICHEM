@@ -621,28 +621,28 @@ INTEGER ios
 !==============================================================================
 !=== Deallocate memory
 
-!IF( clipInit )THEN
-!  IF( ALLOCATED(set_mean)   )DEALLOCATE( set_mean  ,STAT=ios)
-!  IF( ALLOCATED(set_sig)    )DEALLOCATE( set_sig   ,STAT=ios)
-!  IF( ALLOCATED(set_qq)     )DEALLOCATE( set_qq    ,STAT=ios)
-!  IF( ALLOCATED(gauss_mean) )DEALLOCATE( gauss_mean,STAT=ios)
-!  IF( ALLOCATED(gauss_sig)  )DEALLOCATE( gauss_sig ,STAT=ios)
-!  IF( ALLOCATED(gauss_gam)  )DEALLOCATE( gauss_gam ,STAT=ios)
-!  IF( ALLOCATED(gauss_gamI) )DEALLOCATE( gauss_gamI,STAT=ios)
-!  IF( ALLOCATED(full_gam)   )DEALLOCATE( full_gam  ,STAT=ios)
-!  IF( ALLOCATED(full_gamI)  )DEALLOCATE( full_gamI ,STAT=ios)
-!  IF( rndmInit )THEN
-!    IF( ALLOCATED(rndmCN)    )DEALLOCATE( rndmCN    ,STAT=ios)
-!    IF( ALLOCATED(rndmCDF)   )DEALLOCATE( rndmCDF   ,STAT=ios)
-!    IF( ALLOCATED(term_mean) )DEALLOCATE( term_mean ,STAT=ios)
-!    IF( ALLOCATED(term_sig)  )DEALLOCATE( term_sig  ,STAT=ios)
-!    IF( ALLOCATED(term_gam)  )DEALLOCATE( term_gam  ,STAT=ios)
-!    IF( ALLOCATED(tail_wt)   )DEALLOCATE( tail_wt   ,STAT=ios)
-!  END IF
-!  IF( ALLOCATED(term_coeff) )DEALLOCATE( term_coeff,STAT=ios)
-!  IF( ALLOCATED(termInit)   )DEALLOCATE( termInit  ,STAT=ios)
-!  IF( ALLOCATED(wrkspace)   )DEALLOCATE( wrkspace  ,STAT=ios)
-!END IF
+IF( clipInit )THEN
+  IF( ALLOCATED(set_mean)   )DEALLOCATE( set_mean  ,STAT=ios)
+  IF( ALLOCATED(set_sig)    )DEALLOCATE( set_sig   ,STAT=ios)
+  IF( ALLOCATED(set_qq)     )DEALLOCATE( set_qq    ,STAT=ios)
+  IF( ALLOCATED(gauss_mean) )DEALLOCATE( gauss_mean,STAT=ios)
+  IF( ALLOCATED(gauss_sig)  )DEALLOCATE( gauss_sig ,STAT=ios)
+  IF( ALLOCATED(gauss_gam)  )DEALLOCATE( gauss_gam ,STAT=ios)
+  IF( ALLOCATED(gauss_gamI) )DEALLOCATE( gauss_gamI,STAT=ios)
+  IF( ALLOCATED(full_gam)   )DEALLOCATE( full_gam  ,STAT=ios)
+  IF( ALLOCATED(full_gamI)  )DEALLOCATE( full_gamI ,STAT=ios)
+  IF( rndmInit )THEN
+    IF( ALLOCATED(rndmCN)    )DEALLOCATE( rndmCN    ,STAT=ios)
+    IF( ALLOCATED(rndmCDF)   )DEALLOCATE( rndmCDF   ,STAT=ios)
+    IF( ALLOCATED(term_mean) )DEALLOCATE( term_mean ,STAT=ios)
+    IF( ALLOCATED(term_sig)  )DEALLOCATE( term_sig  ,STAT=ios)
+    IF( ALLOCATED(term_gam)  )DEALLOCATE( term_gam  ,STAT=ios)
+    IF( ALLOCATED(tail_wt)   )DEALLOCATE( tail_wt   ,STAT=ios)
+  END IF
+  IF( ALLOCATED(term_coeff) )DEALLOCATE( term_coeff,STAT=ios)
+  IF( ALLOCATED(termInit)   )DEALLOCATE( termInit  ,STAT=ios)
+  IF( ALLOCATED(wrkspace)   )DEALLOCATE( wrkspace  ,STAT=ios)
+END IF
 
 !=== Reset initialization flags
 

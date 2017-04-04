@@ -8,7 +8,7 @@ MODULE dib
     FUNCTION OpenDIB(pString)
 !DEC$ ATTRIBUTES DECORATE, ALIAS : 'OpenDIB' :: OpenDIB
 !DEC$ ATTRIBUTES REFERENCE                   :: pString
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       INTEGER(POINTER_LEN) :: OpenDib
       CHARACTER(*) pString
     END FUNCTION OpENDIB
@@ -20,7 +20,7 @@ MODULE dib
 !DEC$ ATTRIBUTES DECORATE, ALIAS : 'DibInfo' :: DibInfo
 !DEC$ ATTRIBUTES VALUE                       :: hFile
 !DEC$ ATTRIBUTES REFERENCE                   :: hdr
-      USE winAPI_fd
+      USE myWinAPI_fd
       INTEGER(POINTER_LEN)        hFile
       TYPE ( T_BITMAPINFOHEADER ) hdr
     END FUNCTION DibInfo
@@ -31,7 +31,7 @@ MODULE dib
     FUNCTION CreateDibPalette(hDIB)
 !DEC$ ATTRIBUTES DECORATE, ALIAS : 'CreateDibPalette' :: CreateDibPalette
 !DEC$ ATTRIBUTES VALUE                                :: hDIB
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       INTEGER(POINTER_LEN) :: CreateDibPalette
       INTEGER(POINTER_LEN)    hDIB
     END FUNCTION CreateDibPalette
@@ -43,7 +43,7 @@ MODULE dib
 !DEC$ ATTRIBUTES DECORATE, ALIAS : 'BitmapFromDib' :: BitmapFromDib
 !DEC$ ATTRIBUTES VALUE                    :: hDIB
 !DEC$ ATTRIBUTES VALUE                    :: hPal
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       INTEGER(POINTER_LEN) :: BitmapFromDib
       INTEGER(POINTER_LEN)    hDIB
       INTEGER(POINTER_LEN)    hPal
@@ -58,7 +58,7 @@ MODULE dib
 !DEC$ ATTRIBUTES VALUE                    :: biStyle
 !DEC$ ATTRIBUTES VALUE                    :: biBits
 !DEC$ ATTRIBUTES VALUE                    :: hPal
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       INTEGER(POINTER_LEN) :: DibFromBitmap
       INTEGER(POINTER_LEN)    hBit
       INTEGER                 biStyle
@@ -73,7 +73,7 @@ MODULE dib
 !DEC$ ATTRIBUTES DECORATE, ALIAS : 'WriteDIB' :: WriteDIB
 !DEC$ ATTRIBUTES VALUE               :: pString
 !DEC$ ATTRIBUTES VALUE               :: hDIB
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       INTEGER(POINTER_LEN) Pstring
       INTEGER(POINTER_LEN) hDIB
     END FUNCTION WriteDIB
@@ -110,7 +110,7 @@ MODULE Pcx
 !DEC$ ATTRIBUTES DEFAULT                              :: pcxLoad
 !DEC$ ATTRIBUTES STDCALL, DECORATE, ALIAS : 'pcxLoad' :: pcxLoad
 !DEC$ ATTRIBUTES REFERENCE                            :: dummy0
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       CHARACTER(*)              dummy0
       INTEGER(POINTER_LEN)      dummy1
       INTEGER(POINTER_LEN)      dummy2
@@ -123,7 +123,7 @@ MODULE Pcx
 !DEC$ ATTRIBUTES DEFAULT                              :: pcxSave
 !DEC$ ATTRIBUTES STDCALL, DECORATE, ALIAS : 'pcxSave' :: pcxSave
 !DEC$ ATTRIBUTES REFERENCE                            :: dummy0
-      USE winAPI_fd, ONLY: POINTER_LEN
+      USE myWinAPI_fd, ONLY: POINTER_LEN
       CHARACTER(*)              dummy0
       INTEGER(POINTER_LEN)      dummy1
       INTEGER(POINTER_LEN)      dummy2

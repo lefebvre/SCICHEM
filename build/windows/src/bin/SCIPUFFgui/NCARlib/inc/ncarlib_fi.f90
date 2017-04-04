@@ -1,6 +1,6 @@
 MODULE ncarlib_fi
 
-  USE winAPI_fd
+  USE myWinAPI_fd
 
   SAVE
 

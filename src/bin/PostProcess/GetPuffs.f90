@@ -3,7 +3,7 @@
 !$Revision$
 !$Date$
 !*******************************************************************************
-INTEGER FUNCTION GetProjectPuffs( ToolUserID,puffHead,it,transfer,getMult )
+INTEGER FUNCTION GetProjectPuffs( ToolUserID,puffHead,it,transfer,getMult,flag )
 
 USE localpuf
 USE Extract_fi
@@ -17,6 +17,7 @@ TYPE( ppuffHeadT ) :: puffHead
 INTEGER            :: it
 LOGICAL            :: transfer
 LOGICAL            :: getMult
+INTEGER            :: flag
 
 INTEGER            :: irv, ios, i
 INTEGER            :: nChem
@@ -63,7 +64,8 @@ IF( getMult )THEN
 ELSE
   mcList%nMCtype = 0
 END IF
-irv = SCIPGetProjectPuff( ToolUserID,puffHead,it,SCIPfalse,puffs,puffAux,puffType,mcList )
+
+irv = SCIPGetProjectPuff( ToolUserID,puffHead,it,flag,puffs,puffAux,puffType,mcList )
 nChem = 0
 IF( getMult )THEN
   DO i = 1,mcList%nMCtype

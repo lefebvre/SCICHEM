@@ -60,7 +60,7 @@ ReadAERMODInput = SUCCESS
 9999 CONTINUE
 
 CLOSE(lun,IOSTAT=ios)
-IF( lPrimeFile )CLOSE(lun_pri,IOSTAT=ios)
+IF( lPRIME .AND. lPrimeFile )CLOSE(lun_pri,IOSTAT=ios)
 
 RETURN
 END
